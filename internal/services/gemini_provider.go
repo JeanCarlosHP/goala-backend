@@ -1,0 +1,274 @@
+package services
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+
+	"github.com/jeancarloshp/calorieai/internal/domain"
+)
+
+type GeminiProvider struct {
+	apiKey     string
+	httpClient *http.Client
+	logger     domain.Logger
+}
+
+func NewGeminiProvider(apiKey string, logger domain.Logger) *GeminiProvider {
+	return &GeminiProvider{
+		apiKey: apiKey,
+		httpClient: &http.Client{
+			Timeout: 60 * time.Second,
+		},
+		logger: logger,
+	}
+}
+
+func (g *GeminiProvider) RecognizeFood(
+	ctx context.Context,
+	imageBase64 string,
+	progressChan chan<- domain.ProgressUpdate,
+) ([]domain.RecognizedFoodItem, error) {
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "analyzing",
+		Percentage: 40,
+		Message:    "Sending image to Gemini AI...",
+	}
+
+	prompt := `Analyze this food image and return a JSON array of food items with their nutritional information.
+	For each food item, provide:
+	- name: food name in English
+	- calories: estimated calories
+	- protein: protein in grams
+	- carbs: carbohydrates in grams
+	- fat: fat in grams
+	- quantity: estimated quantity
+	- unit: unit of measurement (g, ml, or serving)
+	- confidence: confidence score between 0 and 1
+	
+	Return ONLY valid JSON in this format:
+	{"food_items": [{"name": "Rice", "calories": 130, "protein": 3, "carbs": 28, "fat": 0, "quantity": 100, "unit": "g", "confidence": 0.95}]}`
+
+	requestBody := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]interface{}{
+					{"text": prompt},
+					{
+						"inline_data": map[string]string{
+							"mime_type": "image/jpeg",
+							"data":      imageBase64,
+						},
+					},
+				},
+			},
+		},
+		"generationConfig": map[string]interface{}{
+			"temperature":     0.4,
+			"topK":            32,
+			"topP":            1,
+			"maxOutputTokens": 2048,
+		},
+	}
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=%s", g.apiKey)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "analyzing",
+		Percentage: 60,
+		Message:    "Waiting for AI response...",
+	}
+
+	resp, err := g.httpClient.Do(req)
+	if err != nil {
+		g.logger.Error("failed to call Gemini API", "error", err)
+		return nil, fmt.Errorf("failed to call Gemini API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		g.logger.Error("Gemini API returned error", "statusCode", resp.StatusCode, "body", string(bodyBytes))
+		return nil, fmt.Errorf("gemini API returned status %d", resp.StatusCode)
+	}
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "analyzing",
+		Percentage: 80,
+		Message:    "Processing AI response...",
+	}
+
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
+		g.logger.Error("failed to decode Gemini response", "error", err)
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return nil, fmt.Errorf("no response from Gemini")
+	}
+
+	responseText := geminiResp.Candidates[0].Content.Parts[0].Text
+
+	var foodData struct {
+		FoodItems []domain.RecognizedFoodItem `json:"food_items"`
+	}
+
+	if err := json.Unmarshal([]byte(responseText), &foodData); err != nil {
+		g.logger.Error("failed to parse food items", "error", err, "text", responseText)
+		return nil, fmt.Errorf("failed to parse food items: %w", err)
+	}
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "analyzing",
+		Percentage: 95,
+		Message:    "Finalizing results...",
+	}
+
+	return foodData.FoodItems, nil
+}
+
+func (g *GeminiProvider) EstimateQuantity(
+	ctx context.Context,
+	imageBase64 string,
+	req *domain.EstimateQuantityRequest,
+	progressChan chan<- domain.ProgressUpdate,
+) (*domain.EstimateQuantityResponse, error) {
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "estimating",
+		Percentage: 40,
+		Message:    "Sending image to Gemini AI...",
+	}
+
+	prompt := fmt.Sprintf(`Analyze this image to estimate the quantity of %s.
+	Consider the context: meal location is %s, meal type is %s.
+	
+	Return ONLY valid JSON in this format:
+	{
+		"estimatedQuantity": <number>,
+		"unit": "<g|ml|serving>",
+		"confidence": <0-1>,
+		"reasoning": "Brief explanation of the estimation"
+	}`, req.Name, req.MealLocation, req.Type)
+
+	if req.ReferenceServingSize != nil && req.ReferenceServingUnit != nil {
+		prompt += fmt.Sprintf("\nReference serving: %s %s", *req.ReferenceServingSize, *req.ReferenceServingUnit)
+	}
+
+	requestBody := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]interface{}{
+					{"text": prompt},
+					{
+						"inline_data": map[string]string{
+							"mime_type": "image/jpeg",
+							"data":      imageBase64,
+						},
+					},
+				},
+			},
+		},
+		"generationConfig": map[string]interface{}{
+			"temperature":     0.4,
+			"topK":            32,
+			"topP":            1,
+			"maxOutputTokens": 1024,
+		},
+	}
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=%s", g.apiKey)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "estimating",
+		Percentage: 60,
+		Message:    "Waiting for AI response...",
+	}
+
+	resp, err := g.httpClient.Do(httpReq)
+	if err != nil {
+		g.logger.Error("failed to call Gemini API", "error", err)
+		return nil, fmt.Errorf("failed to call Gemini API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		g.logger.Error("Gemini API returned error", "statusCode", resp.StatusCode, "body", string(bodyBytes))
+		return nil, fmt.Errorf("gemini API returned status %d", resp.StatusCode)
+	}
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "estimating",
+		Percentage: 80,
+		Message:    "Processing AI response...",
+	}
+
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
+		g.logger.Error("failed to decode Gemini response", "error", err)
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return nil, fmt.Errorf("no response from Gemini")
+	}
+
+	responseText := geminiResp.Candidates[0].Content.Parts[0].Text
+
+	var result domain.EstimateQuantityResponse
+	if err := json.Unmarshal([]byte(responseText), &result); err != nil {
+		g.logger.Error("failed to parse quantity estimation", "error", err, "text", responseText)
+		return nil, fmt.Errorf("failed to parse quantity estimation: %w", err)
+	}
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "estimating",
+		Percentage: 95,
+		Message:    "Finalizing results...",
+	}
+
+	return &result, nil
+}

@@ -1,0 +1,5 @@
+{
+  "yaml.schemas": {
+    "https://www.schemastore.org/prometheus.json": "file:///Users/jean/Projects/projects/calorie-ai/backend/grafana/provisioning/datasources/prometheus.yml"
+  }
+}

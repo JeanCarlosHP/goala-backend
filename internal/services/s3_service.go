@@ -1,0 +1,148 @@
+package services
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/google/uuid"
+	"github.com/jeancarloshp/calorieai/internal/domain"
+)
+
+type S3Service struct {
+	client     *s3.Client
+	bucketName string
+	logger     domain.Logger
+}
+
+func NewS3Service(cfg *domain.Config, logger domain.Logger) (*S3Service, error) {
+	awsConfig, err := config.LoadDefaultConfig(context.Background(),
+		config.WithRegion(cfg.AWSS3Region),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			cfg.AWSAccessKeyID,
+			cfg.AWSSecretAccessKey,
+			"",
+		)),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	client := s3.NewFromConfig(awsConfig)
+
+	return &S3Service{
+		client:     client,
+		bucketName: cfg.AWSS3BucketName,
+		logger:     logger,
+	}, nil
+}
+
+func (s *S3Service) UploadImage(ctx context.Context, fileContent io.Reader, fileType string) (string, error) {
+	fileID := uuid.New().String()
+	ext := getExtensionFromMimeType(fileType)
+	fileName := fmt.Sprintf("food-images/%s-%d%s", fileID, time.Now().Unix(), ext)
+
+	buf := new(bytes.Buffer)
+	size, err := buf.ReadFrom(fileContent)
+	if err != nil {
+		s.logger.Error("failed to read file content", "error", err)
+		return "", fmt.Errorf("failed to read file content: %w", err)
+	}
+
+	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:        aws.String(s.bucketName),
+		Key:           aws.String(fileName),
+		Body:          bytes.NewReader(buf.Bytes()),
+		ContentLength: aws.Int64(size),
+		ContentType:   aws.String(fileType),
+	})
+	if err != nil {
+		s.logger.Error("failed to upload to S3", "error", err, "fileName", fileName)
+		return "", fmt.Errorf("failed to upload to S3: %w", err)
+	}
+
+	url := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", s.bucketName, s.client.Options().Region, fileName)
+	s.logger.Info("image uploaded successfully", "url", url)
+
+	return url, nil
+}
+
+func getExtensionFromMimeType(mimeType string) string {
+	extensions := map[string]string{
+		"image/jpeg": ".jpg",
+		"image/jpg":  ".jpg",
+		"image/png":  ".png",
+		"image/webp": ".webp",
+		"image/heic": ".heic",
+	}
+
+	if ext, ok := extensions[mimeType]; ok {
+		return ext
+	}
+	return filepath.Ext(mimeType)
+}
+
+func (s *S3Service) GenerateUploadPresignedURL(ctx context.Context, firebaseUID string, contentType string, fileSize int64) (string, string, error) {
+	const (
+		maxFileSize     = 5 * 1024 * 1024
+		presignDuration = 5 * time.Minute
+	)
+
+	if fileSize > maxFileSize {
+		return "", "", fmt.Errorf("file size exceeds maximum allowed size of %d bytes", maxFileSize)
+	}
+
+	allowedTypes := map[string]bool{
+		"image/jpeg": true,
+		"image/jpg":  true,
+		"image/png":  true,
+		"image/webp": true,
+	}
+
+	contentType = strings.ToLower(strings.TrimSpace(contentType))
+	if !allowedTypes[contentType] {
+		return "", "", fmt.Errorf("invalid content type: %s. Allowed types: jpeg, jpg, png, webp", contentType)
+	}
+
+	ext := getExtensionFromMimeType(contentType)
+	if ext == "" {
+		ext = ".jpg"
+	}
+
+	fileName := fmt.Sprintf("avatars/%s/avatar%s", firebaseUID, ext)
+
+	presignClient := s3.NewPresignClient(s.client)
+
+	putObjectInput := &s3.PutObjectInput{
+		Bucket:        aws.String(s.bucketName),
+		Key:           aws.String(fileName),
+		ContentType:   aws.String(contentType),
+		ContentLength: aws.Int64(fileSize),
+	}
+
+	presignedReq, err := presignClient.PresignPutObject(ctx, putObjectInput, func(opts *s3.PresignOptions) {
+		opts.Expires = presignDuration
+	})
+	if err != nil {
+		s.logger.Error("failed to generate presigned URL", "error", err, "userID", firebaseUID)
+		return "", "", fmt.Errorf("failed to generate presigned URL: %w", err)
+	}
+
+	avatarPath := fmt.Sprintf("/%s", fileName)
+
+	s.logger.Info("presigned URL generated successfully",
+		"userID", firebaseUID,
+		"fileName", fileName,
+		"expiresIn", presignDuration.String(),
+	)
+
+	return presignedReq.URL, avatarPath, nil
+}

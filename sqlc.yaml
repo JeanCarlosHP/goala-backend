@@ -1,0 +1,49 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "pkg/database/queries"
+    schema: "pkg/database/migrations"
+    gen:
+      go:
+        package: "db"
+        out: "pkg/database/db"
+        sql_package: "pgx/v5"
+        emit_pointers_for_null_types: true
+        emit_empty_slices: true
+        emit_interface: true
+        overrides:
+        # Convert *pgtype.Timestamp -> time.Time
+        - db_type: "pg_catalog.timestamp"
+          nullable: true
+          go_type:
+            import: "time"
+            type: "Time"
+            pointer: true
+
+        # Convert pgtype.Timestamp -> time.Time
+        - db_type: "pg_catalog.timestamp"
+          go_type:
+            import: "time"
+            type: "Time"
+
+        # Convert int32 -> int
+        - db_type: "serial"
+          go_type:
+            type: "int"
+
+        # Convert *int32 -> int
+        - db_type: "pg_catalog.int4"
+          nullable: true
+          go_type:
+            type: "int"
+            pointer: true
+        
+        # Convert int32 -> int
+        - db_type: "pg_catalog.int4"
+          go_type:
+            type: "int"
+        
+        # Convert int32 -> int
+        - db_type: "integer"
+          go_type:
+            type: "int"

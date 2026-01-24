@@ -1,0 +1,211 @@
+package services
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jeancarloshp/calorieai/internal/domain"
+	"github.com/jeancarloshp/calorieai/pkg/database/db"
+)
+
+type BarcodeService struct {
+	foodRepo         *db.Queries
+	openFoodFactsURL string
+	httpClient       *http.Client
+	logger           domain.Logger
+}
+
+func NewBarcodeService(
+	foodRepo *db.Queries,
+	cfg *domain.Config,
+	logger domain.Logger,
+) *BarcodeService {
+	openFoodFactsURL := cfg.OpenFoodFactsAPIURL
+	if openFoodFactsURL == "" {
+		openFoodFactsURL = "https://world.openfoodfacts.org/api/v2"
+	}
+
+	return &BarcodeService{
+		foodRepo:         foodRepo,
+		openFoodFactsURL: openFoodFactsURL,
+		httpClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+		logger: logger,
+	}
+}
+
+func (s *BarcodeService) GetFoodByBarcode(ctx context.Context, barcode string) (*domain.FoodBarcodeResponse, error) {
+	cached, err := s.foodRepo.GetFoodByBarcode(ctx, &barcode)
+	if err == nil {
+		s.logger.Info("found food in cache", "barcode", barcode)
+		return s.mapDBToResponse(&cached), nil
+	}
+
+	s.logger.Info("food not in cache, fetching from OpenFoodFacts", "barcode", barcode)
+
+	offFood, err := s.fetchFromOpenFoodFacts(ctx, barcode)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.cacheFoodInDB(ctx, barcode, offFood); err != nil {
+		s.logger.Warn("failed to cache food in database", "error", err)
+	}
+
+	return offFood, nil
+}
+
+func (s *BarcodeService) fetchFromOpenFoodFacts(ctx context.Context, barcode string) (*domain.FoodBarcodeResponse, error) {
+	url := fmt.Sprintf("%s/product/%s.json", s.openFoodFactsURL, barcode)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("User-Agent", "CalorieAI/1.0")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		s.logger.Error("failed to call OpenFoodFacts", "error", err)
+		return nil, fmt.Errorf("failed to call OpenFoodFacts: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("barcode not found")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("OpenFoodFacts returned status %d", resp.StatusCode)
+	}
+
+	var offResp struct {
+		Status  int `json:"status"`
+		Product struct {
+			ProductName       string `json:"product_name"`
+			Brands            string `json:"brands"`
+			NutrimentsPer100g struct {
+				EnergyKcal100g float64 `json:"energy-kcal_100g"`
+				Proteins100g   float64 `json:"proteins_100g"`
+				Carbs100g      float64 `json:"carbohydrates_100g"`
+				Fat100g        float64 `json:"fat_100g"`
+			} `json:"nutriments"`
+		} `json:"product"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&offResp); err != nil {
+		s.logger.Error("failed to decode OpenFoodFacts response", "error", err)
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if offResp.Status != 1 {
+		return nil, fmt.Errorf("product not found in OpenFoodFacts")
+	}
+
+	source := "OpenFoodFacts"
+	brand := offResp.Product.Brands
+	servingSize := int32(100)
+	servingUnit := "g"
+
+	return &domain.FoodBarcodeResponse{
+		Barcode:     barcode,
+		Name:        offResp.Product.ProductName,
+		Brand:       &brand,
+		Calories:    int32(offResp.Product.NutrimentsPer100g.EnergyKcal100g),
+		Protein:     int32(offResp.Product.NutrimentsPer100g.Proteins100g),
+		Carbs:       int32(offResp.Product.NutrimentsPer100g.Carbs100g),
+		Fat:         int32(offResp.Product.NutrimentsPer100g.Fat100g),
+		ServingSize: &servingSize,
+		ServingUnit: &servingUnit,
+		Source:      &source,
+	}, nil
+}
+
+func (s *BarcodeService) cacheFoodInDB(ctx context.Context, barcode string, food *domain.FoodBarcodeResponse) error {
+	params := db.CreateFoodFromBarcodeParams{
+		Barcode:  &barcode,
+		Name:     food.Name,
+		Calories: intPtrFromInt32Ptr(&food.Calories),
+		ProteinG: float64ToNumeric(float64(food.Protein)),
+		CarbsG:   float64ToNumeric(float64(food.Carbs)),
+		FatG:     float64ToNumeric(float64(food.Fat)),
+	}
+
+	if food.Brand != nil {
+		params.Brand = food.Brand
+	}
+	if food.ServingSize != nil {
+		params.ServingSize = intPtrFromInt32Ptr(food.ServingSize)
+	}
+	if food.ServingUnit != nil {
+		params.ServingUnit = food.ServingUnit
+	}
+	source := "OpenFoodFacts"
+	params.Source = &source
+
+	_, err := s.foodRepo.CreateFoodFromBarcode(ctx, params)
+	return err
+}
+
+func (s *BarcodeService) mapDBToResponse(food *db.FoodDatabase) *domain.FoodBarcodeResponse {
+	source := "Database"
+	var barcode string
+	if food.Barcode != nil {
+		barcode = *food.Barcode
+	}
+
+	calories := int32(0)
+	if food.Calories != nil {
+		calories = int32(*food.Calories)
+	}
+
+	protein := int32(numericToFloat64(food.ProteinG))
+	carbs := int32(numericToFloat64(food.CarbsG))
+	fat := int32(numericToFloat64(food.FatG))
+
+	var servingSize *int32
+	if food.ServingSize != nil {
+		ss := int32(*food.ServingSize)
+		servingSize = &ss
+	}
+
+	return &domain.FoodBarcodeResponse{
+		Barcode:     barcode,
+		Name:        food.Name,
+		Brand:       food.Brand,
+		Calories:    calories,
+		Protein:     protein,
+		Carbs:       carbs,
+		Fat:         fat,
+		ServingSize: servingSize,
+		ServingUnit: food.ServingUnit,
+		Source:      &source,
+	}
+}
+
+func intPtrFromInt32Ptr(i *int32) *int {
+	if i == nil {
+		return nil
+	}
+	val := int(*i)
+	return &val
+}
+
+func float64ToNumeric(f float64) pgtype.Numeric {
+	var num pgtype.Numeric
+	num.Scan(f)
+	return num
+}
+
+func numericToFloat64(n pgtype.Numeric) float64 {
+	if !n.Valid {
+		return 0
+	}
+	f, _ := n.Float64Value()
+	return f.Float64
+}

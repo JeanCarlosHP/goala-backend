@@ -1,0 +1,2 @@
+ALTER TABLE user_goals DROP COLUMN IF EXISTS fat_g;
+ALTER TABLE user_goals DROP COLUMN IF EXISTS carbs_g;

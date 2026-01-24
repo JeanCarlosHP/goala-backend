@@ -1,0 +1,201 @@
+package services
+
+import (
+	"context"
+	"encoding/base64"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"time"
+
+	"github.com/jeancarloshp/calorieai/internal/domain"
+)
+
+type FoodRecognitionService struct {
+	s3Service  *S3Service
+	aiProvider AIProvider
+	logger     domain.Logger
+}
+
+func NewFoodRecognitionService(
+	s3Service *S3Service,
+	cfg *domain.Config,
+	logger domain.Logger,
+) *FoodRecognitionService {
+	var aiProvider AIProvider
+
+	// Escolhe o provider baseado na config
+	switch cfg.AIProvider {
+	case "gemini", "":
+		aiProvider = NewGeminiProvider(cfg.GeminiAPIKey, logger)
+	case "openai":
+		// TODO: Implementar OpenAI provider
+		logger.Warn("OpenAI provider not implemented yet, falling back to Gemini")
+		aiProvider = NewGeminiProvider(cfg.GeminiAPIKey, logger)
+	default:
+		logger.Warn("Unknown AI provider, using Gemini", "provider", cfg.AIProvider)
+		aiProvider = NewGeminiProvider(cfg.GeminiAPIKey, logger)
+	}
+
+	return &FoodRecognitionService{
+		s3Service:  s3Service,
+		aiProvider: aiProvider,
+		logger:     logger,
+	}
+}
+
+func (s *FoodRecognitionService) RecognizeFoodWithProgress(
+	ctx context.Context,
+	fileHeader *multipart.FileHeader,
+	req *domain.FoodRecognitionRequest,
+	progressChan chan<- domain.ProgressUpdate,
+) (*domain.FoodRecognitionResponse, error) {
+	startTime := time.Now()
+	defer close(progressChan)
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "upload",
+		Percentage: 0,
+		Message:    "Starting image upload...",
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		s.logger.Error("failed to open uploaded file", "error", err)
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "upload",
+		Percentage: 10,
+		Message:    "Reading image data...",
+	}
+
+	// Ler o conteúdo do arquivo
+	imageBytes, err := io.ReadAll(file)
+	if err != nil {
+		s.logger.Error("failed to read file", "error", err)
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "upload",
+		Percentage: 20,
+		Message:    "Uploading to S3...",
+	}
+
+	// Upload para S3
+	file.Seek(0, 0) // Reset file pointer
+	imageURL, err := s.s3Service.UploadImage(ctx, file, fileHeader.Header.Get("Content-Type"))
+	if err != nil {
+		s.logger.Error("failed to upload image to S3", "error", err)
+		return nil, fmt.Errorf("failed to upload image: %w", err)
+	}
+
+	s.logger.Info("image uploaded successfully", "url", imageURL)
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "upload",
+		Percentage: 25,
+		Message:    "Image uploaded successfully",
+	}
+
+	// Converter para base64 para enviar para a IA
+	imageBase64 := base64.StdEncoding.EncodeToString(imageBytes)
+
+	// Chamar IA para reconhecimento
+	foodItems, err := s.aiProvider.RecognizeFood(ctx, imageBase64, progressChan)
+	if err != nil {
+		s.logger.Error("failed to recognize food", "error", err)
+		return nil, fmt.Errorf("failed to recognize food: %w", err)
+	}
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "complete",
+		Percentage: 100,
+		Message:    fmt.Sprintf("Successfully recognized %d food items", len(foodItems)),
+	}
+
+	processingTime := int32(time.Since(startTime).Milliseconds())
+
+	return &domain.FoodRecognitionResponse{
+		FoodItems:      foodItems,
+		ProcessingTime: processingTime,
+	}, nil
+}
+
+func (s *FoodRecognitionService) EstimateQuantityWithProgress(
+	ctx context.Context,
+	fileHeader *multipart.FileHeader,
+	req *domain.EstimateQuantityRequest,
+	progressChan chan<- domain.ProgressUpdate,
+) (*domain.EstimateQuantityResponse, error) {
+	defer close(progressChan)
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "upload",
+		Percentage: 0,
+		Message:    "Starting image upload...",
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		s.logger.Error("failed to open uploaded file", "error", err)
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "upload",
+		Percentage: 10,
+		Message:    "Reading image data...",
+	}
+
+	// Ler o conteúdo do arquivo
+	imageBytes, err := io.ReadAll(file)
+	if err != nil {
+		s.logger.Error("failed to read file", "error", err)
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "upload",
+		Percentage: 20,
+		Message:    "Uploading to S3...",
+	}
+
+	// Upload para S3
+	file.Seek(0, 0) // Reset file pointer
+	imageURL, err := s.s3Service.UploadImage(ctx, file, fileHeader.Header.Get("Content-Type"))
+	if err != nil {
+		s.logger.Error("failed to upload image to S3", "error", err)
+		return nil, fmt.Errorf("failed to upload image: %w", err)
+	}
+
+	s.logger.Info("image uploaded successfully", "url", imageURL)
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "upload",
+		Percentage: 25,
+		Message:    "Image uploaded successfully",
+	}
+
+	// Converter para base64
+	imageBase64 := base64.StdEncoding.EncodeToString(imageBytes)
+
+	// Chamar IA para estimativa
+	result, err := s.aiProvider.EstimateQuantity(ctx, imageBase64, req, progressChan)
+	if err != nil {
+		s.logger.Error("failed to estimate quantity", "error", err)
+		return nil, fmt.Errorf("failed to estimate quantity: %w", err)
+	}
+
+	progressChan <- domain.ProgressUpdate{
+		Stage:      "complete",
+		Percentage: 100,
+		Message:    "Quantity estimation completed",
+	}
+
+	return result, nil
+}
