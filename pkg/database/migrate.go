@@ -8,12 +8,11 @@ import (
 	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database"
-	pgxv5driver "github.com/golang-migrate/migrate/v4/database/pgx/v5"
+	_ "github.com/golang-migrate/migrate/v4/database/cockroachdb"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 )
 
@@ -21,64 +20,58 @@ import (
 var migrations embed.FS
 
 type Migrator struct {
-	Conn   *pgxpool.Pool
-	config *domain.Config
-	logger domain.Logger
+	Conn         *pgxpool.Pool
+	logger       domain.Logger
+	migrator     *migrate.Migrate
+	sourceDriver source.Driver
 }
 
-func NewMigrator(conn *pgxpool.Pool, config *domain.Config, logger domain.Logger) *Migrator {
-	return &Migrator{
-		Conn:   conn,
-		config: config,
-		logger: logger,
+func NewMigrator(conn *pgxpool.Pool, migrationURL string, logger domain.Logger) (*Migrator, error) {
+	var src source.Driver
+	src, err := iofs.New(migrations, "migrations")
+	if err != nil {
+		return nil, fmt.Errorf("create iofs source driver: %w", err)
 	}
+
+	migrator, err := migrate.NewWithSourceInstance("iofs", src, migrationURL)
+	if err != nil {
+		return nil, fmt.Errorf("create migrate instance: %w", err)
+	}
+
+	return &Migrator{
+		Conn:         conn,
+		logger:       logger,
+		migrator:     migrator,
+		sourceDriver: src,
+	}, nil
 }
 
 func (mg *Migrator) Migrate() (err error) {
-	var src source.Driver
-	src, err = iofs.New(migrations, "migrations")
-	if err != nil {
-		return
-	}
+	defer mg.migrator.Close()
 
-	var dst database.Driver
-	db := stdlib.OpenDBFromPool(mg.Conn)
-	dst, err = pgxv5driver.WithInstance(db, &pgxv5driver.Config{
-		MultiStatementMaxSize: pgxv5driver.DefaultMultiStatementMaxSize,
-	})
-	if err != nil {
-		db.Close()
-		return fmt.Errorf("create pgx driver: %w", err)
-	}
-	var m *migrate.Migrate
-	m, err = migrate.NewWithInstance("embed", src, "pgx5", dst)
-	if err != nil {
-		return fmt.Errorf("create migrate instance: %w", err)
-	}
-	defer m.Close()
-
-	v, d, err := dst.Version()
+	v, d, err := mg.migrator.Version()
 	if err != nil {
 		return fmt.Errorf("get current migration version: %w", err)
 	}
 
-	l, err := mg.latestSourceVersion(src)
+	latestVersion, err := mg.latestSourceVersion()
 	if err != nil {
 		return fmt.Errorf("get latest migration version: %w", err)
 	}
 
-	if v == l && !d {
+	if v == latestVersion && !d {
 		mg.logger.Info("database is up to date")
 		return nil
 	}
 
-	mg.logger.Info("running migrations", "current_version", v, "latest_version", l)
+	mg.logger.Info("running migrations", "current_version", v, "latest_version", latestVersion)
 
-	err = m.Up()
+	err = mg.migrator.Up()
 	if err != nil && err != migrate.ErrNoChange {
 		if strings.Contains(err.Error(), "Dirty database version") {
-			mg.logger.Info("database is dirty")
-			err := mg.verifyDatabaseVersion(m, src, dst)
+			mg.logger.Warn("database is dirty")
+
+			err = mg.verifyDatabaseVersion()
 			if err != nil {
 				return fmt.Errorf("verify database version: %w", err)
 			}
@@ -92,17 +85,17 @@ func (mg *Migrator) Migrate() (err error) {
 	return nil
 }
 
-func (mg *Migrator) latestSourceVersion(sourceDriver source.Driver) (int, error) {
+func (mg *Migrator) latestSourceVersion() (uint, error) {
 	var v uint
 	var err error
-	v, err = sourceDriver.First()
+	v, err = mg.sourceDriver.First()
 	if err != nil {
 		return 0, err
 	}
 
 	for {
 		var nextVersion uint
-		nextVersion, err = sourceDriver.Next(v)
+		nextVersion, err = mg.sourceDriver.Next(v)
 		if err == os.ErrNotExist {
 			break
 		} else if pathErr, ok := err.(*os.PathError); ok && pathErr.Err == os.ErrNotExist {
@@ -113,34 +106,34 @@ func (mg *Migrator) latestSourceVersion(sourceDriver source.Driver) (int, error)
 		v = nextVersion
 	}
 
-	return int(v), nil
+	return v, nil
 }
 
-func (mg *Migrator) verifyDatabaseVersion(migrator *migrate.Migrate, sourceDriver source.Driver, destinationDriver database.Driver) error {
-	versionInDB, d, err := destinationDriver.Version()
+func (mg *Migrator) verifyDatabaseVersion() error {
+	version, isDirty, err := mg.migrator.Version()
 	if err != nil {
-		return fmt.Errorf("get current migration version in DB: %w", err)
+		return fmt.Errorf("get current migration version: %w", err)
 	}
 
-	latestVersionOnFile, err := mg.latestSourceVersion(sourceDriver)
+	latestVersionOnFile, err := mg.latestSourceVersion()
 	if err != nil {
 		return fmt.Errorf("check latest migration version on file: %w", err)
 	}
 
 	switch {
-	case versionInDB == latestVersionOnFile && d:
-		err := mg.forceDatabaseVersion(migrator, versionInDB)
+	case version == latestVersionOnFile && isDirty:
+		err := mg.forceDatabaseVersion(version)
 		if err != nil {
 			return err
 		}
 
-	case versionInDB < latestVersionOnFile:
-		err = mg.forceDatabaseVersion(migrator, latestVersionOnFile-1)
+	case version < latestVersionOnFile:
+		err = mg.forceDatabaseVersion(latestVersionOnFile - 1)
 		if err != nil {
 			return fmt.Errorf("force set migration to latest version on file: %w", err)
 		}
 
-	case versionInDB == 1:
+	case version == 1:
 		ct, err := mg.Conn.Exec(context.Background(), "DROP TABLE IF EXISTS schema_migrations")
 		if err != nil {
 			return fmt.Errorf("drop migration: %w", err)
@@ -153,9 +146,9 @@ func (mg *Migrator) verifyDatabaseVersion(migrator *migrate.Migrate, sourceDrive
 	return mg.Migrate()
 }
 
-func (mg *Migrator) forceDatabaseVersion(migrator *migrate.Migrate, version int) error {
+func (mg *Migrator) forceDatabaseVersion(version uint) error {
 	mg.logger.Info("force setting migration version", "version", version)
-	err := migrator.Force(version)
+	err := mg.migrator.Force(int(version))
 	if err != nil {
 		return fmt.Errorf("force set migration version: %w", err)
 	}

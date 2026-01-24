@@ -1,11 +1,6 @@
 package domain
 
 type Config struct {
-	DatabaseName                       string `mapstructure:"DATABASE_NAME"`
-	DatabaseHost                       string `mapstructure:"DATABASE_HOST"`
-	DatabaseUser                       string `mapstructure:"DATABASE_USER"`
-	DatabasePassword                   string `mapstructure:"DATABASE_PASSWORD"`
-	DatabasePort                       string `mapstructure:"DATABASE_PORT"`
 	HTTPPort                           string `mapstructure:"HTTP_PORT"`
 	HTTPRequestSizeLimit               string `mapstructure:"HTTP_REQUEST_SIZE_LIMIT"`
 	HTTPCorsAllowedOrigins             string `mapstructure:"HTTP_CORS_ALLOWED_ORIGINS"`
@@ -14,11 +9,12 @@ type Config struct {
 	Environment                        string `mapstructure:"ENVIRONMENT"`
 	LoggingLevel                       string `mapstructure:"LOGGING_LEVEL"`
 	DatabaseMigrationPath              string `mapstructure:"DATABASE_MIGRATION_PATH"`
+	DatabaseURL                        string `mapstructure:"DATABASE_URL"`
+	DatabaseMigrationURL               string `mapstructure:"DATABASE_MIGRATION_URL"`
 	PaginationMaxPerPage               int    `mapstructure:"PAGINATION_MAX_PER_PAGE"`
 	PaginationDefaultPageSize          int    `mapstructure:"PAGINATION_DEFAULT_PAGE_SIZE"`
 	DatabaseTracing                    bool   `mapstructure:"DATABASE_TRACING"`
 	DatabaseShouldForceSetLowerVersion bool   `mapstructure:"DATABASE_MIGRATION_FORCE_SET_LOWER_VERSION"`
-	DatabaseSslMode                    string `mapstructure:"DATABASE_SSL_MODE"`
 	LoggingJSONFormat                  bool   `mapstructure:"LOGGING_JSON_FORMAT"`
 	FirebaseCredentialsFile            string `mapstructure:"FIREBASE_CREDENTIALS_FILE"`
 	FirebaseCredentialsJSON            string `mapstructure:"FIREBASE_CREDENTIALS_JSON"`

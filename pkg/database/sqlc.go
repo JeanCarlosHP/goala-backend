@@ -25,8 +25,7 @@ func New(logger domain.Logger) *Database {
 func (d *Database) NewConnection(config *domain.Config) error {
 	ctx := context.Background()
 
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", config.DatabaseHost, config.DatabasePort, config.DatabaseUser, config.DatabasePassword, config.DatabaseName, config.DatabaseSslMode)
-	pgxConfig, err := pgxpool.ParseConfig(dsn)
+	pgxConfig, err := pgxpool.ParseConfig(config.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("pgxpool.ParseConfig: %w", err)
 	}
@@ -46,7 +45,10 @@ func (d *Database) NewConnection(config *domain.Config) error {
 		d.Logger.Panicf("error connecting to database: %v", err)
 	}
 
-	migrator := NewMigrator(pool, config, d.Logger)
+	migrator, err := NewMigrator(pool, config.DatabaseMigrationURL, d.Logger)
+	if err != nil {
+		return fmt.Errorf("create migrator: %w", err)
+	}
 
 	err = migrator.Migrate()
 	if err != nil {
