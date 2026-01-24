@@ -12,7 +12,17 @@ import (
 )
 
 func New(ctx context.Context, cfg *domain.Config) (*firebase.App, error) {
-	opt := option.WithAuthCredentialsFile("service_account", cfg.FirebaseCredentialsFile)
+	if cfg.FirebaseCredentialsFile == "" && cfg.FirebaseCredentialsJSON == "" {
+		log.Info().Msg("Firebase credentials not provided, skipping Firebase initialization")
+		return nil, nil
+	}
+
+	var opt option.ClientOption
+	if cfg.FirebaseCredentialsFile != "" {
+		opt = option.WithAuthCredentialsFile("service_account", cfg.FirebaseCredentialsFile)
+	} else {
+		opt = option.WithAuthCredentialsJSON("service_account", []byte(cfg.FirebaseCredentialsJSON))
+	}
 
 	app, err := firebase.NewApp(ctx, nil, opt)
 	if err != nil {
