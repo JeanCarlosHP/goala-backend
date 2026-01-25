@@ -136,6 +136,7 @@ func main() {
 	protected.Post("/feedback", feedbackHandler.CreateFeedback)
 
 	protected.Post("/food/recognize",
+		middleware.AuthRequired(firebaseApp), middleware.UserContext(userRepo),
 		middleware.AIQuotaCheck(aiUsageService, enum.FeatureFoodRecognition, logger),
 		foodRecognitionHandler.RecognizeFood)
 	protected.Get("/food/barcode/:barcode", foodRecognitionHandler.GetFoodByBarcode)

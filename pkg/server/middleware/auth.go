@@ -55,6 +55,7 @@ func UserContext(userRepo *repositories.UserRepository) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		firebaseUID, ok := c.Locals("firebase_uid").(string)
 		if !ok || firebaseUID == "" {
+			log.Warn().Msg("Missing firebase_uid in context")
 			return c.Next()
 		}
 
