@@ -9,6 +9,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jeancarloshp/calorieai/internal/domain"
+	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/internal/services"
 	"github.com/rs/zerolog/log"
 )
@@ -17,21 +18,51 @@ type FoodRecognitionHandler struct {
 	foodRecognitionService *services.FoodRecognitionService
 	barcodeService         *services.BarcodeService
 	validator              *validator.Validate
+	aiUsageService         *services.AIUsageService
 }
 
 func NewFoodRecognitionHandler(
 	foodRecognitionService *services.FoodRecognitionService,
 	barcodeService *services.BarcodeService,
+	aiUsageService *services.AIUsageService,
 ) *FoodRecognitionHandler {
 	return &FoodRecognitionHandler{
 		foodRecognitionService: foodRecognitionService,
 		barcodeService:         barcodeService,
 		validator:              validator.New(),
+		aiUsageService:         aiUsageService,
 	}
 }
 
 func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok || userID == "" {
+		log.Warn().Msg("Missing user_id in context")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "authentication required",
+		})
+	}
+
 	ctx := context.Background()
+	if err := h.aiUsageService.CheckAndIncrementUsage(ctx, userID, enum.FeatureFoodRecognition); err != nil {
+		if services.IsQuotaExceededError(err) {
+			log.Warn().Msgf("Quota exceeded for user %s and feature %s",
+				userID, enum.FeatureFoodRecognition)
+			return c.Status(fiber.StatusPaymentRequired).JSON(fiber.Map{
+				"success": false,
+				"message": "quota exceeded for this feature",
+				"code":    "QUOTA_EXCEEDED",
+				"feature": enum.FeatureFoodRecognition,
+			})
+		}
+
+		log.Error().Err(err).Str("user_id", userID).Msg("Failed to validate quota")
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "failed to validate quota",
+		})
+	}
 
 	fileHeader, err := c.FormFile("image")
 	if err != nil {

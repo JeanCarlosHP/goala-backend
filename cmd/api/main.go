@@ -88,7 +88,7 @@ func main() {
 	statsHandler := handlers.NewStatsHandler(statsService)
 	achievementHandler := handlers.NewAchievementHandler(achievementService)
 	feedbackHandler := handlers.NewFeedbackHandler(feedbackService, userService)
-	foodRecognitionHandler := handlers.NewFoodRecognitionHandler(foodRecognitionService, barcodeService)
+	foodRecognitionHandler := handlers.NewFoodRecognitionHandler(foodRecognitionService, barcodeService, aiUsageService)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService, revenueCatService, logger)
 	aiUsageHandler := handlers.NewAIUsageHandler(aiUsageService, logger)
 
@@ -135,10 +135,7 @@ func main() {
 
 	protected.Post("/feedback", feedbackHandler.CreateFeedback)
 
-	protected.Post("/food/recognize",
-		middleware.AuthRequired(firebaseApp), middleware.UserContext(userRepo),
-		middleware.AIQuotaCheck(aiUsageService, enum.FeatureFoodRecognition, logger),
-		foodRecognitionHandler.RecognizeFood)
+	protected.Post("/food/recognize", foodRecognitionHandler.RecognizeFood)
 	protected.Get("/food/barcode/:barcode", foodRecognitionHandler.GetFoodByBarcode)
 	protected.Post("/food/estimate-quantity",
 		middleware.AIQuotaCheck(aiUsageService, enum.FeatureMealAnalysis, logger),
