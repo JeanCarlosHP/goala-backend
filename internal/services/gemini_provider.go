@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
@@ -32,19 +33,10 @@ func NewGeminiProvider(apiKey string, logger domain.Logger) *GeminiProvider {
 func (g *GeminiProvider) RecognizeFood(
 	ctx context.Context,
 	imageBase64 string,
-	progressChan chan<- domain.ProgressUpdate,
 ) ([]domain.RecognizedFoodItem, error) {
 	tr := otel.Tracer("services/gemini_provider.go")
 	ctx, span := tr.Start(ctx, "RecognizeFood")
 	defer span.End()
-
-	if progressChan != nil {
-		progressChan <- domain.ProgressUpdate{
-			Stage:      "analyzing",
-			Percentage: 40,
-			Message:    "Sending image to Gemini AI...",
-		}
-	}
 
 	prompt := `Analyze this food image and return a JSON array of food items with their nutritional information.
 	For each food item, provide:
@@ -94,14 +86,6 @@ func (g *GeminiProvider) RecognizeFood(
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	if progressChan != nil {
-		progressChan <- domain.ProgressUpdate{
-			Stage:      "analyzing",
-			Percentage: 60,
-			Message:    "Waiting for AI response...",
-		}
-	}
-
 	resp, err := g.httpClient.Do(req)
 	if err != nil {
 		g.logger.Error("failed to call Gemini API", "error", err)
@@ -113,14 +97,6 @@ func (g *GeminiProvider) RecognizeFood(
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		g.logger.Error("Gemini API returned error", "statusCode", resp.StatusCode, "body", string(bodyBytes))
 		return nil, fmt.Errorf("gemini API returned status %d", resp.StatusCode)
-	}
-
-	if progressChan != nil {
-		progressChan <- domain.ProgressUpdate{
-			Stage:      "analyzing",
-			Percentage: 80,
-			Message:    "Processing AI response...",
-		}
 	}
 
 	var geminiResp struct {
@@ -144,6 +120,10 @@ func (g *GeminiProvider) RecognizeFood(
 
 	responseText := geminiResp.Candidates[0].Content.Parts[0].Text
 
+	// Remove markdown code block formatting if present
+	responseText = strings.TrimPrefix(responseText, "```json\n")
+	responseText = strings.TrimSuffix(responseText, "\n```")
+
 	var foodData struct {
 		FoodItems []domain.RecognizedFoodItem `json:"food_items"`
 	}
@@ -153,14 +133,6 @@ func (g *GeminiProvider) RecognizeFood(
 		return nil, fmt.Errorf("failed to parse food items: %w", err)
 	}
 
-	if progressChan != nil {
-		progressChan <- domain.ProgressUpdate{
-			Stage:      "analyzing",
-			Percentage: 95,
-			Message:    "Finalizing results...",
-		}
-	}
-
 	return foodData.FoodItems, nil
 }
 
@@ -168,19 +140,10 @@ func (g *GeminiProvider) EstimateQuantity(
 	ctx context.Context,
 	imageBase64 string,
 	req *domain.EstimateQuantityRequest,
-	progressChan chan<- domain.ProgressUpdate,
 ) (*domain.EstimateQuantityResponse, error) {
 	tr := otel.Tracer("services/gemini_provider.go")
 	ctx, span := tr.Start(ctx, "EstimateQuantity")
 	defer span.End()
-
-	if progressChan != nil {
-		progressChan <- domain.ProgressUpdate{
-			Stage:      "estimating",
-			Percentage: 40,
-			Message:    "Sending image to Gemini AI...",
-		}
-	}
 
 	prompt := fmt.Sprintf(`Analyze this image to estimate the quantity of %s.
 	Consider the context: meal location is %s, meal type is %s.
@@ -231,14 +194,6 @@ func (g *GeminiProvider) EstimateQuantity(
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	if progressChan != nil {
-		progressChan <- domain.ProgressUpdate{
-			Stage:      "estimating",
-			Percentage: 60,
-			Message:    "Waiting for AI response...",
-		}
-	}
-
 	resp, err := g.httpClient.Do(httpReq)
 	if err != nil {
 		g.logger.Error("failed to call Gemini API", "error", err)
@@ -250,14 +205,6 @@ func (g *GeminiProvider) EstimateQuantity(
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		g.logger.Error("Gemini API returned error", "statusCode", resp.StatusCode, "body", string(bodyBytes))
 		return nil, fmt.Errorf("gemini API returned status %d", resp.StatusCode)
-	}
-
-	if progressChan != nil {
-		progressChan <- domain.ProgressUpdate{
-			Stage:      "estimating",
-			Percentage: 80,
-			Message:    "Processing AI response...",
-		}
 	}
 
 	var geminiResp struct {
@@ -281,18 +228,14 @@ func (g *GeminiProvider) EstimateQuantity(
 
 	responseText := geminiResp.Candidates[0].Content.Parts[0].Text
 
+	// Remove markdown code block formatting if present
+	responseText = strings.TrimPrefix(responseText, "```json\n")
+	responseText = strings.TrimSuffix(responseText, "\n```")
+
 	var result domain.EstimateQuantityResponse
 	if err := json.Unmarshal([]byte(responseText), &result); err != nil {
 		g.logger.Error("failed to parse quantity estimation", "error", err, "text", responseText)
 		return nil, fmt.Errorf("failed to parse quantity estimation: %w", err)
-	}
-
-	if progressChan != nil {
-		progressChan <- domain.ProgressUpdate{
-			Stage:      "estimating",
-			Percentage: 95,
-			Message:    "Finalizing results...",
-		}
 	}
 
 	return &result, nil
