@@ -93,7 +93,7 @@ func (s *httpServer) ConfigureMiddlewares() {
 	s.App.Use(healthcheck.New())
 	s.App.Use(recover.New())
 	s.App.Use(middleware.PrometheusMetrics())
-	s.App.Use(middleware.RequestLogger())
+	s.App.Use(middleware.RequestLogger(s.logger))
 }
 
 func ErrorHandler(c *fiber.Ctx, err error) error {

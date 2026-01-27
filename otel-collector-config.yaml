@@ -9,15 +9,13 @@ receivers:
 exporters:
   zipkin:
     endpoint: "http://zipkin:9411/api/v2/spans"
-  jaeger:
-    endpoint: "http://jaeger:14268/api/traces"
+  otlphttp:
+    endpoint: "http://jaeger:4317/api/traces"
     tls:
       insecure: true
-  logging:
-    loglevel: debug
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [zipkin, jaeger, logging]
+      exporters: [zipkin]

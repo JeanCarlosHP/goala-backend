@@ -5,15 +5,11 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/jeancarloshp/calorieai/pkg/config"
-	"github.com/jeancarloshp/calorieai/pkg/logger"
+	"github.com/jeancarloshp/calorieai/internal/domain"
 )
 
-func RequestLogger() fiber.Handler {
+func RequestLogger(logger domain.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		cfg := config.New()
-		logger := logger.New(cfg)
-
 		start := time.Now()
 		requestID := uuid.New().String()
 
