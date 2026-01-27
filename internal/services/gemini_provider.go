@@ -38,10 +38,12 @@ func (g *GeminiProvider) RecognizeFood(
 	ctx, span := tr.Start(ctx, "RecognizeFood")
 	defer span.End()
 
-	progressChan <- domain.ProgressUpdate{
-		Stage:      "analyzing",
-		Percentage: 40,
-		Message:    "Sending image to Gemini AI...",
+	if progressChan != nil {
+		progressChan <- domain.ProgressUpdate{
+			Stage:      "analyzing",
+			Percentage: 40,
+			Message:    "Sending image to Gemini AI...",
+		}
 	}
 
 	prompt := `Analyze this food image and return a JSON array of food items with their nutritional information.
@@ -92,10 +94,12 @@ func (g *GeminiProvider) RecognizeFood(
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	progressChan <- domain.ProgressUpdate{
-		Stage:      "analyzing",
-		Percentage: 60,
-		Message:    "Waiting for AI response...",
+	if progressChan != nil {
+		progressChan <- domain.ProgressUpdate{
+			Stage:      "analyzing",
+			Percentage: 60,
+			Message:    "Waiting for AI response...",
+		}
 	}
 
 	resp, err := g.httpClient.Do(req)
@@ -111,10 +115,12 @@ func (g *GeminiProvider) RecognizeFood(
 		return nil, fmt.Errorf("gemini API returned status %d", resp.StatusCode)
 	}
 
-	progressChan <- domain.ProgressUpdate{
-		Stage:      "analyzing",
-		Percentage: 80,
-		Message:    "Processing AI response...",
+	if progressChan != nil {
+		progressChan <- domain.ProgressUpdate{
+			Stage:      "analyzing",
+			Percentage: 80,
+			Message:    "Processing AI response...",
+		}
 	}
 
 	var geminiResp struct {
@@ -147,10 +153,12 @@ func (g *GeminiProvider) RecognizeFood(
 		return nil, fmt.Errorf("failed to parse food items: %w", err)
 	}
 
-	progressChan <- domain.ProgressUpdate{
-		Stage:      "analyzing",
-		Percentage: 95,
-		Message:    "Finalizing results...",
+	if progressChan != nil {
+		progressChan <- domain.ProgressUpdate{
+			Stage:      "analyzing",
+			Percentage: 95,
+			Message:    "Finalizing results...",
+		}
 	}
 
 	return foodData.FoodItems, nil
@@ -166,10 +174,12 @@ func (g *GeminiProvider) EstimateQuantity(
 	ctx, span := tr.Start(ctx, "EstimateQuantity")
 	defer span.End()
 
-	progressChan <- domain.ProgressUpdate{
-		Stage:      "estimating",
-		Percentage: 40,
-		Message:    "Sending image to Gemini AI...",
+	if progressChan != nil {
+		progressChan <- domain.ProgressUpdate{
+			Stage:      "estimating",
+			Percentage: 40,
+			Message:    "Sending image to Gemini AI...",
+		}
 	}
 
 	prompt := fmt.Sprintf(`Analyze this image to estimate the quantity of %s.
@@ -221,10 +231,12 @@ func (g *GeminiProvider) EstimateQuantity(
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	progressChan <- domain.ProgressUpdate{
-		Stage:      "estimating",
-		Percentage: 60,
-		Message:    "Waiting for AI response...",
+	if progressChan != nil {
+		progressChan <- domain.ProgressUpdate{
+			Stage:      "estimating",
+			Percentage: 60,
+			Message:    "Waiting for AI response...",
+		}
 	}
 
 	resp, err := g.httpClient.Do(httpReq)
@@ -240,10 +252,12 @@ func (g *GeminiProvider) EstimateQuantity(
 		return nil, fmt.Errorf("gemini API returned status %d", resp.StatusCode)
 	}
 
-	progressChan <- domain.ProgressUpdate{
-		Stage:      "estimating",
-		Percentage: 80,
-		Message:    "Processing AI response...",
+	if progressChan != nil {
+		progressChan <- domain.ProgressUpdate{
+			Stage:      "estimating",
+			Percentage: 80,
+			Message:    "Processing AI response...",
+		}
 	}
 
 	var geminiResp struct {
@@ -273,10 +287,12 @@ func (g *GeminiProvider) EstimateQuantity(
 		return nil, fmt.Errorf("failed to parse quantity estimation: %w", err)
 	}
 
-	progressChan <- domain.ProgressUpdate{
-		Stage:      "estimating",
-		Percentage: 95,
-		Message:    "Finalizing results...",
+	if progressChan != nil {
+		progressChan <- domain.ProgressUpdate{
+			Stage:      "estimating",
+			Percentage: 95,
+			Message:    "Finalizing results...",
+		}
 	}
 
 	return &result, nil

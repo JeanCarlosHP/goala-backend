@@ -159,3 +159,98 @@ func (s *S3Service) GenerateUploadPresignedURL(ctx context.Context, firebaseUID 
 
 	return presignedReq.URL, avatarPath, nil
 }
+
+func (s *S3Service) GenerateFoodImageUploadPresignedURL(ctx context.Context, userID string, contentType string, fileSize int64) (string, string, error) {
+	tr := otel.Tracer("services/s3_service.go")
+	ctx, span := tr.Start(ctx, "GenerateFoodImageUploadPresignedURL")
+	defer span.End()
+
+	const (
+		maxFileSize     = 5 * 1024 * 1024
+		presignDuration = 5 * time.Minute
+	)
+
+	if fileSize > maxFileSize {
+		return "", "", fmt.Errorf("file size exceeds maximum allowed size of %d bytes", maxFileSize)
+	}
+
+	allowedTypes := map[string]bool{
+		"image/jpeg": true,
+		"image/jpg":  true,
+		"image/png":  true,
+		"image/webp": true,
+	}
+
+	contentType = strings.ToLower(strings.TrimSpace(contentType))
+	if !allowedTypes[contentType] {
+		return "", "", fmt.Errorf("invalid content type: %s. Allowed types: jpeg, jpg, png, webp", contentType)
+	}
+
+	ext := getExtensionFromMimeType(ctx, contentType)
+	if ext == "" {
+		ext = ".jpg"
+	}
+
+	imageID := uuid.New().String()
+	fileName := fmt.Sprintf("user/%s/food_images/%s%s", userID, imageID, ext)
+
+	presignClient := s3.NewPresignClient(s.client)
+
+	putObjectInput := &s3.PutObjectInput{
+		Bucket:        aws.String(s.bucketName),
+		Key:           aws.String(fileName),
+		ContentType:   aws.String(contentType),
+		ContentLength: aws.Int64(fileSize),
+	}
+
+	presignedReq, err := presignClient.PresignPutObject(ctx, putObjectInput, func(opts *s3.PresignOptions) {
+		opts.Expires = presignDuration
+	})
+	if err != nil {
+		s.logger.Error("failed to generate presigned URL", "error", err, "userID", userID)
+		return "", "", fmt.Errorf("failed to generate presigned URL: %w", err)
+	}
+
+	imagePath := fmt.Sprintf("/%s", fileName)
+
+	s.logger.Info("presigned URL generated successfully",
+		"userID", userID,
+		"fileName", fileName,
+		"expiresIn", presignDuration.String(),
+	)
+
+	return presignedReq.URL, imagePath, nil
+}
+
+func (s *S3Service) DownloadImage(ctx context.Context, imagePath string) ([]byte, error) {
+	tr := otel.Tracer("services/s3_service.go")
+	ctx, span := tr.Start(ctx, "DownloadImage")
+	defer span.End()
+
+	// Remove leading slash if present
+	if strings.HasPrefix(imagePath, "/") {
+		imagePath = imagePath[1:]
+	}
+
+	getObjectInput := &s3.GetObjectInput{
+		Bucket: aws.String(s.bucketName),
+		Key:    aws.String(imagePath),
+	}
+
+	result, err := s.client.GetObject(ctx, getObjectInput)
+	if err != nil {
+		s.logger.Error("failed to download image from S3", "error", err, "imagePath", imagePath)
+		return nil, fmt.Errorf("failed to download image: %w", err)
+	}
+	defer result.Body.Close()
+
+	imageBytes, err := io.ReadAll(result.Body)
+	if err != nil {
+		s.logger.Error("failed to read image data", "error", err, "imagePath", imagePath)
+		return nil, fmt.Errorf("failed to read image data: %w", err)
+	}
+
+	s.logger.Info("image downloaded successfully", "imagePath", imagePath, "size", len(imageBytes))
+
+	return imageBytes, nil
+}

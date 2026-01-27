@@ -1,10 +1,6 @@
 package handlers
 
 import (
-	"bufio"
-	"encoding/json"
-	"fmt"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -18,6 +14,7 @@ type FoodRecognitionHandler struct {
 	barcodeService         *services.BarcodeService
 	validator              *validator.Validate
 	aiUsageService         *services.AIUsageService
+	s3Service              *services.S3Service
 	logger                 domain.Logger
 }
 
@@ -25,6 +22,7 @@ func NewFoodRecognitionHandler(
 	foodRecognitionService *services.FoodRecognitionService,
 	barcodeService *services.BarcodeService,
 	aiUsageService *services.AIUsageService,
+	s3Service *services.S3Service,
 	logger domain.Logger,
 ) *FoodRecognitionHandler {
 	return &FoodRecognitionHandler{
@@ -32,6 +30,7 @@ func NewFoodRecognitionHandler(
 		barcodeService:         barcodeService,
 		validator:              validator.New(),
 		aiUsageService:         aiUsageService,
+		s3Service:              s3Service,
 		logger:                 logger,
 	}
 }
@@ -67,87 +66,39 @@ func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 		})
 	}
 
-	fileHeader, err := c.FormFile("image")
-	if err != nil {
-		h.logger.Error("Failed to get image from form: %v", err)
+	var req domain.FoodRecognitionRequest
+	if err := c.BodyParser(&req); err != nil {
+		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "image file is required",
+			"message": "invalid request body",
 		})
 	}
 
-	req := &domain.FoodRecognitionRequest{
-		Name:         c.FormValue("name"),
-		Type:         c.FormValue("type"),
-		MealLocation: c.FormValue("mealLocation"),
-		URI:          c.FormValue("uri"),
-	}
-
-	if err := h.validator.Struct(req); err != nil {
+	if err := h.validator.Struct(&req); err != nil {
 		h.logger.Error("Validation failed: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "name, type, and mealLocation are required",
+			"message": "validation error",
+			"errors":  err.Error(),
 		})
 	}
 
-	// Configurar SSE headers
-	c.Set("Content-Type", "text/event-stream")
-	c.Set("Cache-Control", "no-cache")
-	c.Set("Connection", "keep-alive")
-	c.Set("Transfer-Encoding", "chunked")
+	// Processar reconhecimento de forma síncrona
+	result, err := h.foodRecognitionService.RecognizeFoodByPath(ctx, req.ImagePath, &req)
+	if err != nil {
+		h.logger.Error("Failed to recognize food: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "failed to recognize food",
+		})
+	}
 
-	// Canal para receber progresso
-	progressChan := make(chan domain.ProgressUpdate, 10)
-	resultChan := make(chan *domain.FoodRecognitionResponse, 1)
-	errorChan := make(chan error, 1)
-
-	// Processar em goroutine
-	go func() {
-		result, err := h.foodRecognitionService.RecognizeFoodWithProgress(ctx, fileHeader, req, progressChan)
-		if err != nil {
-			errorChan <- err
-			return
-		}
-		resultChan <- result
-	}()
-
-	// Enviar eventos SSE
-	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
-		for {
-			select {
-			case progress := <-progressChan:
-				data, _ := json.Marshal(progress)
-				fmt.Fprintf(w, "event: progress\ndata: %s\n\n", data)
-				w.Flush()
-
-			case result := <-resultChan:
-				data, _ := json.Marshal(fiber.Map{
-					"success": true,
-					"data":    result,
-					"message": "food recognized successfully",
-				})
-				fmt.Fprintf(w, "event: complete\ndata: %s\n\n", data)
-				w.Flush()
-				return
-
-			case err := <-errorChan:
-				h.logger.Error("Failed to recognize food: %v", err)
-				data, _ := json.Marshal(fiber.Map{
-					"success": false,
-					"message": "failed to recognize food",
-				})
-				fmt.Fprintf(w, "event: error\ndata: %s\n\n", data)
-				w.Flush()
-				return
-
-			case <-ctx.Done():
-				return
-			}
-		}
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    result,
+		"message": "food recognized successfully",
 	})
-
-	return nil
 }
 
 func (h *FoodRecognitionHandler) GetFoodByBarcode(c *fiber.Ctx) error {
@@ -188,92 +139,86 @@ func (h *FoodRecognitionHandler) GetFoodByBarcode(c *fiber.Ctx) error {
 func (h *FoodRecognitionHandler) EstimateQuantity(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 
-	fileHeader, err := c.FormFile("image")
-	if err != nil {
-		h.logger.Error("Failed to get image from form: %v", err)
+	var req domain.EstimateQuantityRequest
+	if err := c.BodyParser(&req); err != nil {
+		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "image file is required",
+			"message": "invalid request body",
 		})
 	}
 
-	req := &domain.EstimateQuantityRequest{
-		Name:         c.FormValue("name"),
-		Type:         c.FormValue("type"),
-		MealLocation: c.FormValue("mealLocation"),
-		URI:          c.FormValue("uri"),
-	}
-
-	if refSize := c.FormValue("referenceServingSize"); refSize != "" {
-		req.ReferenceServingSize = &refSize
-	}
-	if refUnit := c.FormValue("referenceServingUnit"); refUnit != "" {
-		req.ReferenceServingUnit = &refUnit
-	}
-
-	if err := h.validator.Struct(req); err != nil {
+	if err := h.validator.Struct(&req); err != nil {
 		h.logger.Error("Validation failed: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "name, type, and mealLocation are required",
+			"message": "validation error",
+			"errors":  err.Error(),
 		})
 	}
 
-	// Configurar SSE headers
-	c.Set("Content-Type", "text/event-stream")
-	c.Set("Cache-Control", "no-cache")
-	c.Set("Connection", "keep-alive")
-	c.Set("Transfer-Encoding", "chunked")
+	// Processar estimativa de quantidade de forma síncrona
+	result, err := h.foodRecognitionService.EstimateQuantityByPath(ctx, req.ImagePath, &req)
+	if err != nil {
+		h.logger.Error("Failed to estimate quantity: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": "failed to estimate quantity",
+		})
+	}
 
-	// Canal para receber progresso
-	progressChan := make(chan domain.ProgressUpdate, 10)
-	resultChan := make(chan *domain.EstimateQuantityResponse, 1)
-	errorChan := make(chan error, 1)
-
-	// Processar em goroutine
-	go func() {
-		result, err := h.foodRecognitionService.EstimateQuantityWithProgress(ctx, fileHeader, req, progressChan)
-		if err != nil {
-			errorChan <- err
-			return
-		}
-		resultChan <- result
-	}()
-
-	// Enviar eventos SSE
-	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
-		for {
-			select {
-			case progress := <-progressChan:
-				data, _ := json.Marshal(progress)
-				fmt.Fprintf(w, "event: progress\ndata: %s\n\n", data)
-				w.Flush()
-
-			case result := <-resultChan:
-				data, _ := json.Marshal(fiber.Map{
-					"success": true,
-					"data":    result,
-					"message": "quantity estimated successfully",
-				})
-				fmt.Fprintf(w, "event: complete\ndata: %s\n\n", data)
-				w.Flush()
-				return
-
-			case err := <-errorChan:
-				h.logger.Error("Failed to estimate quantity: %v", err)
-				data, _ := json.Marshal(fiber.Map{
-					"success": false,
-					"message": "failed to estimate quantity",
-				})
-				fmt.Fprintf(w, "event: error\ndata: %s\n\n", data)
-				w.Flush()
-				return
-
-			case <-ctx.Done():
-				return
-			}
-		}
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    result,
+		"message": "quantity estimated successfully",
 	})
+}
 
-	return nil
+func (h *FoodRecognitionHandler) GenerateFoodImageUploadURL(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(uuid.UUID)
+	if !ok {
+		h.logger.Warn("Missing user_id in context")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "authentication required",
+		})
+	}
+
+	var req domain.FoodImageUploadRequest
+	if err := c.BodyParser(&req); err != nil {
+		h.logger.Error("Invalid request body", "error", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "invalid request body",
+		})
+	}
+
+	if err := h.validator.Struct(&req); err != nil {
+		h.logger.Error("Validation error", "error", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "validation error",
+			"errors":  err.Error(),
+		})
+	}
+
+	ctx := c.UserContext()
+	uploadURL, imagePath, err := h.s3Service.GenerateFoodImageUploadPresignedURL(ctx, userID.String(), req.ContentType, req.FileSize)
+	if err != nil {
+		h.logger.Error("Failed to generate presigned URL", "user_id", userID.String(), "error", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data": domain.FoodImageUploadResponse{
+			UploadURL: uploadURL,
+			ImagePath: imagePath,
+			ExpiresIn: 300,
+		},
+		"message": "presigned URL generated successfully",
+	})
 }

@@ -7,10 +7,10 @@ type ProgressUpdate struct {
 }
 
 type FoodRecognitionRequest struct {
-	URI          string `form:"uri" validate:"required"`
-	Name         string `form:"name" validate:"required"`
-	Type         string `form:"type" validate:"required"`
-	MealLocation string `form:"mealLocation" validate:"required"`
+	ImagePath    string `json:"imagePath" validate:"required,startswith=/"`
+	Name         string `json:"name" validate:"required"`
+	Type         string `json:"type" validate:"required"`
+	MealLocation string `json:"mealLocation" validate:"required"`
 }
 
 type RecognizedFoodItem struct {
@@ -43,12 +43,12 @@ type FoodBarcodeResponse struct {
 }
 
 type EstimateQuantityRequest struct {
-	URI                  string  `form:"uri" validate:"required"`
-	Name                 string  `form:"name" validate:"required"`
-	Type                 string  `form:"type" validate:"required"`
-	MealLocation         string  `form:"mealLocation" validate:"required"`
-	ReferenceServingSize *string `form:"referenceServingSize"`
-	ReferenceServingUnit *string `form:"referenceServingUnit"`
+	ImagePath            string  `json:"imagePath" validate:"required,startswith=/"`
+	Name                 string  `json:"name" validate:"required"`
+	Type                 string  `json:"type" validate:"required"`
+	MealLocation         string  `json:"mealLocation" validate:"required"`
+	ReferenceServingSize *string `json:"referenceServingSize"`
+	ReferenceServingUnit *string `json:"referenceServingUnit"`
 }
 
 type EstimateQuantityResponse struct {
@@ -64,4 +64,15 @@ type ProcessingProgress struct {
 	Message    string                   `json:"message"`
 	Data       *FoodRecognitionResponse `json:"data,omitempty"`
 	Error      *string                  `json:"error,omitempty"`
+}
+
+type FoodImageUploadRequest struct {
+	ContentType string `json:"contentType" validate:"required,oneof=image/jpeg image/jpg image/png image/webp"`
+	FileSize    int64  `json:"fileSize" validate:"required,gt=0,lte=5242880"`
+}
+
+type FoodImageUploadResponse struct {
+	UploadURL string `json:"uploadUrl"`
+	ImagePath string `json:"imagePath"`
+	ExpiresIn int    `json:"expiresIn"`
 }

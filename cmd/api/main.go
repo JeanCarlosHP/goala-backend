@@ -94,7 +94,7 @@ func main() {
 	statsHandler := handlers.NewStatsHandler(statsService, logger)
 	achievementHandler := handlers.NewAchievementHandler(achievementService, logger)
 	feedbackHandler := handlers.NewFeedbackHandler(feedbackService, userService, logger)
-	foodRecognitionHandler := handlers.NewFoodRecognitionHandler(foodRecognitionService, barcodeService, aiUsageService, logger)
+	foodRecognitionHandler := handlers.NewFoodRecognitionHandler(foodRecognitionService, barcodeService, aiUsageService, s3Service, logger)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService, revenueCatService, logger)
 	aiUsageHandler := handlers.NewAIUsageHandler(aiUsageService, logger)
 
@@ -141,6 +141,7 @@ func main() {
 
 	protected.Post("/feedback", feedbackHandler.CreateFeedback)
 
+	protected.Post("/food/image/presigned-url", foodRecognitionHandler.GenerateFoodImageUploadURL)
 	protected.Post("/food/recognize", foodRecognitionHandler.RecognizeFood)
 	protected.Get("/food/barcode/:barcode", foodRecognitionHandler.GetFoodByBarcode)
 	protected.Post("/food/estimate-quantity",
