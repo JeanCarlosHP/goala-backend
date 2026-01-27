@@ -74,7 +74,7 @@ func (g *GeminiProvider) RecognizeFood(
 	  "required": ["food_items"]
 	}
 	
-	Return ONLY valid JSON matching this schema.`
+	Return ONLY valid, complete JSON matching this schema. Ensure the JSON is properly closed and valid.`
 
 	requestBody := map[string]interface{}{
 		"contents": []map[string]interface{}{
@@ -94,7 +94,7 @@ func (g *GeminiProvider) RecognizeFood(
 			"temperature":     0.4,
 			"topK":            32,
 			"topP":            1,
-			"maxOutputTokens": 2048,
+			"maxOutputTokens": 4096,
 		},
 	}
 
@@ -147,6 +147,12 @@ func (g *GeminiProvider) RecognizeFood(
 	// Remove markdown code block formatting if present
 	responseText = strings.TrimPrefix(responseText, "```json\n")
 	responseText = strings.TrimSuffix(responseText, "\n```")
+
+	// Check if the response is valid JSON
+	if !json.Valid([]byte(responseText)) {
+		g.logger.Error("invalid JSON response from Gemini", "text", responseText)
+		return nil, fmt.Errorf("invalid JSON response from AI provider")
+	}
 
 	var foodData struct {
 		FoodItems []domain.RecognizedFoodItem `json:"food_items"`
