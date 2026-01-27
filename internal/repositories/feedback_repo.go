@@ -10,6 +10,7 @@ import (
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/pkg/database"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
+	"go.opentelemetry.io/otel"
 )
 
 type FeedbackRepository struct {
@@ -21,6 +22,10 @@ func NewFeedbackRepository(db *database.Database) *FeedbackRepository {
 }
 
 func (r *FeedbackRepository) Create(ctx context.Context, userID uuid.UUID, req *domain.CreateFeedbackRequest) (*domain.Feedback, error) {
+	tr := otel.Tracer("repositories/feedback_repo.go")
+	ctx, span := tr.Start(ctx, "Create")
+	defer span.End()
+
 	var platform *string
 	var osVersion *string
 	var appVersion *string
@@ -61,6 +66,10 @@ func (r *FeedbackRepository) Create(ctx context.Context, userID uuid.UUID, req *
 }
 
 func (r *FeedbackRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Feedback, error) {
+	tr := otel.Tracer("repositories/feedback_repo.go")
+	ctx, span := tr.Start(ctx, "GetByID")
+	defer span.End()
+
 	result, err := r.db.Querier.GetFeedback(ctx, pgtype.UUID{Bytes: id, Valid: true})
 	if err != nil {
 		return nil, err
@@ -82,6 +91,10 @@ func (r *FeedbackRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain
 }
 
 func (r *FeedbackRepository) List(ctx context.Context, limit, offset int32) ([]domain.Feedback, error) {
+	tr := otel.Tracer("repositories/feedback_repo.go")
+	ctx, span := tr.Start(ctx, "List")
+	defer span.End()
+
 	results, err := r.db.Querier.ListFeedback(ctx, db.ListFeedbackParams{
 		Limit:  int(limit),
 		Offset: int(offset),
@@ -111,6 +124,10 @@ func (r *FeedbackRepository) List(ctx context.Context, limit, offset int32) ([]d
 }
 
 func (r *FeedbackRepository) GetByUser(ctx context.Context, userID uuid.UUID) ([]domain.Feedback, error) {
+	tr := otel.Tracer("repositories/feedback_repo.go")
+	ctx, span := tr.Start(ctx, "GetByUser")
+	defer span.End()
+
 	results, err := r.db.Querier.GetFeedbackByUser(ctx, pgtype.UUID{Bytes: userID, Valid: true})
 	if err != nil {
 		return nil, err

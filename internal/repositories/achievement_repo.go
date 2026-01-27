@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
+	"go.opentelemetry.io/otel"
 )
 
 type AchievementRepository struct {
@@ -21,6 +22,10 @@ func NewAchievementRepository(queries *db.Queries) *AchievementRepository {
 }
 
 func (r *AchievementRepository) GetAllAchievements(ctx context.Context) ([]domain.Achievement, error) {
+	tr := otel.Tracer("services/achievement_repo.go")
+	ctx, span := tr.Start(ctx, "GetAllAchievements")
+	defer span.End()
+
 	dbAchievements, err := r.queries.GetAllAchievements(ctx)
 	if err != nil {
 		return nil, err
@@ -48,6 +53,10 @@ func (r *AchievementRepository) GetAllAchievements(ctx context.Context) ([]domai
 }
 
 func (r *AchievementRepository) GetAchievementByID(ctx context.Context, achievementID uuid.UUID) (*domain.Achievement, error) {
+	tr := otel.Tracer("services/achievement_repo.go")
+	ctx, span := tr.Start(ctx, "GetAchievementByID")
+	defer span.End()
+
 	var pgAchievementID pgtype.UUID
 	if err := pgAchievementID.Scan(achievementID.String()); err != nil {
 		return nil, err
@@ -75,6 +84,10 @@ func (r *AchievementRepository) GetAchievementByID(ctx context.Context, achievem
 }
 
 func (r *AchievementRepository) GetUserAchievements(ctx context.Context, userID uuid.UUID) ([]domain.AchievementResponse, error) {
+	tr := otel.Tracer("services/achievement_repo.go")
+	ctx, span := tr.Start(ctx, "GetUserAchievements")
+	defer span.End()
+
 	var pgUserID pgtype.UUID
 	if err := pgUserID.Scan(userID.String()); err != nil {
 		return nil, err
@@ -105,6 +118,10 @@ func (r *AchievementRepository) GetUserAchievements(ctx context.Context, userID 
 }
 
 func (r *AchievementRepository) UpsertUserAchievement(ctx context.Context, userID, achievementID uuid.UUID, unlocked bool, progress int32, unlockedAt *time.Time) error {
+	tr := otel.Tracer("services/achievement_repo.go")
+	ctx, span := tr.Start(ctx, "UpsertUserAchievement")
+	defer span.End()
+
 	var pgUserID, pgAchievementID pgtype.UUID
 	if err := pgUserID.Scan(userID.String()); err != nil {
 		return err
@@ -125,6 +142,10 @@ func (r *AchievementRepository) UpsertUserAchievement(ctx context.Context, userI
 }
 
 func (r *AchievementRepository) UpdateAchievementProgress(ctx context.Context, userID, achievementID uuid.UUID, progress int32) error {
+	tr := otel.Tracer("services/achievement_repo.go")
+	ctx, span := tr.Start(ctx, "UpdateAchievementProgress")
+	defer span.End()
+
 	var pgUserID, pgAchievementID pgtype.UUID
 	if err := pgUserID.Scan(userID.String()); err != nil {
 		return err
@@ -143,6 +164,10 @@ func (r *AchievementRepository) UpdateAchievementProgress(ctx context.Context, u
 }
 
 func (r *AchievementRepository) GetUserAchievement(ctx context.Context, userID, achievementID uuid.UUID) (*domain.UserAchievement, error) {
+	tr := otel.Tracer("services/achievement_repo.go")
+	ctx, span := tr.Start(ctx, "GetUserAchievement")
+	defer span.End()
+
 	var pgUserID, pgAchievementID pgtype.UUID
 	if err := pgUserID.Scan(userID.String()); err != nil {
 		return nil, err

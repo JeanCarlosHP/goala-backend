@@ -53,6 +53,10 @@ func (s *StatsService) GetUserStats(ctx context.Context, userID uuid.UUID) (*dom
 }
 
 func (s *StatsService) GetStatsRange(ctx context.Context, userID uuid.UUID, startDate, endDate time.Time, page, limit int) (*domain.StatsRangeResponse, error) {
+	tr := otel.Tracer("services/stats_service.go")
+	ctx, span := tr.Start(ctx, "GetStatsRange")
+	defer span.End()
+
 	if page < 1 {
 		page = 1
 	}
@@ -165,6 +169,10 @@ func (s *StatsService) GetStatsRange(ctx context.Context, userID uuid.UUID, star
 }
 
 func (s *StatsService) UpdateStreakForUser(ctx context.Context, userID uuid.UUID, mealDate time.Time) error {
+	tr := otel.Tracer("services/stats_service.go")
+	ctx, span := tr.Start(ctx, "UpdateStreakForUser")
+	defer span.End()
+
 	stats, err := s.statsRepo.GetUserStats(ctx, userID)
 	if err != nil {
 		stats, err = s.statsRepo.CreateUserStats(ctx, userID)

@@ -8,6 +8,7 @@ import (
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
+	"go.opentelemetry.io/otel"
 )
 
 type SubscriptionService struct {
@@ -23,6 +24,10 @@ func NewSubscriptionService(repo *repositories.SubscriptionRepository, log domai
 }
 
 func (s *SubscriptionService) GetOrCreateSubscription(ctx context.Context, userID string) (*domain.Subscription, error) {
+	tr := otel.Tracer("services/subscription_service.go")
+	ctx, span := tr.Start(ctx, "GetOrCreateSubscription")
+	defer span.End()
+
 	sub, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subscription: %w", err)
@@ -53,10 +58,18 @@ func (s *SubscriptionService) GetOrCreateSubscription(ctx context.Context, userI
 }
 
 func (s *SubscriptionService) GetByUserID(ctx context.Context, userID string) (*domain.Subscription, error) {
+	tr := otel.Tracer("services/subscription_service.go")
+	ctx, span := tr.Start(ctx, "GetByUserID")
+	defer span.End()
+
 	return s.repo.GetByUserID(ctx, userID)
 }
 
 func (s *SubscriptionService) ValidateAccess(ctx context.Context, userID string) (bool, error) {
+	tr := otel.Tracer("services/subscription_service.go")
+	ctx, span := tr.Start(ctx, "ValidateAccess")
+	defer span.End()
+
 	sub, err := s.GetOrCreateSubscription(ctx, userID)
 	if err != nil {
 		return false, err
@@ -82,6 +95,10 @@ func (s *SubscriptionService) ValidateAccess(ctx context.Context, userID string)
 }
 
 func (s *SubscriptionService) ProcessWebhookEvent(ctx context.Context, event *domain.RevenueCatEvent) error {
+	tr := otel.Tracer("services/subscription_service.go")
+	ctx, span := tr.Start(ctx, "ProcessWebhookEvent")
+	defer span.End()
+
 	processed, err := s.repo.IsEventProcessed(ctx, event.ID)
 	if err != nil {
 		return fmt.Errorf("failed to check event status: %w", err)
@@ -104,8 +121,8 @@ func (s *SubscriptionService) ProcessWebhookEvent(ctx context.Context, event *do
 		return fmt.Errorf("no user ID in webhook event")
 	}
 
-	plan := s.mapProductIDToPlan(event.ProductID)
-	isActive := s.isActiveEvent(event.Type)
+	plan := s.mapProductIDToPlan(ctx, event.ProductID)
+	isActive := s.isActiveEvent(ctx, event.Type)
 	expirationAt := event.ExpirationAt()
 	purchasedAt := event.PurchasedAt()
 
@@ -140,7 +157,11 @@ func (s *SubscriptionService) ProcessWebhookEvent(ctx context.Context, event *do
 	return nil
 }
 
-func (s *SubscriptionService) mapProductIDToPlan(productID string) enum.SubscriptionPlan {
+func (s *SubscriptionService) mapProductIDToPlan(ctx context.Context, productID string) enum.SubscriptionPlan {
+	tr := otel.Tracer("services/subscription_service.go")
+	ctx, span := tr.Start(ctx, "mapProductIDToPlan")
+	defer span.End()
+
 	switch productID {
 	case "monthly_premium", "premium_monthly":
 		return enum.PlanMonthly
@@ -151,7 +172,11 @@ func (s *SubscriptionService) mapProductIDToPlan(productID string) enum.Subscrip
 	}
 }
 
-func (s *SubscriptionService) isActiveEvent(eventType enum.RevenueCatEventType) bool {
+func (s *SubscriptionService) isActiveEvent(ctx context.Context, eventType enum.RevenueCatEventType) bool {
+	tr := otel.Tracer("services/subscription_service.go")
+	ctx, span := tr.Start(ctx, "mapProductIDToPlan")
+	defer span.End()
+
 	switch eventType {
 	case enum.EventInitialPurchase, enum.EventRenewal, enum.EventUncancellation:
 		return true

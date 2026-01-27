@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
+	"go.opentelemetry.io/otel"
 )
 
 type AchievementService struct {
@@ -24,6 +25,10 @@ func NewAchievementService(achievementRepo *repositories.AchievementRepository, 
 }
 
 func (s *AchievementService) GetUserAchievements(ctx context.Context, userID uuid.UUID) (*domain.AchievementsResponse, error) {
+	tr := otel.Tracer("services/achievement_service.go")
+	ctx, span := tr.Start(ctx, "GetUserAchievements")
+	defer span.End()
+
 	achievements, err := s.achievementRepo.GetUserAchievements(ctx, userID)
 	if err != nil {
 		s.logger.Error("Failed to get user achievements", "user_id", userID.String(), "error", err)
@@ -59,6 +64,10 @@ func (s *AchievementService) GetUserAchievements(ctx context.Context, userID uui
 }
 
 func (s *AchievementService) SyncAchievements(ctx context.Context, userID uuid.UUID) (*domain.AchievementsResponse, error) {
+	tr := otel.Tracer("services/achievement_service.go")
+	ctx, span := tr.Start(ctx, "SyncAchievements")
+	defer span.End()
+
 	allAchievements, err := s.achievementRepo.GetAllAchievements(ctx)
 	if err != nil {
 		s.logger.Error("Failed to get all achievements", "error", err)
@@ -72,7 +81,7 @@ func (s *AchievementService) SyncAchievements(ctx context.Context, userID uuid.U
 	}
 
 	for _, achievement := range allAchievements {
-		progress, unlocked := s.calculateAchievementProgress(achievement, stats)
+		progress, unlocked := s.calculateAchievementProgress(ctx, achievement, stats)
 
 		var unlockedAt *time.Time
 		if unlocked {
@@ -89,7 +98,10 @@ func (s *AchievementService) SyncAchievements(ctx context.Context, userID uuid.U
 	return s.GetUserAchievements(ctx, userID)
 }
 
-func (s *AchievementService) calculateAchievementProgress(achievement domain.Achievement, stats *domain.UserStats) (int32, bool) {
+func (s *AchievementService) calculateAchievementProgress(ctx context.Context, achievement domain.Achievement, stats *domain.UserStats) (int32, bool) {
+	tr := otel.Tracer("services/achievement_service.go")
+	ctx, span := tr.Start(ctx, "calculateAchievementProgress")
+	defer span.End()
 	var progress int32
 
 	switch achievement.ID.String() {

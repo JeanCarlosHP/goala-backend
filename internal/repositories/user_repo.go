@@ -5,11 +5,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"go.opentelemetry.io/otel"
-
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
+	"go.opentelemetry.io/otel"
 )
 
 type UserRepository struct {
@@ -21,6 +20,10 @@ func NewUserRepository(db *database.Database) *UserRepository {
 }
 
 func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
+	tr := otel.Tracer("services/user_repo.go")
+	ctx, span := tr.Start(ctx, "Create")
+	defer span.End()
+
 	result, err := r.db.Querier.CreateUser(ctx, db.CreateUserParams{
 		ID:          pgtype.UUID{Bytes: user.ID, Valid: true},
 		FirebaseUid: user.FirebaseUID,
@@ -38,7 +41,7 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 }
 
 func (r *UserRepository) GetByFirebaseUID(ctx context.Context, firebaseUID string) (*domain.User, error) {
-	tr := otel.Tracer("repositories/user_repository.go")
+	tr := otel.Tracer("repositories/user_repo.go")
 	ctx, span := tr.Start(ctx, "GetByFirebaseUID")
 	defer span.End()
 
@@ -66,6 +69,10 @@ func (r *UserRepository) GetByFirebaseUID(ctx context.Context, firebaseUID strin
 }
 
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+	tr := otel.Tracer("services/user_repo.go")
+	ctx, span := tr.Start(ctx, "GetByID")
+	defer span.End()
+
 	result, err := r.db.Querier.GetUserByID(ctx, pgtype.UUID{Bytes: id, Valid: true})
 	if err != nil {
 		return nil, err
@@ -90,6 +97,10 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 }
 
 func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
+	tr := otel.Tracer("services/user_repo.go")
+	ctx, span := tr.Start(ctx, "Update")
+	defer span.End()
+
 	result, err := r.db.Querier.UpdateUser(ctx, db.UpdateUserParams{
 		ID:          pgtype.UUID{Bytes: user.ID, Valid: true},
 		Email:       stringToPtr(user.Email),
@@ -105,10 +116,18 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 }
 
 func (r *UserRepository) ExistsByFirebaseUID(ctx context.Context, firebaseUID string) (bool, error) {
+	tr := otel.Tracer("services/user_repo.go")
+	ctx, span := tr.Start(ctx, "ExistsByFirebaseUID")
+	defer span.End()
+
 	return r.db.Querier.ExistsUserByFirebaseUID(ctx, firebaseUID)
 }
 
 func (r *UserRepository) UpdateProfile(ctx context.Context, user *domain.User) error {
+	tr := otel.Tracer("services/user_repo.go")
+	ctx, span := tr.Start(ctx, "UpdateProfile")
+	defer span.End()
+
 	return r.db.Querier.UpdateUserProfile(ctx, db.UpdateUserProfileParams{
 		ID:                   pgtype.UUID{Bytes: user.ID, Valid: true},
 		DisplayName:          stringToPtr(user.DisplayName),
@@ -125,6 +144,10 @@ func (r *UserRepository) UpdateProfile(ctx context.Context, user *domain.User) e
 }
 
 func (r *UserRepository) UpdateAvatar(ctx context.Context, userID uuid.UUID, photoURL *string) error {
+	tr := otel.Tracer("services/user_repo.go")
+	ctx, span := tr.Start(ctx, "UpdateAvatar")
+	defer span.End()
+
 	return r.db.Querier.UpdateUserAvatar(ctx, db.UpdateUserAvatarParams{
 		ID:       pgtype.UUID{Bytes: userID, Valid: true},
 		PhotoUrl: photoURL,
@@ -132,6 +155,10 @@ func (r *UserRepository) UpdateAvatar(ctx context.Context, userID uuid.UUID, pho
 }
 
 func (r *UserRepository) UpdateDisplayName(ctx context.Context, userID uuid.UUID, displayName *string) error {
+	tr := otel.Tracer("services/user_repo.go")
+	ctx, span := tr.Start(ctx, "UpdateDisplayName")
+	defer span.End()
+
 	return r.db.Querier.UpdateUserDisplayName(ctx, db.UpdateUserDisplayNameParams{
 		ID:          pgtype.UUID{Bytes: userID, Valid: true},
 		DisplayName: displayName,
@@ -139,6 +166,10 @@ func (r *UserRepository) UpdateDisplayName(ctx context.Context, userID uuid.UUID
 }
 
 func (r *UserRepository) UpdateNotifications(ctx context.Context, userID uuid.UUID, notificationsEnabled *bool) error {
+	tr := otel.Tracer("services/user_repo.go")
+	ctx, span := tr.Start(ctx, "UpdateNotifications")
+	defer span.End()
+
 	return r.db.Querier.UpdateUserNotifications(ctx, db.UpdateUserNotificationsParams{
 		ID:                   pgtype.UUID{Bytes: userID, Valid: true},
 		NotificationsEnabled: notificationsEnabled,

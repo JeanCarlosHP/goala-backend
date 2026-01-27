@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
+	"go.opentelemetry.io/otel"
 )
 
 type S3Service struct {
@@ -46,8 +47,12 @@ func NewS3Service(cfg *domain.Config, logger domain.Logger) (*S3Service, error) 
 }
 
 func (s *S3Service) UploadImage(ctx context.Context, fileContent io.Reader, fileType string) (string, error) {
+	tr := otel.Tracer("services/s3_service.go")
+	ctx, span := tr.Start(ctx, "UploadImage")
+	defer span.End()
+
 	fileID := uuid.New().String()
-	ext := getExtensionFromMimeType(fileType)
+	ext := getExtensionFromMimeType(ctx, fileType)
 	fileName := fmt.Sprintf("food-images/%s-%d%s", fileID, time.Now().Unix(), ext)
 
 	buf := new(bytes.Buffer)
@@ -75,7 +80,11 @@ func (s *S3Service) UploadImage(ctx context.Context, fileContent io.Reader, file
 	return url, nil
 }
 
-func getExtensionFromMimeType(mimeType string) string {
+func getExtensionFromMimeType(ctx context.Context, mimeType string) string {
+	tr := otel.Tracer("services/s3_service.go")
+	ctx, span := tr.Start(ctx, "getExtensionFromMimeType")
+	defer span.End()
+
 	extensions := map[string]string{
 		"image/jpeg": ".jpg",
 		"image/jpg":  ".jpg",
@@ -91,6 +100,10 @@ func getExtensionFromMimeType(mimeType string) string {
 }
 
 func (s *S3Service) GenerateUploadPresignedURL(ctx context.Context, firebaseUID string, contentType string, fileSize int64) (string, string, error) {
+	tr := otel.Tracer("services/s3_service.go")
+	ctx, span := tr.Start(ctx, "GenerateUploadPresignedURL")
+	defer span.End()
+
 	const (
 		maxFileSize     = 5 * 1024 * 1024
 		presignDuration = 5 * time.Minute
@@ -112,7 +125,7 @@ func (s *S3Service) GenerateUploadPresignedURL(ctx context.Context, firebaseUID 
 		return "", "", fmt.Errorf("invalid content type: %s. Allowed types: jpeg, jpg, png, webp", contentType)
 	}
 
-	ext := getExtensionFromMimeType(contentType)
+	ext := getExtensionFromMimeType(ctx, contentType)
 	if ext == "" {
 		ext = ".jpg"
 	}

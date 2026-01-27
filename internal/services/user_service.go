@@ -24,7 +24,11 @@ func NewUserService(userRepo *repositories.UserRepository, goalRepo *repositorie
 	}
 }
 
-func (s *UserService) buildPhotoURL(photoPath *string) *string {
+func (s *UserService) buildPhotoURL(ctx context.Context, photoPath *string) *string {
+	tr := otel.Tracer("services/user_service.go")
+	ctx, span := tr.Start(ctx, "buildPhotoURL")
+	defer span.End()
+
 	if photoPath == nil || *photoPath == "" {
 		return nil
 	}
@@ -33,6 +37,10 @@ func (s *UserService) buildPhotoURL(photoPath *string) *string {
 }
 
 func (s *UserService) RegisterUser(ctx context.Context, req domain.RegisterRequest) (*domain.User, error) {
+	tr := otel.Tracer("services/user_service.go")
+	ctx, span := tr.Start(ctx, "RegisterUser")
+	defer span.End()
+
 	exists, err := s.userRepo.ExistsByFirebaseUID(ctx, req.FirebaseUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check user existence: %w", err)
@@ -78,10 +86,18 @@ func (s *UserService) GetUserByFirebaseUID(ctx context.Context, firebaseUID stri
 }
 
 func (s *UserService) GetUserGoal(ctx context.Context, userID uuid.UUID) (*domain.UserGoal, error) {
+	tr := otel.Tracer("services/user_service.go")
+	ctx, span := tr.Start(ctx, "GetUserGoal")
+	defer span.End()
+
 	return s.goalRepo.GetByUserID(ctx, userID)
 }
 
 func (s *UserService) UpdateUserGoal(ctx context.Context, userID uuid.UUID, req domain.UpdateGoalRequest) (*domain.UserProfileResponse, error) {
+	tr := otel.Tracer("services/user_service.go")
+	ctx, span := tr.Start(ctx, "UpdateUserGoal")
+	defer span.End()
+
 	goal := &domain.UserGoal{
 		UserID:           userID,
 		DailyCalorieGoal: req.DailyCalorieGoal,
@@ -119,7 +135,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*do
 		ID:                   user.ID.String(),
 		DisplayName:          user.DisplayName,
 		Email:                user.Email,
-		Photo:                s.buildPhotoURL(user.PhotoURL),
+		Photo:                s.buildPhotoURL(ctx, user.PhotoURL),
 		DailyCalorieGoal:     int32(goal.DailyCalorieGoal),
 		DailyProteinGoal:     int32(goal.DailyProteinGoal),
 		DailyCarbsGoal:       &carbsGoal,
@@ -137,6 +153,10 @@ func (s *UserService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*do
 }
 
 func (s *UserService) UpdateUserProfile(ctx context.Context, userID uuid.UUID, req domain.UpdateProfileRequest) (*domain.UserProfileResponse, error) {
+	tr := otel.Tracer("services/user_service.go")
+	ctx, span := tr.Start(ctx, "UpdateUserProfile")
+	defer span.End()
+
 	user := &domain.User{
 		ID:                   userID,
 		DisplayName:          req.DisplayName,
@@ -184,6 +204,10 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID uuid.UUID, r
 }
 
 func (s *UserService) PatchUserPreferences(ctx context.Context, userID uuid.UUID, req domain.PatchUserPreferencesRequest) (*domain.UserProfileResponse, error) {
+	tr := otel.Tracer("services/user_service.go")
+	ctx, span := tr.Start(ctx, "PatchUserPreferences")
+	defer span.End()
+
 	if req.DisplayName != nil {
 		if err := s.userRepo.UpdateDisplayName(ctx, userID, req.DisplayName); err != nil {
 			return nil, fmt.Errorf("failed to update display name: %w", err)

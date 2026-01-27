@@ -13,6 +13,7 @@ import (
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/pkg/database"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
+	"go.opentelemetry.io/otel"
 )
 
 type SubscriptionRepository struct {
@@ -24,6 +25,10 @@ func NewSubscriptionRepository(db *database.Database) *SubscriptionRepository {
 }
 
 func (r *SubscriptionRepository) Create(ctx context.Context, sub *domain.Subscription) (*domain.Subscription, error) {
+	tr := otel.Tracer("repositories/subscription_repo.go")
+	ctx, span := tr.Start(ctx, "Create")
+	defer span.End()
+
 	result, err := r.db.Querier.CreateSubscription(ctx, db.CreateSubscriptionParams{
 		UserID:                          stringToPgUUID(sub.UserID),
 		RevenuecatUserID:                sub.RevenueCatUserID,
@@ -45,6 +50,10 @@ func (r *SubscriptionRepository) Create(ctx context.Context, sub *domain.Subscri
 }
 
 func (r *SubscriptionRepository) GetByUserID(ctx context.Context, userID string) (*domain.Subscription, error) {
+	tr := otel.Tracer("repositories/subscription_repo.go")
+	ctx, span := tr.Start(ctx, "GetByUserID")
+	defer span.End()
+
 	result, err := r.db.Querier.GetSubscriptionByUserID(ctx, stringToPgUUID(userID))
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -57,6 +66,10 @@ func (r *SubscriptionRepository) GetByUserID(ctx context.Context, userID string)
 }
 
 func (r *SubscriptionRepository) GetByRevenueCatUserID(ctx context.Context, rcUserID string) (*domain.Subscription, error) {
+	tr := otel.Tracer("repositories/subscription_repo.go")
+	ctx, span := tr.Start(ctx, "GetByRevenueCatUserID")
+	defer span.End()
+
 	result, err := r.db.Querier.GetSubscriptionByRevenueCatUserID(ctx, rcUserID)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -69,6 +82,10 @@ func (r *SubscriptionRepository) GetByRevenueCatUserID(ctx context.Context, rcUs
 }
 
 func (r *SubscriptionRepository) Upsert(ctx context.Context, sub *domain.Subscription) (*domain.Subscription, error) {
+	tr := otel.Tracer("repositories/subscription_repo.go")
+	ctx, span := tr.Start(ctx, "Upsert")
+	defer span.End()
+
 	result, err := r.db.Querier.UpsertSubscription(ctx, db.UpsertSubscriptionParams{
 		UserID:                          stringToPgUUID(sub.UserID),
 		RevenuecatUserID:                sub.RevenueCatUserID,
@@ -90,6 +107,10 @@ func (r *SubscriptionRepository) Upsert(ctx context.Context, sub *domain.Subscri
 }
 
 func (r *SubscriptionRepository) Update(ctx context.Context, sub *domain.Subscription) (*domain.Subscription, error) {
+	tr := otel.Tracer("repositories/subscription_repo.go")
+	ctx, span := tr.Start(ctx, "Update")
+	defer span.End()
+
 	result, err := r.db.Querier.UpdateSubscription(ctx, db.UpdateSubscriptionParams{
 		UserID:             stringToPgUUID(sub.UserID),
 		IsActive:           sub.IsActive,
@@ -109,6 +130,10 @@ func (r *SubscriptionRepository) Update(ctx context.Context, sub *domain.Subscri
 }
 
 func (r *SubscriptionRepository) IsEventProcessed(ctx context.Context, eventID string) (bool, error) {
+	tr := otel.Tracer("repositories/subscription_repo.go")
+	ctx, span := tr.Start(ctx, "IsEventProcessed")
+	defer span.End()
+
 	exists, err := r.db.Querier.CheckEventProcessed(ctx, stringPtr(eventID))
 	if err != nil {
 		return false, err
@@ -117,6 +142,10 @@ func (r *SubscriptionRepository) IsEventProcessed(ctx context.Context, eventID s
 }
 
 func (r *SubscriptionRepository) ListActive(ctx context.Context) ([]*domain.Subscription, error) {
+	tr := otel.Tracer("repositories/subscription_repo.go")
+	ctx, span := tr.Start(ctx, "ListActive")
+	defer span.End()
+
 	results, err := r.db.Querier.ListActiveSubscriptions(ctx)
 	if err != nil {
 		return nil, err
@@ -130,6 +159,10 @@ func (r *SubscriptionRepository) ListActive(ctx context.Context) ([]*domain.Subs
 }
 
 func (r *SubscriptionRepository) ListExpired(ctx context.Context) ([]*domain.Subscription, error) {
+	tr := otel.Tracer("repositories/subscription_repo.go")
+	ctx, span := tr.Start(ctx, "ListExpired")
+	defer span.End()
+
 	results, err := r.db.Querier.ListExpiredSubscriptions(ctx)
 	if err != nil {
 		return nil, err

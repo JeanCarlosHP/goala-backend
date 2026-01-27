@@ -74,7 +74,7 @@ func (h *SubscriptionHandler) HandleWebhook(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := h.revenueCatService.VerifyWebhookSignature(payload, signature); err != nil {
+	if err := h.revenueCatService.VerifyWebhookSignature(ctx, payload, signature); err != nil {
 		h.logger.Warn("Invalid webhook signature", map[string]interface{}{
 			"error": err.Error(),
 		})
@@ -84,7 +84,7 @@ func (h *SubscriptionHandler) HandleWebhook(c *fiber.Ctx) error {
 		})
 	}
 
-	webhook, err := h.revenueCatService.ParseWebhook(payload)
+	webhook, err := h.revenueCatService.ParseWebhook(ctx, payload)
 	if err != nil {
 		h.logger.Error("Failed to parse webhook", map[string]interface{}{
 			"error": err.Error(),

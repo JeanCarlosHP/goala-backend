@@ -1,12 +1,12 @@
 package middleware
 
 import (
-	"context"
 	"strings"
 
 	firebase "firebase.google.com/go/v4"
 	"github.com/gofiber/fiber/v2"
 	fbApp "github.com/jeancarloshp/calorieai/pkg/firebase"
+	"go.opentelemetry.io/otel"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
@@ -14,6 +14,12 @@ import (
 
 func AuthRequired(firebaseApp *firebase.App, logger domain.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		ctx := c.UserContext()
+
+		tr := otel.Tracer("middleware/auth.go")
+		ctx, span := tr.Start(ctx, "AuthRequired")
+		defer span.End()
+
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -28,7 +34,6 @@ func AuthRequired(firebaseApp *firebase.App, logger domain.Logger) fiber.Handler
 			})
 		}
 
-		ctx := context.Background()
 		authClient, err := fbApp.GetAuthClient(ctx, firebaseApp)
 		if err != nil {
 			logger.Error("Failed to get auth client", "error", err)
@@ -53,6 +58,12 @@ func AuthRequired(firebaseApp *firebase.App, logger domain.Logger) fiber.Handler
 
 func UserContext(userRepo *repositories.UserRepository, logger domain.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		ctx := c.UserContext()
+
+		tr := otel.Tracer("middleware/auth.go")
+		ctx, span := tr.Start(ctx, "UserContext")
+		defer span.End()
+
 		firebaseUID, ok := c.Locals("firebase_uid").(string)
 		if !ok || firebaseUID == "" {
 			logger.Warn("Firebase UID not found in context")
@@ -61,7 +72,6 @@ func UserContext(userRepo *repositories.UserRepository, logger domain.Logger) fi
 			})
 		}
 
-		ctx := context.Background()
 		user, err := userRepo.GetByFirebaseUID(ctx, firebaseUID)
 		if err != nil {
 			logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)

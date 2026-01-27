@@ -12,6 +12,7 @@ import (
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/pkg/database"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
+	"go.opentelemetry.io/otel"
 )
 
 type AIUsageRepository struct {
@@ -23,6 +24,10 @@ func NewAIUsageRepository(db *database.Database) *AIUsageRepository {
 }
 
 func (r *AIUsageRepository) Increment(ctx context.Context, userID string, feature enum.AIFeature, quota int32, periodStart, periodEnd time.Time) (*domain.AIUsage, error) {
+	tr := otel.Tracer("repositories/ai_usage_repo.go")
+	ctx, span := tr.Start(ctx, "Increment")
+	defer span.End()
+
 	result, err := r.db.Querier.IncrementAIUsage(ctx, db.IncrementAIUsageParams{
 		UserID:      stringToPgUUID(userID),
 		Feature:     feature.String(),
@@ -38,6 +43,10 @@ func (r *AIUsageRepository) Increment(ctx context.Context, userID string, featur
 }
 
 func (r *AIUsageRepository) Get(ctx context.Context, userID string, feature enum.AIFeature) (*domain.AIUsage, error) {
+	tr := otel.Tracer("repositories/ai_usage_repo.go")
+	ctx, span := tr.Start(ctx, "Get")
+	defer span.End()
+
 	result, err := r.db.Querier.GetAIUsage(ctx, db.GetAIUsageParams{
 		UserID:  stringToPgUUID(userID),
 		Feature: feature.String(),
@@ -53,6 +62,10 @@ func (r *AIUsageRepository) Get(ctx context.Context, userID string, feature enum
 }
 
 func (r *AIUsageRepository) GetByPeriod(ctx context.Context, userID string, feature enum.AIFeature, periodStart time.Time) (*domain.AIUsage, error) {
+	tr := otel.Tracer("repositories/ai_usage_repo.go")
+	ctx, span := tr.Start(ctx, "GetByPeriod")
+	defer span.End()
+
 	result, err := r.db.Querier.GetAIUsageByPeriod(ctx, db.GetAIUsageByPeriodParams{
 		UserID:      stringToPgUUID(userID),
 		Feature:     feature.String(),
@@ -69,10 +82,18 @@ func (r *AIUsageRepository) GetByPeriod(ctx context.Context, userID string, feat
 }
 
 func (r *AIUsageRepository) Reset(ctx context.Context) error {
+	tr := otel.Tracer("repositories/ai_usage_repo.go")
+	ctx, span := tr.Start(ctx, "Reset")
+	defer span.End()
+
 	return r.db.Querier.ResetAIUsage(ctx)
 }
 
 func (r *AIUsageRepository) ListByUser(ctx context.Context, userID string) ([]*domain.AIUsage, error) {
+	tr := otel.Tracer("repositories/ai_usage_repo.go")
+	ctx, span := tr.Start(ctx, "ListByUser")
+	defer span.End()
+
 	results, err := r.db.Querier.ListUserAIUsage(ctx, stringToPgUUID(userID))
 	if err != nil {
 		return nil, err
@@ -86,6 +107,10 @@ func (r *AIUsageRepository) ListByUser(ctx context.Context, userID string) ([]*d
 }
 
 func (r *AIUsageRepository) CreateOrReset(ctx context.Context, userID string, feature enum.AIFeature, quota int32, periodStart, periodEnd time.Time) (*domain.AIUsage, error) {
+	tr := otel.Tracer("repositories/ai_usage_repo.go")
+	ctx, span := tr.Start(ctx, "CreateOrReset")
+	defer span.End()
+
 	result, err := r.db.Querier.CreateOrResetAIUsage(ctx, db.CreateOrResetAIUsageParams{
 		UserID:      stringToPgUUID(userID),
 		Feature:     feature.String(),

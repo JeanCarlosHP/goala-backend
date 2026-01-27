@@ -8,6 +8,7 @@ import (
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
+	"go.opentelemetry.io/otel"
 )
 
 type GoalRepository struct {
@@ -19,6 +20,10 @@ func NewGoalRepository(db *database.Database) *GoalRepository {
 }
 
 func (r *GoalRepository) Upsert(ctx context.Context, goal *domain.UserGoal) error {
+	tr := otel.Tracer("repositories/goal_repo.go")
+	ctx, span := tr.Start(ctx, "Upsert")
+	defer span.End()
+
 	result, err := r.db.Querier.UpsertUserGoal(ctx, db.UpsertUserGoalParams{
 		UserID:        pgtype.UUID{Bytes: goal.UserID, Valid: true},
 		DailyCalories: goal.DailyCalorieGoal,
@@ -35,6 +40,10 @@ func (r *GoalRepository) Upsert(ctx context.Context, goal *domain.UserGoal) erro
 }
 
 func (r *GoalRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.UserGoal, error) {
+	tr := otel.Tracer("repositories/goal_repo.go")
+	ctx, span := tr.Start(ctx, "GetByUserID")
+	defer span.End()
+
 	result, err := r.db.Querier.GetUserGoalByUserID(ctx, pgtype.UUID{Bytes: userID, Valid: true})
 	if err != nil {
 		return nil, err

@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel"
 )
 
 var (
@@ -46,6 +47,12 @@ func init() {
 
 func PrometheusMetrics() fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		ctx := c.UserContext()
+
+		tr := otel.Tracer("middleware/metrics.go")
+		ctx, span := tr.Start(ctx, "PrometheusMetrics")
+		defer span.End()
+
 		if c.Path() == "/metrics" {
 			return c.Next()
 		}

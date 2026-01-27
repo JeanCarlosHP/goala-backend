@@ -8,6 +8,7 @@ import (
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
+	"go.opentelemetry.io/otel"
 )
 
 type AIUsageService struct {
@@ -57,6 +58,10 @@ var featureQuotas = map[enum.AIFeature]QuotaConfig{
 }
 
 func (s *AIUsageService) CheckAndIncrementUsage(ctx context.Context, userID string, feature enum.AIFeature) error {
+	tr := otel.Tracer("services/ai_usage_service.go")
+	ctx, span := tr.Start(ctx, "CheckAndIncrementUsage")
+	defer span.End()
+
 	sub, err := s.subRepo.GetByUserID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to get subscription: %w", err)
@@ -71,8 +76,8 @@ func (s *AIUsageService) CheckAndIncrementUsage(ctx context.Context, userID stri
 		}
 	}
 
-	quota := s.getQuotaForPlan(feature, sub)
-	periodStart, periodEnd := s.getCurrentPeriod(sub)
+	quota := s.getQuotaForPlan(ctx, feature, sub)
+	periodStart, periodEnd := s.getCurrentPeriod(ctx, sub)
 
 	usage, err := s.usageRepo.GetByPeriod(ctx, userID, feature, periodStart)
 	if err != nil {
@@ -110,14 +115,26 @@ func (s *AIUsageService) CheckAndIncrementUsage(ctx context.Context, userID stri
 }
 
 func (s *AIUsageService) GetUsage(ctx context.Context, userID string, feature enum.AIFeature) (*domain.AIUsage, error) {
+	tr := otel.Tracer("services/ai_usage_service.go")
+	ctx, span := tr.Start(ctx, "GetUsage")
+	defer span.End()
+
 	return s.usageRepo.Get(ctx, userID, feature)
 }
 
 func (s *AIUsageService) ListUserUsage(ctx context.Context, userID string) ([]*domain.AIUsage, error) {
+	tr := otel.Tracer("services/ai_usage_service.go")
+	ctx, span := tr.Start(ctx, "ListUserUsage")
+	defer span.End()
+
 	return s.usageRepo.ListByUser(ctx, userID)
 }
 
-func (s *AIUsageService) getQuotaForPlan(feature enum.AIFeature, sub *domain.Subscription) int32 {
+func (s *AIUsageService) getQuotaForPlan(ctx context.Context, feature enum.AIFeature, sub *domain.Subscription) int32 {
+	tr := otel.Tracer("services/ai_usage_service.go")
+	ctx, span := tr.Start(ctx, "getQuotaForPlan")
+	defer span.End()
+
 	quotaConfig, exists := featureQuotas[feature]
 	if !exists {
 		return 0
@@ -139,7 +156,11 @@ func (s *AIUsageService) getQuotaForPlan(feature enum.AIFeature, sub *domain.Sub
 	}
 }
 
-func (s *AIUsageService) getCurrentPeriod(sub *domain.Subscription) (time.Time, time.Time) {
+func (s *AIUsageService) getCurrentPeriod(ctx context.Context, sub *domain.Subscription) (time.Time, time.Time) {
+	tr := otel.Tracer("services/ai_usage_service.go")
+	ctx, span := tr.Start(ctx, "getQuotaForPlan")
+	defer span.End()
+
 	now := time.Now()
 
 	if sub.CurrentPeriodStart != nil && sub.CurrentPeriodEnd != nil {

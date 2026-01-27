@@ -8,6 +8,7 @@ import (
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
+	"go.opentelemetry.io/otel"
 )
 
 type FoodRepository struct {
@@ -19,6 +20,10 @@ func NewFoodRepository(db *database.Database) *FoodRepository {
 }
 
 func (r *FoodRepository) Create(ctx context.Context, food *domain.FoodItem) error {
+	tr := otel.Tracer("repositories/food_repo.go")
+	ctx, span := tr.Start(ctx, "Create")
+	defer span.End()
+
 	return r.db.Querier.CreateFoodItem(ctx, db.CreateFoodItemParams{
 		ID:          pgtype.UUID{Bytes: food.ID, Valid: true},
 		MealID:      pgtype.UUID{Bytes: food.MealID, Valid: true},
@@ -34,6 +39,10 @@ func (r *FoodRepository) Create(ctx context.Context, food *domain.FoodItem) erro
 }
 
 func (r *FoodRepository) GetByMealID(ctx context.Context, mealID uuid.UUID) ([]domain.FoodItem, error) {
+	tr := otel.Tracer("repositories/food_repo.go")
+	ctx, span := tr.Start(ctx, "GetByMealID")
+	defer span.End()
+
 	results, err := r.db.Querier.GetFoodItemsByMealID(ctx, pgtype.UUID{Bytes: mealID, Valid: true})
 	if err != nil {
 		return nil, err
@@ -59,6 +68,10 @@ func (r *FoodRepository) GetByMealID(ctx context.Context, mealID uuid.UUID) ([]d
 }
 
 func (r *FoodRepository) GetByMealIDs(ctx context.Context, mealIDs []uuid.UUID) (map[uuid.UUID][]domain.FoodItem, error) {
+	tr := otel.Tracer("repositories/food_repo.go")
+	ctx, span := tr.Start(ctx, "GetByMealIDs")
+	defer span.End()
+
 	pgUUIDs := make([]pgtype.UUID, len(mealIDs))
 	for i, id := range mealIDs {
 		pgUUIDs[i] = pgtype.UUID{Bytes: id, Valid: true}
@@ -90,6 +103,10 @@ func (r *FoodRepository) GetByMealIDs(ctx context.Context, mealIDs []uuid.UUID) 
 }
 
 func (r *FoodRepository) SearchFoodDatabase(ctx context.Context, query string, limit int) ([]domain.FoodDatabase, error) {
+	tr := otel.Tracer("services/food_repo.go")
+	ctx, span := tr.Start(ctx, "SearchFoodDatabase")
+	defer span.End()
+
 	results, err := r.db.Querier.SearchFoodDatabase(ctx, db.SearchFoodDatabaseParams{
 		PlaintoTsquery: query,
 		Column2:        stringToPtr(query),
@@ -118,6 +135,10 @@ func (r *FoodRepository) SearchFoodDatabase(ctx context.Context, query string, l
 }
 
 func (r *FoodRepository) GetRecentFoods(ctx context.Context, userID uuid.UUID, limit int) ([]domain.RecentFood, error) {
+	tr := otel.Tracer("services/food_repo.go")
+	ctx, span := tr.Start(ctx, "GetRecentFoods")
+	defer span.End()
+
 	results, err := r.db.Querier.GetRecentFoods(ctx, db.GetRecentFoodsParams{
 		UserID: pgtype.UUID{Bytes: userID, Valid: true},
 		Limit:  limit,
@@ -144,6 +165,10 @@ func (r *FoodRepository) GetRecentFoods(ctx context.Context, userID uuid.UUID, l
 }
 
 func (r *FoodRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.FoodItem, error) {
+	tr := otel.Tracer("services/food_repo.go")
+	ctx, span := tr.Start(ctx, "GetByID")
+	defer span.End()
+
 	result, err := r.db.Querier.GetFoodItemByID(ctx, pgtype.UUID{Bytes: id, Valid: true})
 	if err != nil {
 		return nil, err
@@ -164,6 +189,10 @@ func (r *FoodRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Foo
 }
 
 func (r *FoodRepository) Update(ctx context.Context, id uuid.UUID, food *domain.UpdateFoodItemRequest) (*domain.FoodItem, error) {
+	tr := otel.Tracer("services/food_repo.go")
+	ctx, span := tr.Start(ctx, "Update")
+	defer span.End()
+
 	result, err := r.db.Querier.UpdateFoodItemComplete(ctx, db.UpdateFoodItemCompleteParams{
 		ID:          pgtype.UUID{Bytes: id, Valid: true},
 		Name:        food.Name,
@@ -194,10 +223,18 @@ func (r *FoodRepository) Update(ctx context.Context, id uuid.UUID, food *domain.
 }
 
 func (r *FoodRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	tr := otel.Tracer("services/food_repo.go")
+	ctx, span := tr.Start(ctx, "Delete")
+	defer span.End()
+
 	return r.db.Querier.DeleteFoodItem(ctx, pgtype.UUID{Bytes: id, Valid: true})
 }
 
 func (r *FoodRepository) CreateStandalone(ctx context.Context, food *domain.CreateFoodItemRequest) (*domain.FoodItem, error) {
+	tr := otel.Tracer("services/food_repo.go")
+	ctx, span := tr.Start(ctx, "CreateStandalone")
+	defer span.End()
+
 	id := uuid.New()
 	result, err := r.db.Querier.CreateStandaloneFoodItem(ctx, db.CreateStandaloneFoodItemParams{
 		ID:          pgtype.UUID{Bytes: id, Valid: true},

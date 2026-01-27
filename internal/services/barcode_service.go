@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
+	"go.opentelemetry.io/otel"
 )
 
 type BarcodeService struct {
@@ -40,10 +41,14 @@ func NewBarcodeService(
 }
 
 func (s *BarcodeService) GetFoodByBarcode(ctx context.Context, barcode string) (*domain.FoodBarcodeResponse, error) {
+	tr := otel.Tracer("services/barcode_service.go")
+	ctx, span := tr.Start(ctx, "GetFoodByBarcode")
+	defer span.End()
+
 	cached, err := s.foodRepo.GetFoodByBarcode(ctx, &barcode)
 	if err == nil {
 		s.logger.Info("found food in cache", "barcode", barcode)
-		return s.mapDBToResponse(&cached), nil
+		return s.mapDBToResponse(ctx, &cached), nil
 	}
 
 	s.logger.Info("food not in cache, fetching from OpenFoodFacts", "barcode", barcode)
@@ -61,6 +66,10 @@ func (s *BarcodeService) GetFoodByBarcode(ctx context.Context, barcode string) (
 }
 
 func (s *BarcodeService) fetchFromOpenFoodFacts(ctx context.Context, barcode string) (*domain.FoodBarcodeResponse, error) {
+	tr := otel.Tracer("services/barcode_service.go")
+	ctx, span := tr.Start(ctx, "fetchFromOpenFoodFacts")
+	defer span.End()
+
 	url := fmt.Sprintf("%s/product/%s.json", s.openFoodFactsURL, barcode)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -127,6 +136,10 @@ func (s *BarcodeService) fetchFromOpenFoodFacts(ctx context.Context, barcode str
 }
 
 func (s *BarcodeService) cacheFoodInDB(ctx context.Context, barcode string, food *domain.FoodBarcodeResponse) error {
+	tr := otel.Tracer("services/barcode_service.go")
+	ctx, span := tr.Start(ctx, "cacheFoodInDB")
+	defer span.End()
+
 	params := db.CreateFoodFromBarcodeParams{
 		Barcode:  &barcode,
 		Name:     food.Name,
@@ -152,7 +165,11 @@ func (s *BarcodeService) cacheFoodInDB(ctx context.Context, barcode string, food
 	return err
 }
 
-func (s *BarcodeService) mapDBToResponse(food *db.FoodDatabase) *domain.FoodBarcodeResponse {
+func (s *BarcodeService) mapDBToResponse(ctx context.Context, food *db.FoodDatabase) *domain.FoodBarcodeResponse {
+	tr := otel.Tracer("services/barcode_service.go")
+	ctx, span := tr.Start(ctx, "mapDBToResponse")
+	defer span.End()
+
 	source := "Database"
 	var barcode string
 	if food.Barcode != nil {

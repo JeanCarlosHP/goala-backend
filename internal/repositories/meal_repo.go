@@ -9,6 +9,7 @@ import (
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
+	"go.opentelemetry.io/otel"
 )
 
 type MealRepository struct {
@@ -20,6 +21,10 @@ func NewMealRepository(db *database.Database) *MealRepository {
 }
 
 func (r *MealRepository) Create(ctx context.Context, meal *domain.Meal) error {
+	tr := otel.Tracer("repositories/meal_repo.go")
+	ctx, span := tr.Start(ctx, "Create")
+	defer span.End()
+
 	mealDate := pgtype.Date{}
 	_ = mealDate.Scan(meal.MealDate)
 
@@ -45,6 +50,10 @@ func (r *MealRepository) Create(ctx context.Context, meal *domain.Meal) error {
 }
 
 func (r *MealRepository) GetByUserAndDate(ctx context.Context, userID uuid.UUID, date time.Time) ([]domain.Meal, error) {
+	tr := otel.Tracer("repositories/meal_repo.go")
+	ctx, span := tr.Start(ctx, "GetByUserAndDate")
+	defer span.End()
+
 	mealDate := pgtype.Date{}
 	_ = mealDate.Scan(date)
 
@@ -88,6 +97,10 @@ func (r *MealRepository) GetByUserAndDate(ctx context.Context, userID uuid.UUID,
 }
 
 func (r *MealRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Meal, error) {
+	tr := otel.Tracer("repositories/meal_repo.go")
+	ctx, span := tr.Start(ctx, "GetByID")
+	defer span.End()
+
 	result, err := r.db.Querier.GetMealByID(ctx, pgtype.UUID{Bytes: id, Valid: true})
 	if err != nil {
 		return nil, err

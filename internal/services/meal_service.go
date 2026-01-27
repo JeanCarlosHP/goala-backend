@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
+	"go.opentelemetry.io/otel"
 )
 
 type MealService struct {
@@ -23,6 +24,10 @@ func NewMealService(mealRepo *repositories.MealRepository, foodRepo *repositorie
 }
 
 func (s *MealService) CreateMeal(ctx context.Context, userID uuid.UUID, req domain.CreateMealRequest) (*domain.Meal, error) {
+	tr := otel.Tracer("services/meal_service.go")
+	ctx, span := tr.Start(ctx, "CreateMeal")
+	defer span.End()
+
 	mealDate, err := time.Parse("2006-01-02", req.MealDate)
 	if err != nil {
 		return nil, fmt.Errorf("invalid meal date format: %w", err)
@@ -75,6 +80,10 @@ func (s *MealService) CreateMeal(ctx context.Context, userID uuid.UUID, req doma
 }
 
 func (s *MealService) GetMealsByDate(ctx context.Context, userID uuid.UUID, date time.Time) ([]domain.Meal, error) {
+	tr := otel.Tracer("services/meal_service.go")
+	ctx, span := tr.Start(ctx, "GetMealsByDate")
+	defer span.End()
+
 	meals, err := s.mealRepo.GetByUserAndDate(ctx, userID, date)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meals: %w", err)
@@ -104,6 +113,10 @@ func (s *MealService) GetMealsByDate(ctx context.Context, userID uuid.UUID, date
 }
 
 func (s *MealService) GetDailySummary(ctx context.Context, userID uuid.UUID, date time.Time, goal *domain.UserGoal) (*domain.DailySummary, error) {
+	tr := otel.Tracer("services/meal_service.go")
+	ctx, span := tr.Start(ctx, "GetDailySummary")
+	defer span.End()
+
 	meals, err := s.GetMealsByDate(ctx, userID, date)
 	if err != nil {
 		return nil, err

@@ -1,9 +1,8 @@
 package middleware
 
 import (
-	"context"
-
 	"github.com/gofiber/fiber/v2"
+	"go.opentelemetry.io/otel"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
@@ -12,6 +11,12 @@ import (
 
 func SubscriptionRequired(subscriptionService *services.SubscriptionService, log domain.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		ctx := c.UserContext()
+
+		tr := otel.Tracer("middleware/subscription.go")
+		ctx, span := tr.Start(ctx, "SubscriptionRequired")
+		defer span.End()
+
 		userID, ok := c.Locals("user_id").(string)
 		if !ok || userID == "" {
 			log.Warn("Missing user_id in context", nil)
@@ -21,7 +26,6 @@ func SubscriptionRequired(subscriptionService *services.SubscriptionService, log
 			})
 		}
 
-		ctx := context.Background()
 		hasAccess, err := subscriptionService.ValidateAccess(ctx, userID)
 		if err != nil {
 			log.Error("Failed to validate subscription", map[string]interface{}{
@@ -48,6 +52,12 @@ func SubscriptionRequired(subscriptionService *services.SubscriptionService, log
 
 func AIQuotaCheck(aiUsageService *services.AIUsageService, feature enum.AIFeature, log domain.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		ctx := c.UserContext()
+
+		tr := otel.Tracer("middleware/subscription.go")
+		ctx, span := tr.Start(ctx, "AIQuotaCheck")
+		defer span.End()
+
 		userID, ok := c.Locals("user_id").(string)
 		if !ok || userID == "" {
 			log.Warn("Missing user_id in context", nil)
@@ -57,7 +67,6 @@ func AIQuotaCheck(aiUsageService *services.AIUsageService, feature enum.AIFeatur
 			})
 		}
 
-		ctx := context.Background()
 		if err := aiUsageService.CheckAndIncrementUsage(ctx, userID, feature); err != nil {
 			if services.IsQuotaExceededError(err) {
 				log.Info("Quota exceeded", map[string]interface{}{

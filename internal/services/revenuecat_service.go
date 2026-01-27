@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
+	"go.opentelemetry.io/otel"
 )
 
 type RevenueCatService struct {
@@ -22,7 +24,11 @@ func NewRevenueCatService(webhookSecret string, log domain.Logger) *RevenueCatSe
 	}
 }
 
-func (s *RevenueCatService) VerifyWebhookSignature(payload []byte, signature string) error {
+func (s *RevenueCatService) VerifyWebhookSignature(ctx context.Context, payload []byte, signature string) error {
+	tr := otel.Tracer("services/revenuecat_service.go")
+	ctx, span := tr.Start(ctx, "VerifyWebhookSignature")
+	defer span.End()
+
 	if s.webhookSecret == "" {
 		s.logger.Warn("Webhook secret not configured, skipping signature verification", nil)
 		return nil
@@ -39,7 +45,11 @@ func (s *RevenueCatService) VerifyWebhookSignature(payload []byte, signature str
 	return nil
 }
 
-func (s *RevenueCatService) ParseWebhook(payload []byte) (*domain.RevenueCatWebhook, error) {
+func (s *RevenueCatService) ParseWebhook(ctx context.Context, payload []byte) (*domain.RevenueCatWebhook, error) {
+	tr := otel.Tracer("services/revenuecat_service.go")
+	ctx, span := tr.Start(ctx, "ParseWebhook")
+	defer span.End()
+
 	var webhook domain.RevenueCatWebhook
 	if err := json.Unmarshal(payload, &webhook); err != nil {
 		return nil, fmt.Errorf("failed to parse webhook: %w", err)

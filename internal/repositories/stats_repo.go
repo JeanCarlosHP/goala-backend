@@ -22,7 +22,7 @@ func NewStatsRepository(queries *db.Queries) *StatsRepository {
 }
 
 func (r *StatsRepository) GetUserStats(ctx context.Context, userID uuid.UUID) (*domain.UserStats, error) {
-	tr := otel.Tracer("repositories/stats_repository.go")
+	tr := otel.Tracer("repositories/stats_repo.go")
 	ctx, span := tr.Start(ctx, "GetUserStats")
 	defer span.End()
 
@@ -66,6 +66,10 @@ func (r *StatsRepository) GetUserStats(ctx context.Context, userID uuid.UUID) (*
 }
 
 func (r *StatsRepository) CreateUserStats(ctx context.Context, userID uuid.UUID) (*domain.UserStats, error) {
+	tr := otel.Tracer("repositories/stats_repo.go")
+	ctx, span := tr.Start(ctx, "CreateUserStats")
+	defer span.End()
+
 	var pgUserID pgtype.UUID
 	if err := pgUserID.Scan(userID.String()); err != nil {
 		return nil, err
@@ -106,6 +110,10 @@ func (r *StatsRepository) CreateUserStats(ctx context.Context, userID uuid.UUID)
 }
 
 func (r *StatsRepository) UpdateUserStats(ctx context.Context, stats *domain.UserStats) error {
+	tr := otel.Tracer("repositories/stats_repo.go")
+	ctx, span := tr.Start(ctx, "UpdateUserStats")
+	defer span.End()
+
 	var pgUserID pgtype.UUID
 	if err := pgUserID.Scan(stats.UserID.String()); err != nil {
 		return err
@@ -134,6 +142,10 @@ func (r *StatsRepository) UpdateUserStats(ctx context.Context, stats *domain.Use
 }
 
 func (r *StatsRepository) IncrementMealCount(ctx context.Context, userID uuid.UUID) error {
+	tr := otel.Tracer("repositories/stats_repo.go")
+	ctx, span := tr.Start(ctx, "IncrementMealCount")
+	defer span.End()
+
 	var pgUserID pgtype.UUID
 	if err := pgUserID.Scan(userID.String()); err != nil {
 		return err
@@ -143,6 +155,10 @@ func (r *StatsRepository) IncrementMealCount(ctx context.Context, userID uuid.UU
 }
 
 func (r *StatsRepository) UpdateStreakAndLastLogDate(ctx context.Context, userID uuid.UUID, currentStreak int32, lastLogDate time.Time) error {
+	tr := otel.Tracer("repositories/stats_repo.go")
+	ctx, span := tr.Start(ctx, "UpdateStreakAndLastLogDate")
+	defer span.End()
+
 	var pgUserID pgtype.UUID
 	if err := pgUserID.Scan(userID.String()); err != nil {
 		return err
@@ -162,6 +178,10 @@ func (r *StatsRepository) UpdateStreakAndLastLogDate(ctx context.Context, userID
 }
 
 func (r *StatsRepository) AddNutritionToStats(ctx context.Context, userID uuid.UUID, calories, protein, carbs, fat int32) error {
+	tr := otel.Tracer("repositories/stats_repo.go")
+	ctx, span := tr.Start(ctx, "AddNutritionToStats")
+	defer span.End()
+
 	var pgUserID pgtype.UUID
 	if err := pgUserID.Scan(userID.String()); err != nil {
 		return err
