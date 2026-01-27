@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
@@ -17,7 +15,6 @@ import (
 type FoodRecognitionService struct {
 	s3Service  *S3Service
 	aiProvider AIProvider
-	config     *domain.Config
 	logger     domain.Logger
 }
 
@@ -44,7 +41,6 @@ func NewFoodRecognitionService(
 	return &FoodRecognitionService{
 		s3Service:  s3Service,
 		aiProvider: aiProvider,
-		config:     cfg,
 		logger:     logger,
 	}
 }
@@ -312,48 +308,6 @@ func (s *FoodRecognitionService) EstimateQuantity(
 	return result, nil
 }
 
-func (s *FoodRecognitionService) downloadImageFromCDN(ctx context.Context, imagePath string) ([]byte, error) {
-	tr := otel.Tracer("services/food_recognition_service.go")
-	ctx, span := tr.Start(ctx, "downloadImageFromCDN")
-	defer span.End()
-
-	// Remove leading slash if present
-	imagePath = strings.TrimPrefix(imagePath, "/")
-
-	// Build CDN URL
-	cdnURL := fmt.Sprintf("%s/%s", s.config.CDNDomain, imagePath)
-
-	// Create HTTP request
-	req, err := http.NewRequestWithContext(ctx, "GET", cdnURL, nil)
-	if err != nil {
-		s.logger.Error("failed to create HTTP request for CDN", "error", err, "url", cdnURL)
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Make the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		s.logger.Error("failed to download image from CDN", "error", err, "url", cdnURL)
-		return nil, fmt.Errorf("failed to download image: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		s.logger.Error("CDN returned non-200 status", "status", resp.StatusCode, "url", cdnURL)
-		return nil, fmt.Errorf("failed to download image: status %d", resp.StatusCode)
-	}
-
-	// Read the image data
-	imageBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		s.logger.Error("failed to read image data from CDN", "error", err, "url", cdnURL)
-		return nil, fmt.Errorf("failed to read image data: %w", err)
-	}
-
-	return imageBytes, nil
-}
-
 func (s *FoodRecognitionService) RecognizeFoodByPath(
 	ctx context.Context,
 	imagePath string,
@@ -365,10 +319,10 @@ func (s *FoodRecognitionService) RecognizeFoodByPath(
 
 	startTime := time.Now()
 
-	// Download image from CDN
-	imageBytes, err := s.downloadImageFromCDN(ctx, imagePath)
+	// Download image from S3
+	imageBytes, err := s.s3Service.DownloadImage(ctx, imagePath)
 	if err != nil {
-		s.logger.Error("failed to download image from CDN", "error", err, "imagePath", imagePath)
+		s.logger.Error("failed to download image from S3", "error", err, "imagePath", imagePath)
 		return nil, fmt.Errorf("failed to download image: %w", err)
 	}
 
@@ -399,10 +353,10 @@ func (s *FoodRecognitionService) EstimateQuantityByPath(
 	ctx, span := tr.Start(ctx, "EstimateQuantityByPath")
 	defer span.End()
 
-	// Download image from CDN
-	imageBytes, err := s.downloadImageFromCDN(ctx, imagePath)
+	// Download image from S3
+	imageBytes, err := s.s3Service.DownloadImage(ctx, imagePath)
 	if err != nil {
-		s.logger.Error("failed to download image from CDN", "error", err, "imagePath", imagePath)
+		s.logger.Error("failed to download image from S3", "error", err, "imagePath", imagePath)
 		return nil, fmt.Errorf("failed to download image: %w", err)
 	}
 
