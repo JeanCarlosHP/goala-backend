@@ -2,11 +2,10 @@
 * Golang + Fiber
 * pgxpool + SQLC + PostgreSQL
 * go-migrate v4
-* RabbitMQ (fila)
 * Firebase Auth (tokens)
 * AWS S3 (fotos)
 * Prometheus + Grafana (monitoramento)
-* Zerolog (logs estruturados)
+* Slog (logs estruturados com a interface domain.Logger)
 * Viper (configuração)
 * Clean Architecture + CQRS leve
 

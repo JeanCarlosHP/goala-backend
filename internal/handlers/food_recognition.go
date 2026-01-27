@@ -12,7 +12,6 @@ import (
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/internal/services"
-	"github.com/rs/zerolog/log"
 )
 
 type FoodRecognitionHandler struct {
@@ -20,25 +19,28 @@ type FoodRecognitionHandler struct {
 	barcodeService         *services.BarcodeService
 	validator              *validator.Validate
 	aiUsageService         *services.AIUsageService
+	logger                 domain.Logger
 }
 
 func NewFoodRecognitionHandler(
 	foodRecognitionService *services.FoodRecognitionService,
 	barcodeService *services.BarcodeService,
 	aiUsageService *services.AIUsageService,
+	logger domain.Logger,
 ) *FoodRecognitionHandler {
 	return &FoodRecognitionHandler{
 		foodRecognitionService: foodRecognitionService,
 		barcodeService:         barcodeService,
 		validator:              validator.New(),
 		aiUsageService:         aiUsageService,
+		logger:                 logger,
 	}
 }
 
 func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
-		log.Warn().Msg("Missing user_id in context")
+		h.logger.Warn("Missing user_id in context")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"success": false,
 			"message": "authentication required",
@@ -50,8 +52,7 @@ func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 	ctx := context.Background()
 	if err := h.aiUsageService.CheckAndIncrementUsage(ctx, userIDStr, enum.FeatureFoodRecognition); err != nil {
 		if services.IsQuotaExceededError(err) {
-			log.Warn().Msgf("Quota exceeded for user %s and feature %s",
-				userID, enum.FeatureFoodRecognition)
+			h.logger.Warn("Quota exceeded for user %s and feature %s", userID, enum.FeatureFoodRecognition)
 			return c.Status(fiber.StatusPaymentRequired).JSON(fiber.Map{
 				"success": false,
 				"message": "quota exceeded for this feature",
@@ -60,7 +61,7 @@ func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 			})
 		}
 
-		log.Error().Err(err).Str("user_id", userIDStr).Msg("Failed to validate quota")
+		h.logger.Error("Failed to validate quota: %v, user_id: %s", err, userIDStr)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to validate quota",
@@ -69,7 +70,7 @@ func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 
 	fileHeader, err := c.FormFile("image")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get image from form")
+		h.logger.Error("Failed to get image from form: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "image file is required",
@@ -84,7 +85,7 @@ func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		log.Error().Err(err).Msg("Validation failed")
+		h.logger.Error("Validation failed: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "name, type, and mealLocation are required",
@@ -132,7 +133,7 @@ func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 				return
 
 			case err := <-errorChan:
-				log.Error().Err(err).Msg("Failed to recognize food")
+				h.logger.Error("Failed to recognize food: %v", err)
 				data, _ := json.Marshal(fiber.Map{
 					"success": false,
 					"message": "failed to recognize food",
@@ -163,7 +164,7 @@ func (h *FoodRecognitionHandler) GetFoodByBarcode(c *fiber.Ctx) error {
 
 	result, err := h.barcodeService.GetFoodByBarcode(ctx, barcode)
 	if err != nil {
-		log.Error().Err(err).Str("barcode", barcode).Msg("Failed to get food by barcode")
+		h.logger.Error("Failed to get food by barcode: %v, barcode: %s", err, barcode)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
 			"message": "food not found for barcode",
@@ -171,7 +172,7 @@ func (h *FoodRecognitionHandler) GetFoodByBarcode(c *fiber.Ctx) error {
 	}
 
 	if err := h.validator.Struct(result); err != nil {
-		log.Error().Err(err).Msg("Validation failed for barcode response")
+		h.logger.Error("Validation failed for barcode response: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid response from barcode service",
@@ -190,7 +191,7 @@ func (h *FoodRecognitionHandler) EstimateQuantity(c *fiber.Ctx) error {
 
 	fileHeader, err := c.FormFile("image")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get image from form")
+		h.logger.Error("Failed to get image from form: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "image file is required",
@@ -212,7 +213,7 @@ func (h *FoodRecognitionHandler) EstimateQuantity(c *fiber.Ctx) error {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		log.Error().Err(err).Msg("Validation failed")
+		h.logger.Error("Validation failed: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "name, type, and mealLocation are required",
@@ -260,7 +261,7 @@ func (h *FoodRecognitionHandler) EstimateQuantity(c *fiber.Ctx) error {
 				return
 
 			case err := <-errorChan:
-				log.Error().Err(err).Msg("Failed to estimate quantity")
+				h.logger.Error("Failed to estimate quantity: %v", err)
 				data, _ := json.Marshal(fiber.Map{
 					"success": false,
 					"message": "failed to estimate quantity",

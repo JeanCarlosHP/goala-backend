@@ -15,9 +15,11 @@ import (
 	"github.com/jeancarloshp/calorieai/pkg/server"
 	"github.com/jeancarloshp/calorieai/pkg/server/middleware"
 
+	"github.com/gofiber/contrib/otelfiber"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/internal/handlers"
+	"github.com/jeancarloshp/calorieai/internal/observability"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
 	"github.com/jeancarloshp/calorieai/internal/services"
 	log "github.com/jeancarloshp/calorieai/pkg/logger"
@@ -37,18 +39,23 @@ func init() {
 
 func main() {
 	ctx := context.Background()
+	tp, err := observability.InitTracer(ctx, "calorieai-backend", configurer)
+	if err != nil {
+		logger.Fatal("failed to initialize tracing:", err)
+	}
+	defer func() { _ = tp.Shutdown(ctx) }()
 
 	database := database.New(logger)
 	if err != nil {
 		logger.Fatal("failed to initialize database:", err)
 	}
 
-	err := database.NewConnection(configurer)
+	err = database.NewConnection(configurer)
 	if err != nil {
 		logger.Fatal("failed to connect to database:", err)
 	}
 
-	firebaseApp, err := firebase.New(ctx, configurer)
+	firebaseApp, err := firebase.New(ctx, configurer, logger)
 	if err != nil {
 		logger.Fatal("failed to initialize firebase app:", err)
 	}
@@ -66,9 +73,9 @@ func main() {
 	userService := services.NewUserService(userRepo, goalRepo, configurer.CDNDomain)
 	mealService := services.NewMealService(mealRepo, foodRepo)
 	foodService := services.NewFoodService(foodRepo)
-	statsService := services.NewStatsService(statsRepo, mealRepo)
-	achievementService := services.NewAchievementService(achievementRepo, statsRepo)
-	feedbackService := services.NewFeedbackService(feedbackRepo)
+	statsService := services.NewStatsService(statsRepo, mealRepo, logger)
+	achievementService := services.NewAchievementService(achievementRepo, statsRepo, logger)
+	feedbackService := services.NewFeedbackService(feedbackRepo, logger)
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, logger)
 	aiUsageService := services.NewAIUsageService(aiUsageRepo, subscriptionRepo, logger)
 	revenueCatService := services.NewRevenueCatService(configurer.RevenueCatWebhookSecret, logger)
@@ -81,19 +88,21 @@ func main() {
 	foodRecognitionService := services.NewFoodRecognitionService(s3Service, configurer, logger)
 	barcodeService := services.NewBarcodeService(database.Querier.(*db.Queries), configurer, logger)
 
-	authHandler := handlers.NewAuthHandler(userService, firebaseApp)
-	userHandler := handlers.NewUserHandler(userService, s3Service)
-	mealHandler := handlers.NewMealHandler(mealService, userService)
-	foodHandler := handlers.NewFoodHandler(foodService, validator.New())
-	statsHandler := handlers.NewStatsHandler(statsService)
-	achievementHandler := handlers.NewAchievementHandler(achievementService)
-	feedbackHandler := handlers.NewFeedbackHandler(feedbackService, userService)
-	foodRecognitionHandler := handlers.NewFoodRecognitionHandler(foodRecognitionService, barcodeService, aiUsageService)
+	authHandler := handlers.NewAuthHandler(userService, firebaseApp, logger)
+	userHandler := handlers.NewUserHandler(userService, s3Service, logger)
+	mealHandler := handlers.NewMealHandler(mealService, userService, logger)
+	foodHandler := handlers.NewFoodHandler(foodService, validator.New(), logger)
+	statsHandler := handlers.NewStatsHandler(statsService, logger)
+	achievementHandler := handlers.NewAchievementHandler(achievementService, logger)
+	feedbackHandler := handlers.NewFeedbackHandler(feedbackService, userService, logger)
+	foodRecognitionHandler := handlers.NewFoodRecognitionHandler(foodRecognitionService, barcodeService, aiUsageService, logger)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionService, revenueCatService, logger)
 	aiUsageHandler := handlers.NewAIUsageHandler(aiUsageService, logger)
 
 	httpServer := server.New(configurer, logger)
 	app := httpServer.GetApp()
+	// Instrumentação Fiber
+	app.Use(otelfiber.Middleware())
 
 	api := app.Group("/api/v1")
 

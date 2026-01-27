@@ -7,36 +7,28 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
-	"github.com/rs/zerolog/log"
 )
 
 type FeedbackService struct {
 	feedbackRepo *repositories.FeedbackRepository
+	logger       domain.Logger
 }
 
-func NewFeedbackService(feedbackRepo *repositories.FeedbackRepository) *FeedbackService {
+func NewFeedbackService(feedbackRepo *repositories.FeedbackRepository, logger domain.Logger) *FeedbackService {
 	return &FeedbackService{
 		feedbackRepo: feedbackRepo,
+		logger:       logger,
 	}
 }
 
 func (s *FeedbackService) CreateFeedback(ctx context.Context, userID uuid.UUID, req *domain.CreateFeedbackRequest) error {
 	feedback, err := s.feedbackRepo.Create(ctx, userID, req)
 	if err != nil {
-		log.Error().
-			Err(err).
-			Str("user_id", userID.String()).
-			Str("type", req.Type).
-			Msg("Failed to create feedback")
+		s.logger.Error("Failed to create feedback", "user_id", userID.String(), "error", err)
 		return fmt.Errorf("failed to create feedback: %w", err)
 	}
 
-	log.Info().
-		Str("feedback_id", feedback.ID).
-		Str("user_id", userID.String()).
-		Str("type", string(feedback.Type)).
-		Str("title", feedback.Title).
-		Msg("Feedback created successfully")
+	s.logger.Info("Feedback created successfully", "feedback_id", feedback.ID, "user_id", userID.String(), "type", string(feedback.Type), "title", feedback.Title)
 
 	return nil
 }

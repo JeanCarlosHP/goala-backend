@@ -7,31 +7,32 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
-	"github.com/rs/zerolog/log"
 )
 
 type AchievementService struct {
 	achievementRepo *repositories.AchievementRepository
 	statsRepo       *repositories.StatsRepository
+	logger          domain.Logger
 }
 
-func NewAchievementService(achievementRepo *repositories.AchievementRepository, statsRepo *repositories.StatsRepository) *AchievementService {
+func NewAchievementService(achievementRepo *repositories.AchievementRepository, statsRepo *repositories.StatsRepository, logger domain.Logger) *AchievementService {
 	return &AchievementService{
 		achievementRepo: achievementRepo,
 		statsRepo:       statsRepo,
+		logger:          logger,
 	}
 }
 
 func (s *AchievementService) GetUserAchievements(ctx context.Context, userID uuid.UUID) (*domain.AchievementsResponse, error) {
 	achievements, err := s.achievementRepo.GetUserAchievements(ctx, userID)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", userID.String()).Msg("Failed to get user achievements")
+		s.logger.Error("Failed to get user achievements", "user_id", userID.String(), "error", err)
 		return nil, err
 	}
 
 	stats, err := s.statsRepo.GetUserStats(ctx, userID)
 	if err != nil {
-		log.Warn().Err(err).Str("user_id", userID.String()).Msg("Failed to get user stats, using defaults")
+		s.logger.Warn("Failed to get user stats", "user_id", userID.String(), "error", err)
 		stats = &domain.UserStats{}
 	}
 
@@ -60,13 +61,13 @@ func (s *AchievementService) GetUserAchievements(ctx context.Context, userID uui
 func (s *AchievementService) SyncAchievements(ctx context.Context, userID uuid.UUID) (*domain.AchievementsResponse, error) {
 	allAchievements, err := s.achievementRepo.GetAllAchievements(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get all achievements")
+		s.logger.Error("Failed to get all achievements", "error", err)
 		return nil, err
 	}
 
 	stats, err := s.statsRepo.GetUserStats(ctx, userID)
 	if err != nil {
-		log.Warn().Err(err).Str("user_id", userID.String()).Msg("Failed to get user stats")
+		s.logger.Warn("Failed to get user stats", "user_id", userID.String(), "error", err)
 		stats = &domain.UserStats{}
 	}
 
@@ -81,10 +82,7 @@ func (s *AchievementService) SyncAchievements(ctx context.Context, userID uuid.U
 
 		err := s.achievementRepo.UpsertUserAchievement(ctx, userID, achievement.ID, unlocked, progress, unlockedAt)
 		if err != nil {
-			log.Error().Err(err).
-				Str("user_id", userID.String()).
-				Str("achievement_id", achievement.ID.String()).
-				Msg("Failed to upsert user achievement")
+			s.logger.Error("Failed to upsert user achievement", "user_id", userID.String(), "achievement_id", achievement.ID.String(), "error", err)
 		}
 	}
 

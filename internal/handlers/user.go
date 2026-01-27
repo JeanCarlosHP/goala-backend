@@ -9,20 +9,21 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
-	"github.com/rs/zerolog/log"
 )
 
 type UserHandler struct {
 	userService *services.UserService
 	s3Service   *services.S3Service
 	validator   *validator.Validate
+	logger      domain.Logger
 }
 
-func NewUserHandler(userService *services.UserService, s3Service *services.S3Service) *UserHandler {
+func NewUserHandler(userService *services.UserService, s3Service *services.S3Service, logger domain.Logger) *UserHandler {
 	return &UserHandler{
 		userService: userService,
 		s3Service:   s3Service,
 		validator:   validator.New(),
+		logger:      logger,
 	}
 }
 
@@ -32,7 +33,7 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 	ctx := context.Background()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
-		log.Error().Err(err).Str("firebase_uid", firebaseUID).Msg("User not found")
+		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
 			"message": "user not found",
@@ -41,7 +42,7 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 
 	profile, err := h.userService.GetUserProfile(ctx, user.ID)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", user.ID.String()).Msg("Failed to get user profile")
+		h.logger.Error("Failed to get user profile", "user_id", user.ID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to get user profile",
@@ -60,7 +61,7 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 
 	var req domain.UpdateProfileRequest
 	if err := c.BodyParser(&req); err != nil {
-		log.Error().Err(err).Msg("Invalid request body")
+		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid request body",
@@ -68,7 +69,7 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	}
 
 	if err := h.validator.Struct(&req); err != nil {
-		log.Error().Err(err).Msg("Validation error")
+		h.logger.Error("Validation error", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "validation error",
@@ -79,7 +80,7 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	ctx := context.Background()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
-		log.Error().Err(err).Str("firebase_uid", firebaseUID).Msg("User not found")
+		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
 			"message": "user not found",
@@ -88,7 +89,7 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 
 	reqUserID, err := uuid.Parse(req.ID)
 	if err != nil {
-		log.Error().Err(err).Str("id", req.ID).Msg("Invalid user ID")
+		h.logger.Error("Invalid user ID in request", "user_id", req.ID, "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid user id",
@@ -96,10 +97,7 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	}
 
 	if user.ID != reqUserID {
-		log.Warn().
-			Str("authenticated_user_id", user.ID.String()).
-			Str("requested_user_id", reqUserID.String()).
-			Msg("Unauthorized profile update attempt")
+		h.logger.Error("Unauthorized profile update attempt", "authenticated_user_id", user.ID.String(), "requested_user_id", reqUserID.String())
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"success": false,
 			"message": "unauthorized",
@@ -108,7 +106,7 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 
 	profile, err := h.userService.UpdateUserProfile(ctx, user.ID, req)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", user.ID.String()).Msg("Failed to update user profile")
+		h.logger.Error("Failed to update user profile", "user_id", user.ID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to update user profile",
@@ -127,7 +125,7 @@ func (h *UserHandler) GenerateAvatarUploadURL(c *fiber.Ctx) error {
 
 	var req domain.AvatarUploadRequest
 	if err := c.BodyParser(&req); err != nil {
-		log.Error().Err(err).Msg("Invalid request body")
+		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid request body",
@@ -135,7 +133,7 @@ func (h *UserHandler) GenerateAvatarUploadURL(c *fiber.Ctx) error {
 	}
 
 	if err := h.validator.Struct(&req); err != nil {
-		log.Error().Err(err).Msg("Validation error")
+		h.logger.Error("Validation error", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "validation error",
@@ -146,7 +144,7 @@ func (h *UserHandler) GenerateAvatarUploadURL(c *fiber.Ctx) error {
 	ctx := context.Background()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
-		log.Error().Err(err).Str("firebase_uid", firebaseUID).Msg("User not found")
+		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
 			"message": "user not found",
@@ -155,7 +153,7 @@ func (h *UserHandler) GenerateAvatarUploadURL(c *fiber.Ctx) error {
 
 	uploadURL, photoURL, err := h.s3Service.GenerateUploadPresignedURL(ctx, firebaseUID, req.ContentType, req.FileSize)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", user.ID.String()).Msg("Failed to generate presigned URL")
+		h.logger.Error("Failed to generate presigned URL", "user_id", user.ID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": err.Error(),
@@ -178,7 +176,7 @@ func (h *UserHandler) PatchUserPreferences(c *fiber.Ctx) error {
 
 	var req domain.PatchUserPreferencesRequest
 	if err := c.BodyParser(&req); err != nil {
-		log.Error().Err(err).Msg("Invalid request body")
+		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid request body",
@@ -186,7 +184,7 @@ func (h *UserHandler) PatchUserPreferences(c *fiber.Ctx) error {
 	}
 
 	if err := h.validator.Struct(&req); err != nil {
-		log.Error().Err(err).Msg("Validation error")
+		h.logger.Error("Validation error", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "validation error",
@@ -199,7 +197,7 @@ func (h *UserHandler) PatchUserPreferences(c *fiber.Ctx) error {
 	ctx := context.Background()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
-		log.Error().Err(err).Str("firebase_uid", firebaseUID).Msg("User not found")
+		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
 			"message": "user not found",
@@ -208,7 +206,7 @@ func (h *UserHandler) PatchUserPreferences(c *fiber.Ctx) error {
 
 	profile, err := h.userService.PatchUserPreferences(ctx, user.ID, req)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", user.ID.String()).Msg("Failed to update user preferences")
+		h.logger.Error("Failed to update user preferences", "user_id", user.ID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to update user preferences",
@@ -251,7 +249,7 @@ func (h *AuthHandler) UpdateGoals(c *fiber.Ctx) error {
 
 	profile, err := h.userService.UpdateUserGoal(ctx, user.ID, req)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to update goal")
+		h.logger.Error("Failed to update goal", "user_id", user.ID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to update goal",

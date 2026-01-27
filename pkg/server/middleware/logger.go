@@ -5,22 +5,19 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
+	"github.com/jeancarloshp/calorieai/pkg/config"
+	"github.com/jeancarloshp/calorieai/pkg/logger"
 )
 
 func RequestLogger() fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		cfg := config.New()
+		logger := logger.New(cfg)
+
 		start := time.Now()
 		requestID := uuid.New().String()
 
 		c.Locals("requestID", requestID)
-
-		logger := log.With().
-			Str("request_id", requestID).
-			Str("method", c.Method()).
-			Str("path", c.Path()).
-			Str("ip", c.IP()).
-			Logger()
 
 		c.Locals("logger", &logger)
 
@@ -29,18 +26,34 @@ func RequestLogger() fiber.Handler {
 		duration := time.Since(start)
 		status := c.Response().StatusCode()
 
-		logEvent := logger.Info()
 		if status >= 400 && status < 500 {
-			logEvent = logger.Warn()
+			logger.Warn(
+				"Client error occurred",
+				"request_id", requestID,
+				"method", c.Method(),
+				"path", c.Path(),
+				"ip", c.IP(),
+			)
 		} else if status >= 500 {
-			logEvent = logger.Error()
+			logger.Error(
+				"Server error occurred",
+				"request_id", requestID,
+				"method", c.Method(),
+				"path", c.Path(),
+				"ip", c.IP(),
+			)
 		}
 
-		logEvent.
-			Int("status", status).
-			Dur("duration_ms", duration).
-			Int("response_size", len(c.Response().Body())).
-			Msg("Request completed")
+		logger.Info(
+			"Request completed",
+			"request_id", requestID,
+			"method", c.Method(),
+			"path", c.Path(),
+			"status", status,
+			"duration_ms", duration.Milliseconds(),
+			"response_size", len(c.Response().Body()),
+			"ip", c.IP(),
+		)
 
 		return err
 	}

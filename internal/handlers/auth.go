@@ -10,20 +10,21 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	firebaseApp "github.com/jeancarloshp/calorieai/pkg/firebase"
-	"github.com/rs/zerolog/log"
 )
 
 type AuthHandler struct {
 	userService *services.UserService
 	firebaseApp *firebase.App
 	validator   *validator.Validate
+	logger      domain.Logger
 }
 
-func NewAuthHandler(userService *services.UserService, firebaseApp *firebase.App) *AuthHandler {
+func NewAuthHandler(userService *services.UserService, firebaseApp *firebase.App, logger domain.Logger) *AuthHandler {
 	return &AuthHandler{
 		userService: userService,
 		firebaseApp: firebaseApp,
 		validator:   validator.New(),
+		logger:      logger,
 	}
 }
 
@@ -38,7 +39,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	ctx := context.Background()
 	authClient, err := firebaseApp.GetAuthClient(ctx, h.firebaseApp)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get auth client")
+		h.logger.Error("Failed to get auth client", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "authentication service unavailable",
 		})
@@ -46,7 +47,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 
 	userRecord, err := authClient.GetUser(ctx, req.FirebaseUID)
 	if err != nil {
-		log.Error().Err(err).Str("firebase_uid", req.FirebaseUID).Msg("Invalid Firebase UID")
+		h.logger.Error("Invalid Firebase UID", "firebase_uid", req.FirebaseUID, "error", err)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "invalid firebase user",
 		})
@@ -69,7 +70,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 				"error": "user already exists",
 			})
 		}
-		log.Error().Err(err).Msg("Failed to register user")
+		h.logger.Error("Failed to register user", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to register user",
 		})
@@ -84,7 +85,7 @@ func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
 	ctx := context.Background()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
-		log.Error().Err(err).Str("firebase_uid", firebaseUID).Msg("User not found")
+		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "user not found",
 		})
@@ -92,7 +93,7 @@ func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
 
 	goal, err := h.userService.GetUserGoal(ctx, user.ID)
 	if err != nil {
-		log.Warn().Err(err).Str("user_id", user.ID.String()).Msg("Goal not found")
+		h.logger.Warn("Goal not found", "user_id", user.ID.String(), "error", err)
 	}
 
 	return c.JSON(fiber.Map{

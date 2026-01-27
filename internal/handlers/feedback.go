@@ -8,20 +8,21 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
-	"github.com/rs/zerolog/log"
 )
 
 type FeedbackHandler struct {
 	feedbackService *services.FeedbackService
 	userService     *services.UserService
 	validator       *validator.Validate
+	logger          domain.Logger
 }
 
-func NewFeedbackHandler(feedbackService *services.FeedbackService, userService *services.UserService) *FeedbackHandler {
+func NewFeedbackHandler(feedbackService *services.FeedbackService, userService *services.UserService, logger domain.Logger) *FeedbackHandler {
 	return &FeedbackHandler{
 		feedbackService: feedbackService,
 		userService:     userService,
 		validator:       validator.New(),
+		logger:          logger,
 	}
 }
 
@@ -30,7 +31,7 @@ func (h *FeedbackHandler) CreateFeedback(c *fiber.Ctx) error {
 
 	var req domain.CreateFeedbackRequest
 	if err := c.BodyParser(&req); err != nil {
-		log.Error().Err(err).Msg("Invalid request body")
+		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid request body",
@@ -38,7 +39,7 @@ func (h *FeedbackHandler) CreateFeedback(c *fiber.Ctx) error {
 	}
 
 	if err := h.validator.Struct(&req); err != nil {
-		log.Error().Err(err).Msg("Validation error")
+		h.logger.Error("Validation error", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "validation error",
@@ -49,7 +50,7 @@ func (h *FeedbackHandler) CreateFeedback(c *fiber.Ctx) error {
 	ctx := context.Background()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
-		log.Error().Err(err).Str("firebase_uid", firebaseUID).Msg("User not found")
+		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
 			"message": "user not found",
@@ -57,7 +58,7 @@ func (h *FeedbackHandler) CreateFeedback(c *fiber.Ctx) error {
 	}
 
 	if err := h.feedbackService.CreateFeedback(ctx, user.ID, &req); err != nil {
-		log.Error().Err(err).Str("user_id", user.ID.String()).Msg("Failed to create feedback")
+		h.logger.Error("Failed to create feedback", "user_id", user.ID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to create feedback",
@@ -76,7 +77,7 @@ func (h *FeedbackHandler) GetUserFeedback(c *fiber.Ctx) error {
 	ctx := context.Background()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
-		log.Error().Err(err).Str("firebase_uid", firebaseUID).Msg("User not found")
+		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
 			"message": "user not found",
@@ -85,7 +86,7 @@ func (h *FeedbackHandler) GetUserFeedback(c *fiber.Ctx) error {
 
 	feedbacks, err := h.feedbackService.GetUserFeedback(ctx, user.ID)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", user.ID.String()).Msg("Failed to get user feedback")
+		h.logger.Error("Failed to get user feedback", "user_id", user.ID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to get feedback",
@@ -104,7 +105,7 @@ func (h *FeedbackHandler) GetFeedback(c *fiber.Ctx) error {
 
 	id, err := uuid.Parse(feedbackID)
 	if err != nil {
-		log.Error().Err(err).Str("feedback_id", feedbackID).Msg("Invalid feedback ID")
+		h.logger.Error("Invalid feedback ID", "feedback_id", feedbackID, "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid feedback id",
@@ -114,7 +115,7 @@ func (h *FeedbackHandler) GetFeedback(c *fiber.Ctx) error {
 	ctx := context.Background()
 	feedback, err := h.feedbackService.GetFeedback(ctx, id)
 	if err != nil {
-		log.Error().Err(err).Str("feedback_id", feedbackID).Msg("Failed to get feedback")
+		h.logger.Error("Failed to get feedback", "feedback_id", feedbackID, "error", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
 			"message": "feedback not found",

@@ -7,25 +7,26 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
-	"github.com/rs/zerolog/log"
 )
 
 type StatsService struct {
 	statsRepo *repositories.StatsRepository
 	mealRepo  *repositories.MealRepository
+	logger    domain.Logger
 }
 
-func NewStatsService(statsRepo *repositories.StatsRepository, mealRepo *repositories.MealRepository) *StatsService {
+func NewStatsService(statsRepo *repositories.StatsRepository, mealRepo *repositories.MealRepository, logger domain.Logger) *StatsService {
 	return &StatsService{
 		statsRepo: statsRepo,
 		mealRepo:  mealRepo,
+		logger:    logger,
 	}
 }
 
 func (s *StatsService) GetUserStats(ctx context.Context, userID uuid.UUID) (*domain.UserStatsResponse, error) {
 	stats, err := s.statsRepo.GetUserStats(ctx, userID)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", userID.String()).Msg("Failed to get user stats")
+		s.logger.Error("Failed to get user stats", "user_id", userID.String(), "error", err)
 		return nil, err
 	}
 
@@ -60,7 +61,7 @@ func (s *StatsService) GetStatsRange(ctx context.Context, userID uuid.UUID, star
 	for !currentDate.After(endDate) {
 		meals, err := s.mealRepo.GetByUserAndDate(ctx, userID, currentDate)
 		if err != nil {
-			log.Warn().Err(err).Time("date", currentDate).Msg("Failed to get meals for date")
+			s.logger.Error("Failed to get meals for date", "user_id", userID.String(), "date", currentDate.Format("2006-01-02"), "error", err)
 			currentDate = currentDate.AddDate(0, 0, 1)
 			continue
 		}

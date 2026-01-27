@@ -9,18 +9,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
-	"github.com/rs/zerolog/log"
 )
 
 type StatsHandler struct {
 	statsService *services.StatsService
 	validator    *validator.Validate
+	logger       domain.Logger
 }
 
-func NewStatsHandler(statsService *services.StatsService) *StatsHandler {
+func NewStatsHandler(statsService *services.StatsService, logger domain.Logger) *StatsHandler {
 	return &StatsHandler{
 		statsService: statsService,
 		validator:    validator.New(),
+		logger:       logger,
 	}
 }
 
@@ -30,7 +31,7 @@ func (h *StatsHandler) GetStats(c *fiber.Ctx) error {
 	ctx := context.Background()
 	userID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
-		log.Error().Str("firebase_uid", firebaseUID).Msg("Invalid user ID")
+		h.logger.Error("Invalid user ID", "firebase_uid", firebaseUID)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid user id",
@@ -39,7 +40,7 @@ func (h *StatsHandler) GetStats(c *fiber.Ctx) error {
 
 	stats, err := h.statsService.GetUserStats(ctx, userID)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", userID.String()).Msg("Failed to get stats")
+		h.logger.Error("Failed to get stats", "user_id", userID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to get stats",
@@ -58,7 +59,7 @@ func (h *StatsHandler) GetStatsRange(c *fiber.Ctx) error {
 
 	var query domain.StatsRangeQuery
 	if err := c.QueryParser(&query); err != nil {
-		log.Error().Err(err).Msg("Failed to parse query")
+		h.logger.Error("Invalid query parameters", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid query parameters",
@@ -66,7 +67,7 @@ func (h *StatsHandler) GetStatsRange(c *fiber.Ctx) error {
 	}
 
 	if err := h.validator.Struct(query); err != nil {
-		log.Error().Err(err).Msg("Validation failed")
+		h.logger.Error("Validation failed for query parameters", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "validation failed",
@@ -76,7 +77,7 @@ func (h *StatsHandler) GetStatsRange(c *fiber.Ctx) error {
 
 	startDate, err := time.Parse("2006-01-02", query.StartDate)
 	if err != nil {
-		log.Error().Err(err).Str("start_date", query.StartDate).Msg("Invalid start date format")
+		h.logger.Error("Invalid start date format", "start_date", query.StartDate, "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid start date format, expected yyyy-MM-dd",
@@ -85,7 +86,7 @@ func (h *StatsHandler) GetStatsRange(c *fiber.Ctx) error {
 
 	endDate, err := time.Parse("2006-01-02", query.EndDate)
 	if err != nil {
-		log.Error().Err(err).Str("end_date", query.EndDate).Msg("Invalid end date format")
+		h.logger.Error("Invalid end date format", "end_date", query.EndDate, "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid end date format, expected yyyy-MM-dd",
@@ -102,7 +103,7 @@ func (h *StatsHandler) GetStatsRange(c *fiber.Ctx) error {
 	ctx := context.Background()
 	userID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
-		log.Error().Str("firebase_uid", firebaseUID).Msg("Invalid user ID")
+		h.logger.Error("Invalid user ID", "firebase_uid", firebaseUID)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid user id",
@@ -121,7 +122,7 @@ func (h *StatsHandler) GetStatsRange(c *fiber.Ctx) error {
 
 	stats, err := h.statsService.GetStatsRange(ctx, userID, startDate, endDate, page, limit)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", userID.String()).Msg("Failed to get stats range")
+		h.logger.Error("Failed to get stats range", "user_id", userID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to get stats",

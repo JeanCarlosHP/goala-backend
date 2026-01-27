@@ -6,18 +6,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
-	"github.com/rs/zerolog/log"
 )
 
 type FoodHandler struct {
 	foodService *services.FoodService
 	validator   *validator.Validate
+	logger      domain.Logger
 }
 
-func NewFoodHandler(foodService *services.FoodService, validator *validator.Validate) *FoodHandler {
+func NewFoodHandler(foodService *services.FoodService, validator *validator.Validate, logger domain.Logger) *FoodHandler {
 	return &FoodHandler{
 		foodService: foodService,
 		validator:   validator,
+		logger:      logger,
 	}
 }
 
@@ -31,7 +32,7 @@ func (h *FoodHandler) SearchFoods(c *fiber.Ctx) error {
 
 	foods, err := h.foodService.SearchFoods(c.Context(), query)
 	if err != nil {
-		log.Error().Err(err).Str("query", query).Msg("failed to search foods")
+		h.logger.Error("failed to search foods", "error", err, "query", query)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to search foods",
 		})
@@ -54,7 +55,7 @@ func (h *FoodHandler) GetRecentFoods(c *fiber.Ctx) error {
 
 	foods, err := h.foodService.GetRecentFoods(c.Context(), parsedUserID)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", userID).Msg("failed to get recent foods")
+		h.logger.Error("failed to get recent foods", "error", err, "user_id", userID)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to get recent foods",
 		})
@@ -104,7 +105,7 @@ func (h *FoodHandler) AutocompleteFoodMacros(c *fiber.Ctx) error {
 func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
 	var req domain.CreateFoodItemRequest
 	if err := c.BodyParser(&req); err != nil {
-		log.Error().Err(err).Msg("failed to parse request body")
+		h.logger.Error("failed to parse request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid request body",
@@ -112,7 +113,7 @@ func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		log.Error().Err(err).Interface("request", req).Msg("validation failed")
+		h.logger.Error("validation failed", "error", err, "request", req)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "validation failed",
@@ -122,7 +123,7 @@ func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
 
 	foodItem, err := h.foodService.CreateFoodItem(c.Context(), &req)
 	if err != nil {
-		log.Error().Err(err).Interface("request", req).Msg("failed to create food item")
+		h.logger.Error("failed to create food item", "error", err, "request", req)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to create food item",
@@ -161,7 +162,7 @@ func (h *FoodHandler) GetFoodItem(c *fiber.Ctx) error {
 
 	foodItem, err := h.foodService.GetFoodItem(c.Context(), id)
 	if err != nil {
-		log.Error().Err(err).Str("id", idParam).Msg("failed to get food item")
+		h.logger.Error("failed to get food item", "error", err, "id", idParam)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
 			"message": "food item not found",
@@ -200,7 +201,7 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 
 	var req domain.UpdateFoodItemRequest
 	if err := c.BodyParser(&req); err != nil {
-		log.Error().Err(err).Msg("failed to parse request body")
+		h.logger.Error("failed to parse request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid request body",
@@ -208,7 +209,7 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		log.Error().Err(err).Interface("request", req).Msg("validation failed")
+		h.logger.Error("validation failed", "error", err, "request", req)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "validation failed",
@@ -218,7 +219,7 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 
 	foodItem, err := h.foodService.UpdateFoodItem(c.Context(), id, &req)
 	if err != nil {
-		log.Error().Err(err).Str("id", idParam).Interface("request", req).Msg("failed to update food item")
+		h.logger.Error("failed to update food item", "error", err, "id", idParam, "request", req)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to update food item",
@@ -256,7 +257,7 @@ func (h *FoodHandler) DeleteFoodItem(c *fiber.Ctx) error {
 	}
 
 	if err := h.foodService.DeleteFoodItem(c.Context(), id); err != nil {
-		log.Error().Err(err).Str("id", idParam).Msg("failed to delete food item")
+		h.logger.Error("failed to delete food item", "error", err, "id", idParam)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to delete food item",

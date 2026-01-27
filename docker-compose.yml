@@ -45,6 +45,38 @@ services:
       - prometheus
     restart: unless-stopped
 
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: calorieai-zipkin
+    ports:
+      - "9411:9411"
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: calorieai-jaeger
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: calorieai-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4318:4318"
+      - "55679:55679"
+    depends_on:
+      - zipkin
+      - jaeger
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   prometheus_data:

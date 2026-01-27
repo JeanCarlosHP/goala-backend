@@ -9,20 +9,21 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
-	"github.com/rs/zerolog/log"
 )
 
 type MealHandler struct {
 	mealService *services.MealService
 	userService *services.UserService
 	validator   *validator.Validate
+	logger      domain.Logger
 }
 
-func NewMealHandler(mealService *services.MealService, userService *services.UserService) *MealHandler {
+func NewMealHandler(mealService *services.MealService, userService *services.UserService, logger domain.Logger) *MealHandler {
 	return &MealHandler{
 		mealService: mealService,
 		userService: userService,
 		validator:   validator.New(),
+		logger:      logger,
 	}
 }
 
@@ -46,7 +47,7 @@ func (h *MealHandler) CreateMeal(c *fiber.Ctx) error {
 	ctx := context.Background()
 	meal, err := h.mealService.CreateMeal(ctx, userID, req)
 	if err != nil {
-		log.Error().Err(err).Str("firebase_uid", firebaseUID).Msg("Failed to create meal")
+		h.logger.Error("Failed to create meal", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to create meal",
 		})
@@ -73,7 +74,7 @@ func (h *MealHandler) GetMeals(c *fiber.Ctx) error {
 	ctx := context.Background()
 	meals, err := h.mealService.GetMealsByDate(ctx, userID, date)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get meals")
+		h.logger.Error("Failed to get meals", "user_id", userID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to get meals",
 		})
@@ -101,12 +102,12 @@ func (h *MealHandler) GetDailySummary(c *fiber.Ctx) error {
 
 	goal, err := h.userService.GetUserGoal(ctx, userID)
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed to get user goals, using defaults")
+		h.logger.Warn("Failed to get user goal", "user_id", userID.String(), "error", err)
 	}
 
 	summary, err := h.mealService.GetDailySummary(ctx, userID, date, goal)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get daily summary")
+		h.logger.Error("Failed to get daily summary", "user_id", userID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to get daily summary",
 		})

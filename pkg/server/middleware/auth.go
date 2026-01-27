@@ -6,14 +6,18 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"github.com/gofiber/fiber/v2"
+	"github.com/jeancarloshp/calorieai/pkg/config"
 	fbApp "github.com/jeancarloshp/calorieai/pkg/firebase"
-	"github.com/rs/zerolog/log"
+	"github.com/jeancarloshp/calorieai/pkg/logger"
 
 	"github.com/jeancarloshp/calorieai/internal/repositories"
 )
 
 func AuthRequired(firebaseApp *firebase.App) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		cfg := config.New()
+		logger := logger.New(cfg)
+
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -31,7 +35,7 @@ func AuthRequired(firebaseApp *firebase.App) fiber.Handler {
 		ctx := context.Background()
 		authClient, err := fbApp.GetAuthClient(ctx, firebaseApp)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to get auth client")
+			logger.Error("Failed to get auth client", "error", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "authentication service unavailable",
 			})
@@ -39,7 +43,7 @@ func AuthRequired(firebaseApp *firebase.App) fiber.Handler {
 
 		decodedToken, err := authClient.VerifyIDToken(ctx, token)
 		if err != nil {
-			log.Error().Err(err).Msg("Invalid token")
+			logger.Warn("Invalid or expired token", "error", err)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "invalid or expired token",
 			})
@@ -53,9 +57,12 @@ func AuthRequired(firebaseApp *firebase.App) fiber.Handler {
 
 func UserContext(userRepo *repositories.UserRepository) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		cfg := config.New()
+		logger := logger.New(cfg)
+
 		firebaseUID, ok := c.Locals("firebase_uid").(string)
 		if !ok || firebaseUID == "" {
-			log.Warn().Msg("Missing firebase_uid in context")
+			logger.Warn("Firebase UID not found in context")
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "authentication required",
 			})
@@ -64,7 +71,7 @@ func UserContext(userRepo *repositories.UserRepository) fiber.Handler {
 		ctx := context.Background()
 		user, err := userRepo.GetByFirebaseUID(ctx, firebaseUID)
 		if err != nil {
-			log.Warn().Err(err).Str("firebase_uid", firebaseUID).Msg("User not found in database")
+			logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "user not registered",
 			})

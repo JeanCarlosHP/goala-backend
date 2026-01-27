@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
+
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
 
 	"github.com/jackc/pgx/v5/pgxpool"

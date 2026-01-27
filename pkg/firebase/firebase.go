@@ -5,15 +5,14 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
-	"github.com/rs/zerolog/log"
 	"google.golang.org/api/option"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
 )
 
-func New(ctx context.Context, cfg *domain.Config) (*firebase.App, error) {
+func New(ctx context.Context, cfg *domain.Config, logger domain.Logger) (*firebase.App, error) {
 	if cfg.FirebaseCredentialsFile == "" && cfg.FirebaseCredentialsJSON == "" {
-		log.Info().Msg("Firebase credentials not provided, skipping Firebase initialization")
+		logger.Info("Firebase credentials not provided, skipping Firebase initialization")
 		return nil, nil
 	}
 
@@ -29,7 +28,7 @@ func New(ctx context.Context, cfg *domain.Config) (*firebase.App, error) {
 		return nil, err
 	}
 
-	log.Info().Msg("Firebase initialized")
+	logger.Info("Firebase app initialized successfully")
 	return app, nil
 }
 
