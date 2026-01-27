@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -28,7 +27,7 @@ func NewStatsHandler(statsService *services.StatsService, logger domain.Logger) 
 func (h *StatsHandler) GetStats(c *fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
-	ctx := context.Background()
+	ctx := c.Context()
 	userID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
 		h.logger.Error("Invalid user ID", "firebase_uid", firebaseUID)
@@ -100,7 +99,7 @@ func (h *StatsHandler) GetStatsRange(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := context.Background()
+	ctx := c.Context()
 	userID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
 		h.logger.Error("Invalid user ID", "firebase_uid", firebaseUID)

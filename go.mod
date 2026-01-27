@@ -48,6 +48,7 @@ require (
 	github.com/cockroachdb/cockroach-go/v2 v2.1.1 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.35.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
+	github.com/exaring/otelpgx v0.10.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/gofiber/contrib/otelfiber v1.0.10 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3 // indirect

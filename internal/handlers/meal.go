@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -44,7 +43,7 @@ func (h *MealHandler) CreateMeal(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := context.Background()
+	ctx := c.Context()
 	meal, err := h.mealService.CreateMeal(ctx, userID, req)
 	if err != nil {
 		h.logger.Error("Failed to create meal", "firebase_uid", firebaseUID, "error", err)
@@ -71,7 +70,7 @@ func (h *MealHandler) GetMeals(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := context.Background()
+	ctx := c.Context()
 	meals, err := h.mealService.GetMealsByDate(ctx, userID, date)
 	if err != nil {
 		h.logger.Error("Failed to get meals", "user_id", userID.String(), "error", err)
@@ -98,7 +97,7 @@ func (h *MealHandler) GetDailySummary(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := context.Background()
+	ctx := c.Context()
 
 	goal, err := h.userService.GetUserGoal(ctx, userID)
 	if err != nil {

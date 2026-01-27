@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"context"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -27,7 +25,7 @@ func NewAchievementHandler(achievementService *services.AchievementService, logg
 func (h *AchievementHandler) GetAchievements(c *fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
-	ctx := context.Background()
+	ctx := c.Context()
 	userID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
 		h.logger.Error("Invalid user ID", "firebase_uid", firebaseUID)
@@ -56,7 +54,7 @@ func (h *AchievementHandler) GetAchievements(c *fiber.Ctx) error {
 func (h *AchievementHandler) SyncAchievements(c *fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
-	ctx := context.Background()
+	ctx := c.Context()
 	userID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
 		h.logger.Error("Invalid user ID", "firebase_uid", firebaseUID)

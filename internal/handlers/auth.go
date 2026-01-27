@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"context"
-
 	"github.com/jeancarloshp/calorieai/internal/services"
 
 	firebase "firebase.google.com/go/v4"
@@ -36,7 +34,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := context.Background()
+	ctx := c.Context()
 	authClient, err := firebaseApp.GetAuthClient(ctx, h.firebaseApp)
 	if err != nil {
 		h.logger.Error("Failed to get auth client", "error", err)
@@ -82,7 +80,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
-	ctx := context.Background()
+	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)

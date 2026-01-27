@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/exaring/otelpgx"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
@@ -31,13 +32,15 @@ func (d *Database) NewConnection(config *domain.Config) error {
 		return fmt.Errorf("pgxpool.ParseConfig: %w", err)
 	}
 
-	if config.DatabaseTracing {
-		pgxConfig.ConnConfig.Tracer = NewTracer(d.Logger)
-	}
+	pgxConfig.ConnConfig.Tracer = otelpgx.NewTracer()
 
 	pool, err := pgxpool.NewWithConfig(ctx, pgxConfig)
 	if err != nil {
 		return err
+	}
+
+	if err := otelpgx.RecordStats(pool); err != nil {
+		return fmt.Errorf("unable to record database stats: %w", err)
 	}
 
 	err = pool.Ping(ctx)

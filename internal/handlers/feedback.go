@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"context"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -47,7 +45,7 @@ func (h *FeedbackHandler) CreateFeedback(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := context.Background()
+	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
@@ -74,7 +72,7 @@ func (h *FeedbackHandler) CreateFeedback(c *fiber.Ctx) error {
 func (h *FeedbackHandler) GetUserFeedback(c *fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
-	ctx := context.Background()
+	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
@@ -112,7 +110,7 @@ func (h *FeedbackHandler) GetFeedback(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := context.Background()
+	ctx := c.Context()
 	feedback, err := h.feedbackService.GetFeedback(ctx, id)
 	if err != nil {
 		h.logger.Error("Failed to get feedback", "feedback_id", feedbackID, "error", err)
