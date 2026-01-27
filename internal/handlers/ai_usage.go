@@ -22,7 +22,7 @@ func NewAIUsageHandler(aiUsageService *services.AIUsageService, log domain.Logge
 
 func (h *AIUsageHandler) GetUsage(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
-	ctx := c.Context()
+	ctx := c.UserContext()
 
 	usages, err := h.aiUsageService.ListUserUsage(ctx, userID)
 	if err != nil {
@@ -56,7 +56,7 @@ func (h *AIUsageHandler) CheckFeatureQuota(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	featureStr := c.Params("feature")
 
-	ctx := c.Context()
+	ctx := c.UserContext()
 
 	feature := enum.AIFeature(featureStr)
 	if !feature.IsValid() {

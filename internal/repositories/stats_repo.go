@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
+	"go.opentelemetry.io/otel"
 )
 
 type StatsRepository struct {
@@ -21,6 +22,10 @@ func NewStatsRepository(queries *db.Queries) *StatsRepository {
 }
 
 func (r *StatsRepository) GetUserStats(ctx context.Context, userID uuid.UUID) (*domain.UserStats, error) {
+	tr := otel.Tracer("repositories/stats_repository.go")
+	ctx, span := tr.Start(ctx, "GetUserStats")
+	defer span.End()
+
 	var pgUserID pgtype.UUID
 	if err := pgUserID.Scan(userID.String()); err != nil {
 		return nil, err

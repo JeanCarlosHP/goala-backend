@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
+	"go.opentelemetry.io/otel"
 )
 
 type FoodRecognitionService struct {
@@ -50,6 +51,10 @@ func (s *FoodRecognitionService) RecognizeFoodWithProgress(
 	req *domain.FoodRecognitionRequest,
 	progressChan chan<- domain.ProgressUpdate,
 ) (*domain.FoodRecognitionResponse, error) {
+	tr := otel.Tracer("services/food_recognition_service.go")
+	ctx, span := tr.Start(ctx, "RecognizeFoodWithProgress")
+	defer span.End()
+
 	startTime := time.Now()
 	defer close(progressChan)
 
@@ -131,6 +136,10 @@ func (s *FoodRecognitionService) EstimateQuantityWithProgress(
 	req *domain.EstimateQuantityRequest,
 	progressChan chan<- domain.ProgressUpdate,
 ) (*domain.EstimateQuantityResponse, error) {
+	tr := otel.Tracer("services/food_recognition_service.go")
+	ctx, span := tr.Start(ctx, "EstimateQuantityWithProgress")
+	defer span.End()
+
 	defer close(progressChan)
 
 	progressChan <- domain.ProgressUpdate{

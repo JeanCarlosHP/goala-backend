@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
+	"go.opentelemetry.io/otel"
 )
 
 type UserService struct {
@@ -69,6 +70,10 @@ func (s *UserService) RegisterUser(ctx context.Context, req domain.RegisterReque
 }
 
 func (s *UserService) GetUserByFirebaseUID(ctx context.Context, firebaseUID string) (*domain.User, error) {
+	tr := otel.Tracer("services/user_service.go")
+	ctx, span := tr.Start(ctx, "GetUserByFirebaseUID")
+	defer span.End()
+
 	return s.userRepo.GetByFirebaseUID(ctx, firebaseUID)
 }
 
@@ -93,6 +98,10 @@ func (s *UserService) UpdateUserGoal(ctx context.Context, userID uuid.UUID, req 
 }
 
 func (s *UserService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*domain.UserProfileResponse, error) {
+	tr := otel.Tracer("services/user_service.go")
+	ctx, span := tr.Start(ctx, "GetUserProfile")
+	defer span.End()
+
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)

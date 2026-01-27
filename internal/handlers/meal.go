@@ -43,7 +43,7 @@ func (h *MealHandler) CreateMeal(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.Context()
+	ctx := c.UserContext()
 	meal, err := h.mealService.CreateMeal(ctx, userID, req)
 	if err != nil {
 		h.logger.Error("Failed to create meal", "firebase_uid", firebaseUID, "error", err)
@@ -70,7 +70,7 @@ func (h *MealHandler) GetMeals(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.Context()
+	ctx := c.UserContext()
 	meals, err := h.mealService.GetMealsByDate(ctx, userID, date)
 	if err != nil {
 		h.logger.Error("Failed to get meals", "user_id", userID.String(), "error", err)
@@ -97,7 +97,7 @@ func (h *MealHandler) GetDailySummary(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.Context()
+	ctx := c.UserContext()
 
 	goal, err := h.userService.GetUserGoal(ctx, userID)
 	if err != nil {

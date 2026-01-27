@@ -48,7 +48,7 @@ func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 
 	userIDStr := userID.String()
 
-	ctx := c.Context()
+	ctx := c.UserContext()
 	if err := h.aiUsageService.CheckAndIncrementUsage(ctx, userIDStr, enum.FeatureFoodRecognition); err != nil {
 		if services.IsQuotaExceededError(err) {
 			h.logger.Warn("Quota exceeded for user %s and feature %s", userID, enum.FeatureFoodRecognition)
@@ -151,7 +151,7 @@ func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 }
 
 func (h *FoodRecognitionHandler) GetFoodByBarcode(c *fiber.Ctx) error {
-	ctx := c.Context()
+	ctx := c.UserContext()
 
 	barcode := c.Params("barcode")
 	if barcode == "" {
@@ -186,7 +186,7 @@ func (h *FoodRecognitionHandler) GetFoodByBarcode(c *fiber.Ctx) error {
 }
 
 func (h *FoodRecognitionHandler) EstimateQuantity(c *fiber.Ctx) error {
-	ctx := c.Context()
+	ctx := c.UserContext()
 
 	fileHeader, err := c.FormFile("image")
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
+	"go.opentelemetry.io/otel"
 )
 
 type StatsService struct {
@@ -24,6 +25,10 @@ func NewStatsService(statsRepo *repositories.StatsRepository, mealRepo *reposito
 }
 
 func (s *StatsService) GetUserStats(ctx context.Context, userID uuid.UUID) (*domain.UserStatsResponse, error) {
+	tr := otel.Tracer("services/stats_service.go")
+	ctx, span := tr.Start(ctx, "GetUserStats")
+	defer span.End()
+
 	stats, err := s.statsRepo.GetUserStats(ctx, userID)
 	if err != nil {
 		s.logger.Error("Failed to get user stats", "user_id", userID.String(), "error", err)

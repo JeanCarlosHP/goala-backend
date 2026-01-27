@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
+	"go.opentelemetry.io/otel"
 )
 
 type GeminiProvider struct {
@@ -33,6 +34,10 @@ func (g *GeminiProvider) RecognizeFood(
 	imageBase64 string,
 	progressChan chan<- domain.ProgressUpdate,
 ) ([]domain.RecognizedFoodItem, error) {
+	tr := otel.Tracer("services/gemini_provider.go")
+	ctx, span := tr.Start(ctx, "RecognizeFood")
+	defer span.End()
+
 	progressChan <- domain.ProgressUpdate{
 		Stage:      "analyzing",
 		Percentage: 40,
@@ -157,6 +162,10 @@ func (g *GeminiProvider) EstimateQuantity(
 	req *domain.EstimateQuantityRequest,
 	progressChan chan<- domain.ProgressUpdate,
 ) (*domain.EstimateQuantityResponse, error) {
+	tr := otel.Tracer("services/gemini_provider.go")
+	ctx, span := tr.Start(ctx, "EstimateQuantity")
+	defer span.End()
+
 	progressChan <- domain.ProgressUpdate{
 		Stage:      "estimating",
 		Percentage: 40,

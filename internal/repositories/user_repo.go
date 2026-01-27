@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"go.opentelemetry.io/otel"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database"
@@ -37,6 +38,10 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 }
 
 func (r *UserRepository) GetByFirebaseUID(ctx context.Context, firebaseUID string) (*domain.User, error) {
+	tr := otel.Tracer("repositories/user_repository.go")
+	ctx, span := tr.Start(ctx, "GetByFirebaseUID")
+	defer span.End()
+
 	result, err := r.db.Querier.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		return nil, err

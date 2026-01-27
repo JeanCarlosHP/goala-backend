@@ -34,7 +34,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.Context()
+	ctx := c.UserContext()
 	authClient, err := firebaseApp.GetAuthClient(ctx, h.firebaseApp)
 	if err != nil {
 		h.logger.Error("Failed to get auth client", "error", err)
@@ -80,7 +80,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
-	ctx := c.Context()
+	ctx := c.UserContext()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)

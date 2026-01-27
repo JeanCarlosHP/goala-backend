@@ -29,7 +29,7 @@ func NewSubscriptionHandler(
 
 func (h *SubscriptionHandler) GetStatus(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
-	ctx := c.Context()
+	ctx := c.UserContext()
 
 	subscription, err := h.subscriptionService.GetOrCreateSubscription(ctx, userID)
 	if err != nil {
@@ -56,7 +56,7 @@ func (h *SubscriptionHandler) GetStatus(c *fiber.Ctx) error {
 }
 
 func (h *SubscriptionHandler) HandleWebhook(c *fiber.Ctx) error {
-	ctx := c.Context()
+	ctx := c.UserContext()
 
 	signature := c.Get("X-Revenuecat-Signature")
 	if signature == "" {

@@ -30,7 +30,7 @@ func (h *FoodHandler) SearchFoods(c *fiber.Ctx) error {
 		})
 	}
 
-	foods, err := h.foodService.SearchFoods(c.Context(), query)
+	foods, err := h.foodService.SearchFoods(c.UserContext(), query)
 	if err != nil {
 		h.logger.Error("failed to search foods", "error", err, "query", query)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -53,7 +53,7 @@ func (h *FoodHandler) GetRecentFoods(c *fiber.Ctx) error {
 		})
 	}
 
-	foods, err := h.foodService.GetRecentFoods(c.Context(), parsedUserID)
+	foods, err := h.foodService.GetRecentFoods(c.UserContext(), parsedUserID)
 	if err != nil {
 		h.logger.Error("failed to get recent foods", "error", err, "user_id", userID)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -121,7 +121,7 @@ func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
 		})
 	}
 
-	foodItem, err := h.foodService.CreateFoodItem(c.Context(), &req)
+	foodItem, err := h.foodService.CreateFoodItem(c.UserContext(), &req)
 	if err != nil {
 		h.logger.Error("failed to create food item", "error", err, "request", req)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -160,7 +160,7 @@ func (h *FoodHandler) GetFoodItem(c *fiber.Ctx) error {
 		})
 	}
 
-	foodItem, err := h.foodService.GetFoodItem(c.Context(), id)
+	foodItem, err := h.foodService.GetFoodItem(c.UserContext(), id)
 	if err != nil {
 		h.logger.Error("failed to get food item", "error", err, "id", idParam)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -217,7 +217,7 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 		})
 	}
 
-	foodItem, err := h.foodService.UpdateFoodItem(c.Context(), id, &req)
+	foodItem, err := h.foodService.UpdateFoodItem(c.UserContext(), id, &req)
 	if err != nil {
 		h.logger.Error("failed to update food item", "error", err, "id", idParam, "request", req)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -256,7 +256,7 @@ func (h *FoodHandler) DeleteFoodItem(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := h.foodService.DeleteFoodItem(c.Context(), id); err != nil {
+	if err := h.foodService.DeleteFoodItem(c.UserContext(), id); err != nil {
 		h.logger.Error("failed to delete food item", "error", err, "id", idParam)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
