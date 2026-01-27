@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/internal/services"
@@ -36,10 +37,10 @@ func NewFoodRecognitionHandler(
 
 func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 	log.Info().Msg("Received food recognition request")
-	userID, ok := c.Locals("user_id").(string)
-	log.Info().Str("user_id", userID).Msg("Processing food recognition request")
+	userID, ok := c.Locals("user_id").(uuid.UUID)
+	log.Info().Str("user_id", userID.String()).Msg("Processing food recognition request")
 	log.Info().Msgf("ok: %t", ok)
-	if !ok || userID == "" {
+	if !ok {
 		log.Warn().Msg("Missing user_id in context")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"success": false,
@@ -47,8 +48,10 @@ func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 		})
 	}
 
+	userIDStr := userID.String()
+
 	ctx := context.Background()
-	if err := h.aiUsageService.CheckAndIncrementUsage(ctx, userID, enum.FeatureFoodRecognition); err != nil {
+	if err := h.aiUsageService.CheckAndIncrementUsage(ctx, userIDStr, enum.FeatureFoodRecognition); err != nil {
 		if services.IsQuotaExceededError(err) {
 			log.Warn().Msgf("Quota exceeded for user %s and feature %s",
 				userID, enum.FeatureFoodRecognition)
@@ -60,7 +63,7 @@ func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 			})
 		}
 
-		log.Error().Err(err).Str("user_id", userID).Msg("Failed to validate quota")
+		log.Error().Err(err).Str("user_id", userIDStr).Msg("Failed to validate quota")
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": "failed to validate quota",
