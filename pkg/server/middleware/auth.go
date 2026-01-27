@@ -6,18 +6,14 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"github.com/gofiber/fiber/v2"
-	"github.com/jeancarloshp/calorieai/pkg/config"
 	fbApp "github.com/jeancarloshp/calorieai/pkg/firebase"
-	"github.com/jeancarloshp/calorieai/pkg/logger"
 
+	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
 )
 
-func AuthRequired(firebaseApp *firebase.App) fiber.Handler {
+func AuthRequired(firebaseApp *firebase.App, logger domain.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		cfg := config.New()
-		logger := logger.New(cfg)
-
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -55,11 +51,8 @@ func AuthRequired(firebaseApp *firebase.App) fiber.Handler {
 	}
 }
 
-func UserContext(userRepo *repositories.UserRepository) fiber.Handler {
+func UserContext(userRepo *repositories.UserRepository, logger domain.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		cfg := config.New()
-		logger := logger.New(cfg)
-
 		firebaseUID, ok := c.Locals("firebase_uid").(string)
 		if !ok || firebaseUID == "" {
 			logger.Warn("Firebase UID not found in context")

@@ -106,7 +106,7 @@ func main() {
 	api.Post("/auth/register", authHandler.Register)
 	api.Post("/webhooks/revenuecat", subscriptionHandler.HandleWebhook)
 
-	protected := api.Group("", middleware.AuthRequired(firebaseApp), middleware.UserContext(userRepo))
+	protected := api.Group("", middleware.AuthRequired(firebaseApp, logger), middleware.UserContext(userRepo, logger))
 
 	protected.Get("/auth/me", authHandler.GetMe)
 	protected.Put("/user/goals", authHandler.UpdateGoals)
