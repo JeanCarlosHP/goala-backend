@@ -22,7 +22,7 @@ type Achievement struct {
 
 type AiUsage struct {
 	ID          int64
-	UserID      string
+	UserID      pgtype.UUID
 	Feature     string
 	UsageCount  int
 	Quota       int
@@ -92,7 +92,7 @@ type Meal struct {
 
 type Subscription struct {
 	ID                              int64
-	UserID                          string
+	UserID                          pgtype.UUID
 	RevenuecatUserID                string
 	RevenuecatOriginalTransactionID *string
 	IsActive                        bool

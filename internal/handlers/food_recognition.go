@@ -36,10 +36,7 @@ func NewFoodRecognitionHandler(
 }
 
 func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
-	log.Info().Msg("Received food recognition request")
 	userID, ok := c.Locals("user_id").(uuid.UUID)
-	log.Info().Str("user_id", userID.String()).Msg("Processing food recognition request")
-	log.Info().Msgf("ok: %t", ok)
 	if !ok {
 		log.Warn().Msg("Missing user_id in context")
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{

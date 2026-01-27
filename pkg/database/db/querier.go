@@ -41,7 +41,7 @@ type Querier interface {
 	GetMealsByUserAndDate(ctx context.Context, arg GetMealsByUserAndDateParams) ([]Meal, error)
 	GetRecentFoods(ctx context.Context, arg GetRecentFoodsParams) ([]GetRecentFoodsRow, error)
 	GetSubscriptionByRevenueCatUserID(ctx context.Context, revenuecatUserID string) (Subscription, error)
-	GetSubscriptionByUserID(ctx context.Context, userID string) (Subscription, error)
+	GetSubscriptionByUserID(ctx context.Context, userID pgtype.UUID) (Subscription, error)
 	GetUserAchievement(ctx context.Context, arg GetUserAchievementParams) (UserAchievement, error)
 	GetUserAchievements(ctx context.Context, userID pgtype.UUID) ([]GetUserAchievementsRow, error)
 	GetUserByFirebaseUID(ctx context.Context, firebaseUid string) (User, error)
@@ -54,7 +54,7 @@ type Querier interface {
 	ListActiveSubscriptions(ctx context.Context) ([]Subscription, error)
 	ListExpiredSubscriptions(ctx context.Context) ([]Subscription, error)
 	ListFeedback(ctx context.Context, arg ListFeedbackParams) ([]Feedback, error)
-	ListUserAIUsage(ctx context.Context, userID string) ([]AiUsage, error)
+	ListUserAIUsage(ctx context.Context, userID pgtype.UUID) ([]AiUsage, error)
 	ListVerifiedFoods(ctx context.Context, arg ListVerifiedFoodsParams) ([]FoodDatabase, error)
 	ResetAIUsage(ctx context.Context) error
 	SearchFoodByName(ctx context.Context, arg SearchFoodByNameParams) ([]FoodDatabase, error)

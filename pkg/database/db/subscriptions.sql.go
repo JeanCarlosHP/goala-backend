@@ -45,7 +45,7 @@ RETURNING id, user_id, revenuecat_user_id, revenuecat_original_transaction_id, i
 `
 
 type CreateSubscriptionParams struct {
-	UserID                          string
+	UserID                          pgtype.UUID
 	RevenuecatUserID                string
 	RevenuecatOriginalTransactionID *string
 	IsActive                        bool
@@ -124,7 +124,7 @@ SELECT id, user_id, revenuecat_user_id, revenuecat_original_transaction_id, is_a
 WHERE user_id = $1 LIMIT 1
 `
 
-func (q *Queries) GetSubscriptionByUserID(ctx context.Context, userID string) (Subscription, error) {
+func (q *Queries) GetSubscriptionByUserID(ctx context.Context, userID pgtype.UUID) (Subscription, error) {
 	row := q.db.QueryRow(ctx, getSubscriptionByUserID, userID)
 	var i Subscription
 	err := row.Scan(
@@ -246,7 +246,7 @@ RETURNING id, user_id, revenuecat_user_id, revenuecat_original_transaction_id, i
 `
 
 type UpdateSubscriptionParams struct {
-	UserID             string
+	UserID             pgtype.UUID
 	IsActive           bool
 	Plan               string
 	IsTrial            bool
@@ -320,7 +320,7 @@ RETURNING id, user_id, revenuecat_user_id, revenuecat_original_transaction_id, i
 `
 
 type UpsertSubscriptionParams struct {
-	UserID                          string
+	UserID                          pgtype.UUID
 	RevenuecatUserID                string
 	RevenuecatOriginalTransactionID *string
 	IsActive                        bool

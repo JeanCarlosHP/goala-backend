@@ -30,7 +30,7 @@ RETURNING id, user_id, feature, usage_count, quota, period_start, period_end, cr
 `
 
 type CreateOrResetAIUsageParams struct {
-	UserID      string
+	UserID      pgtype.UUID
 	Feature     string
 	Quota       int
 	PeriodStart pgtype.Timestamptz
@@ -70,7 +70,7 @@ LIMIT 1
 `
 
 type GetAIUsageParams struct {
-	UserID  string
+	UserID  pgtype.UUID
 	Feature string
 }
 
@@ -100,7 +100,7 @@ LIMIT 1
 `
 
 type GetAIUsageByPeriodParams struct {
-	UserID      string
+	UserID      pgtype.UUID
 	Feature     string
 	PeriodStart pgtype.Timestamptz
 }
@@ -140,7 +140,7 @@ RETURNING id, user_id, feature, usage_count, quota, period_start, period_end, cr
 `
 
 type IncrementAIUsageParams struct {
-	UserID      string
+	UserID      pgtype.UUID
 	Feature     string
 	Quota       int
 	PeriodStart pgtype.Timestamptz
@@ -177,7 +177,7 @@ AND period_end > NOW()
 ORDER BY feature ASC
 `
 
-func (q *Queries) ListUserAIUsage(ctx context.Context, userID string) ([]AiUsage, error) {
+func (q *Queries) ListUserAIUsage(ctx context.Context, userID pgtype.UUID) ([]AiUsage, error) {
 	rows, err := q.db.Query(ctx, listUserAIUsage, userID)
 	if err != nil {
 		return nil, err

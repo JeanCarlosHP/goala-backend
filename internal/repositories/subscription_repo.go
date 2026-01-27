@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
@@ -23,7 +25,7 @@ func NewSubscriptionRepository(db *database.Database) *SubscriptionRepository {
 
 func (r *SubscriptionRepository) Create(ctx context.Context, sub *domain.Subscription) (*domain.Subscription, error) {
 	result, err := r.db.Querier.CreateSubscription(ctx, db.CreateSubscriptionParams{
-		UserID:                          sub.UserID,
+		UserID:                          stringToPgUUID(sub.UserID),
 		RevenuecatUserID:                sub.RevenueCatUserID,
 		RevenuecatOriginalTransactionID: stringPtr(sub.RevenueCatOriginalTransactionID),
 		IsActive:                        sub.IsActive,
@@ -43,9 +45,9 @@ func (r *SubscriptionRepository) Create(ctx context.Context, sub *domain.Subscri
 }
 
 func (r *SubscriptionRepository) GetByUserID(ctx context.Context, userID string) (*domain.Subscription, error) {
-	result, err := r.db.Querier.GetSubscriptionByUserID(ctx, userID)
+	result, err := r.db.Querier.GetSubscriptionByUserID(ctx, stringToPgUUID(userID))
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
@@ -68,7 +70,7 @@ func (r *SubscriptionRepository) GetByRevenueCatUserID(ctx context.Context, rcUs
 
 func (r *SubscriptionRepository) Upsert(ctx context.Context, sub *domain.Subscription) (*domain.Subscription, error) {
 	result, err := r.db.Querier.UpsertSubscription(ctx, db.UpsertSubscriptionParams{
-		UserID:                          sub.UserID,
+		UserID:                          stringToPgUUID(sub.UserID),
 		RevenuecatUserID:                sub.RevenueCatUserID,
 		RevenuecatOriginalTransactionID: stringPtr(sub.RevenueCatOriginalTransactionID),
 		IsActive:                        sub.IsActive,
@@ -89,7 +91,7 @@ func (r *SubscriptionRepository) Upsert(ctx context.Context, sub *domain.Subscri
 
 func (r *SubscriptionRepository) Update(ctx context.Context, sub *domain.Subscription) (*domain.Subscription, error) {
 	result, err := r.db.Querier.UpdateSubscription(ctx, db.UpdateSubscriptionParams{
-		UserID:             sub.UserID,
+		UserID:             stringToPgUUID(sub.UserID),
 		IsActive:           sub.IsActive,
 		Plan:               sub.Plan.String(),
 		IsTrial:            sub.IsTrial,
@@ -143,7 +145,7 @@ func (r *SubscriptionRepository) ListExpired(ctx context.Context) ([]*domain.Sub
 func toSubscription(s *db.Subscription) *domain.Subscription {
 	return &domain.Subscription{
 		ID:                              s.ID,
-		UserID:                          s.UserID,
+		UserID:                          uuid.UUID(s.UserID.Bytes).String(),
 		RevenueCatUserID:                s.RevenuecatUserID,
 		RevenueCatOriginalTransactionID: stringValue(s.RevenuecatOriginalTransactionID),
 		IsActive:                        s.IsActive,
