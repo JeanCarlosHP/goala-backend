@@ -313,11 +313,15 @@ func (s *FoodRecognitionService) EstimateQuantity(
 }
 
 func (s *FoodRecognitionService) downloadImageFromCDN(ctx context.Context, imagePath string) ([]byte, error) {
+	tr := otel.Tracer("services/food_recognition_service.go")
+	ctx, span := tr.Start(ctx, "downloadImageFromCDN")
+	defer span.End()
+
 	// Remove leading slash if present
 	imagePath = strings.TrimPrefix(imagePath, "/")
 
 	// Build CDN URL
-	cdnURL := fmt.Sprintf("https://%s/%s", s.config.CDNDomain, imagePath)
+	cdnURL := fmt.Sprintf("%s/%s", s.config.CDNDomain, imagePath)
 
 	// Create HTTP request
 	req, err := http.NewRequestWithContext(ctx, "GET", cdnURL, nil)
