@@ -2,10 +2,10 @@ package repositories
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
@@ -43,7 +43,7 @@ func (r *AIUsageRepository) Get(ctx context.Context, userID string, feature enum
 		Feature: feature.String(),
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
@@ -59,7 +59,7 @@ func (r *AIUsageRepository) GetByPeriod(ctx context.Context, userID string, feat
 		PeriodStart: pgtype.Timestamptz{Time: periodStart, Valid: true},
 	})
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
