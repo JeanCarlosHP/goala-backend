@@ -15,11 +15,11 @@ type FoodRecognitionRequest struct {
 
 type RecognizedFoodItem struct {
 	Name       string  `json:"name" validate:"required"`
-	Calories   int32   `json:"calories" validate:"gte=0,lte=5000"`
-	Protein    int32   `json:"protein" validate:"gte=0,lte=500"`
-	Carbs      int32   `json:"carbs" validate:"gte=0,lte=500"`
-	Fat        int32   `json:"fat" validate:"gte=0,lte=500"`
-	Quantity   int32   `json:"quantity" validate:"gte=1,lte=10000"`
+	Calories   float64 `json:"calories" validate:"gte=0,lte=5000"`
+	Protein    float64 `json:"protein" validate:"gte=0,lte=500"`
+	Carbs      float64 `json:"carbs" validate:"gte=0,lte=500"`
+	Fat        float64 `json:"fat" validate:"gte=0,lte=500"`
+	Quantity   float64 `json:"quantity" validate:"gte=1,lte=10000"`
 	Unit       string  `json:"unit" validate:"required"`
 	Confidence float64 `json:"confidence" validate:"gte=0,lte=1"`
 }

@@ -40,17 +40,41 @@ func (g *GeminiProvider) RecognizeFood(
 
 	prompt := `Analyze this food image and return a JSON array of food items with their nutritional information.
 	For each food item, provide:
-	- name: food name in English
-	- calories: estimated calories
-	- protein: protein in grams
-	- carbs: carbohydrates in grams
-	- fat: fat in grams
-	- quantity: estimated quantity
-	- unit: unit of measurement (g, ml, or serving)
-	- confidence: confidence score between 0 and 1
+	- name: food name in English (string)
+	- calories: estimated calories (number, can be decimal)
+	- protein: protein in grams (number, can be decimal)
+	- carbs: carbohydrates in grams (number, can be decimal)
+	- fat: fat in grams (number, can be decimal)
+	- quantity: estimated quantity (number, can be decimal)
+	- unit: unit of measurement (string: g, ml, or serving)
+	- confidence: confidence score between 0 and 1 (number)
 	
-	Return ONLY valid JSON in this format:
-	{"food_items": [{"name": "Rice", "calories": 130, "protein": 3, "carbs": 28, "fat": 0, "quantity": 100, "unit": "g", "confidence": 0.95}]}`
+	Use the following JSON schema:
+	{
+	  "type": "object",
+	  "properties": {
+	    "food_items": {
+	      "type": "array",
+	      "items": {
+	        "type": "object",
+	        "properties": {
+	          "name": {"type": "string"},
+	          "calories": {"type": "number"},
+	          "protein": {"type": "number"},
+	          "carbs": {"type": "number"},
+	          "fat": {"type": "number"},
+	          "quantity": {"type": "number"},
+	          "unit": {"type": "string"},
+	          "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+	        },
+	        "required": ["name", "calories", "protein", "carbs", "fat", "quantity", "unit", "confidence"]
+	      }
+	    }
+	  },
+	  "required": ["food_items"]
+	}
+	
+	Return ONLY valid JSON matching this schema.`
 
 	requestBody := map[string]interface{}{
 		"contents": []map[string]interface{}{
