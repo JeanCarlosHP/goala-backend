@@ -192,7 +192,7 @@ func (s *S3Service) GenerateFoodImageUploadPresignedURL(ctx context.Context, use
 	}
 
 	imageID := uuid.New().String()
-	fileName := fmt.Sprintf("user/%s/food_images/%s%s", userID, imageID, ext)
+	fileName := fmt.Sprintf("users/%s/food_images/%s%s", userID, imageID, ext)
 
 	presignClient := s3.NewPresignClient(s.client)
 
@@ -227,10 +227,8 @@ func (s *S3Service) DownloadImage(ctx context.Context, imagePath string) ([]byte
 	ctx, span := tr.Start(ctx, "DownloadImage")
 	defer span.End()
 
-	// Remove leading slash if present
-	if strings.HasPrefix(imagePath, "/") {
-		imagePath = imagePath[1:]
-	}
+	// Always remove leading slash if present
+	imagePath = strings.TrimPrefix(imagePath, "/")
 
 	getObjectInput := &s3.GetObjectInput{
 		Bucket: aws.String(s.bucketName),
