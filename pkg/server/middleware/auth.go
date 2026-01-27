@@ -56,14 +56,18 @@ func UserContext(userRepo *repositories.UserRepository) fiber.Handler {
 		firebaseUID, ok := c.Locals("firebase_uid").(string)
 		if !ok || firebaseUID == "" {
 			log.Warn().Msg("Missing firebase_uid in context")
-			return c.Next()
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "authentication required",
+			})
 		}
 
 		ctx := context.Background()
 		user, err := userRepo.GetByFirebaseUID(ctx, firebaseUID)
 		if err != nil {
-			log.Warn().Err(err).Str("firebase_uid", firebaseUID).Msg("User not found")
-			return c.Next()
+			log.Warn().Err(err).Str("firebase_uid", firebaseUID).Msg("User not found in database")
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "user not registered",
+			})
 		}
 
 		c.Locals("user_id", user.ID)
