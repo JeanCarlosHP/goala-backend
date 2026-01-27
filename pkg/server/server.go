@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/bytedance/sonic"
+	"github.com/gofiber/contrib/otelfiber"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/healthcheck"
@@ -70,6 +71,8 @@ func (s *httpServer) GetLogger() domain.Logger {
 }
 
 func (s *httpServer) ConfigureMiddlewares() {
+	// OpenTelemetry tracing middleware deve ser o primeiro
+	s.App.Use(otelfiber.Middleware())
 	s.App.Use(cors.New(cors.Config{
 		AllowHeaders: s.Config.HTTPCorsAllowedHeaders,
 		AllowMethods: s.Config.HTTPCorsAllowedMethods,

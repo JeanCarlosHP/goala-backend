@@ -15,7 +15,6 @@ import (
 	"github.com/jeancarloshp/calorieai/pkg/server"
 	"github.com/jeancarloshp/calorieai/pkg/server/middleware"
 
-	"github.com/gofiber/contrib/otelfiber"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/internal/handlers"
@@ -101,8 +100,6 @@ func main() {
 
 	httpServer := server.New(configurer, logger)
 	app := httpServer.GetApp()
-	// Instrumentação Fiber
-	app.Use(otelfiber.Middleware())
 
 	api := app.Group("/api/v1")
 
