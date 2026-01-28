@@ -108,6 +108,24 @@ cp .env.example .env
 - Configure o webhook URL no dashboard do RevenueCat: `https://your-api.com/api/v1/webhooks/revenuecat`
 - Copie o webhook secret do dashboard do RevenueCat
 
+### AI Providers
+
+| Variável | Descrição | Valores Permitidos | Padrão | Obrigatório |
+|----------|-----------|-------------------|--------|-------------|
+| `AI_PROVIDER` | Provedor de IA para reconhecimento de alimentos | `gemini`, `openai` | `gemini` | ❌ |
+| `GEMINI_API_KEY` | Chave da API do Google Gemini | - | - | ✅ (se AI_PROVIDER=gemini) |
+| `GEMINI_MODEL` | Modelo do Gemini a usar | `gemini-3-flash-preview`, `gemini-2.5-flash` | `gemini-3-flash-preview` | ❌ |
+| `OPENAI_API_KEY` | Chave da API do OpenAI | - | - | ✅ (se AI_PROVIDER=openai) |
+
+**Configuração do Gemini:**
+- Obtenha a API key no [Google AI Studio](https://aistudio.google.com/app/apikey)
+- O modelo padrão é otimizado para velocidade e custo
+- Suporta análise multimodal (texto + imagem)
+
+**Configuração do OpenAI:**
+- Obtenha a API key no [OpenAI Platform](https://platform.openai.com/api-keys)
+- Atualmente não implementado, usa Gemini como fallback
+
 ### RabbitMQ
 
 | Variável | Descrição | Exemplo | Obrigatório |
@@ -200,6 +218,11 @@ CDN_DOMAIN=https://d1234567890abc.cloudfront.net
 
 # RevenueCat
 REVENUECAT_WEBHOOK_SECRET=rc_whsec_xxxxxxxxxxxxx
+
+# AI Providers
+AI_PROVIDER=gemini
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-3-flash-preview
 
 # RabbitMQ
 RABBITMQ_URL=amqp://guest:guest@localhost:5672/

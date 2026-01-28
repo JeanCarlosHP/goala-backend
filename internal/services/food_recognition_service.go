@@ -28,14 +28,12 @@ func NewFoodRecognitionService(
 	// Escolhe o provider baseado na config
 	switch cfg.AIProvider {
 	case "gemini", "":
-		aiProvider = NewGeminiProvider(cfg.GeminiAPIKey, logger)
+		aiProvider = NewGeminiProvider(cfg.GeminiAPIKey, cfg.GeminiModel, logger)
 	case "openai":
-		// TODO: Implementar OpenAI provider
-		logger.Warn("OpenAI provider not implemented yet, falling back to Gemini")
-		aiProvider = NewGeminiProvider(cfg.GeminiAPIKey, logger)
+		aiProvider = NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.OpenAIModel, logger)
 	default:
 		logger.Warn("Unknown AI provider, using Gemini", "provider", cfg.AIProvider)
-		aiProvider = NewGeminiProvider(cfg.GeminiAPIKey, logger)
+		aiProvider = NewGeminiProvider(cfg.GeminiAPIKey, cfg.GeminiModel, logger)
 	}
 
 	return &FoodRecognitionService{

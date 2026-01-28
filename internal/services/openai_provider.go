@@ -2,44 +2,41 @@ package services
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/option"
 	"go.opentelemetry.io/otel"
-	"google.golang.org/genai"
 )
 
-type GeminiProvider struct {
-	client *genai.Client
+type OpenAIProvider struct {
+	client openai.Client
 	model  string
 	logger domain.Logger
 }
 
-func NewGeminiProvider(apiKey string, model string, logger domain.Logger) *GeminiProvider {
+func NewOpenAIProvider(apiKey string, model string, logger domain.Logger) *OpenAIProvider {
 	if model == "" {
-		model = "gemini-3-flash-preview"
+		model = "gpt-4o"
 	}
-	ctx := context.Background()
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: apiKey})
-	if err != nil {
-		logger.Error("failed to create Gemini client", "error", err)
-		panic(fmt.Sprintf("failed to create Gemini client: %v", err))
-	}
-	return &GeminiProvider{
+	client := openai.NewClient(
+		option.WithAPIKey(apiKey),
+	)
+	return &OpenAIProvider{
 		client: client,
 		model:  model,
 		logger: logger,
 	}
 }
 
-func (g *GeminiProvider) RecognizeFood(
+func (o *OpenAIProvider) RecognizeFood(
 	ctx context.Context,
 	imageBase64 string,
 ) ([]domain.RecognizedFoodItem, error) {
-	tr := otel.Tracer("services/gemini_provider.go")
+	tr := otel.Tracer("services/openai_provider.go")
 	ctx, span := tr.Start(ctx, "RecognizeFood")
 	defer span.End()
 
@@ -53,7 +50,7 @@ func (g *GeminiProvider) RecognizeFood(
 	- quantity: estimated quantity (number, can be decimal)
 	- unit: unit of measurement (string: g, ml, or serving)
 	- confidence: confidence score between 0 and 1 (number)
-	
+
 	Use the following JSON schema:
 	{
 	  "type": "object",
@@ -78,34 +75,31 @@ func (g *GeminiProvider) RecognizeFood(
 	  },
 	  "required": ["food_items"]
 	}
-	
+
 	Return ONLY valid, complete JSON matching this schema. Ensure the JSON is properly closed and valid.`
 
-	data, err := base64.StdEncoding.DecodeString(imageBase64)
+	imageURL := fmt.Sprintf("data:image/jpeg;base64,%s", imageBase64)
+
+	messages := []openai.ChatCompletionMessageParamUnion{
+		openai.UserMessage([]openai.ChatCompletionContentPartUnionParam{
+			openai.TextContentPart(prompt),
+			openai.ImageContentPart(openai.ChatCompletionContentPartImageImageURLParam{
+				URL: imageURL,
+			}),
+		}),
+	}
+
+	chat, err := o.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		Messages: messages,
+		Model:    o.model,
+	})
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode base64 image: %w", err)
+		o.logger.Error("failed to call OpenAI API", "error", err)
+		return nil, fmt.Errorf("failed to call OpenAI API: %w", err)
 	}
 
-	parts := []*genai.Part{
-		{Text: prompt},
-		{InlineData: &genai.Blob{Data: data, MIMEType: "image/jpeg"}},
-	}
-
-	config := &genai.GenerateContentConfig{
-		Temperature:     genai.Ptr(float32(0.4)),
-		TopK:            genai.Ptr(float32(32)),
-		TopP:            genai.Ptr(float32(1)),
-		MaxOutputTokens: 4096,
-	}
-
-	contents := []*genai.Content{{Parts: parts}}
-	result, err := g.client.Models.GenerateContent(ctx, g.model, contents, config)
-	if err != nil {
-		g.logger.Error("failed to call Gemini API", "error", err)
-		return nil, fmt.Errorf("failed to call Gemini API: %w", err)
-	}
-
-	responseText := result.Text()
+	responseText := chat.Choices[0].Message.Content
 
 	// Remove markdown code block formatting if present
 	responseText = strings.TrimPrefix(responseText, "```json\n")
@@ -113,7 +107,7 @@ func (g *GeminiProvider) RecognizeFood(
 
 	// Check if the response is valid JSON
 	if !json.Valid([]byte(responseText)) {
-		g.logger.Error("invalid JSON response from Gemini", "text", responseText)
+		o.logger.Error("invalid JSON response from OpenAI", "text", responseText)
 		return nil, fmt.Errorf("invalid JSON response from AI provider")
 	}
 
@@ -122,25 +116,25 @@ func (g *GeminiProvider) RecognizeFood(
 	}
 
 	if err := json.Unmarshal([]byte(responseText), &foodData); err != nil {
-		g.logger.Error("failed to parse food items", "error", err, "text", responseText)
+		o.logger.Error("failed to parse food items", "error", err, "text", responseText)
 		return nil, fmt.Errorf("failed to parse food items: %w", err)
 	}
 
 	return foodData.FoodItems, nil
 }
 
-func (g *GeminiProvider) EstimateQuantity(
+func (o *OpenAIProvider) EstimateQuantity(
 	ctx context.Context,
 	imageBase64 string,
 	req *domain.EstimateQuantityRequest,
 ) (*domain.EstimateQuantityResponse, error) {
-	tr := otel.Tracer("services/gemini_provider.go")
+	tr := otel.Tracer("services/openai_provider.go")
 	ctx, span := tr.Start(ctx, "EstimateQuantity")
 	defer span.End()
 
 	prompt := fmt.Sprintf(`Analyze this image to estimate the quantity of %s.
 	Consider the context: meal location is %s, meal type is %s.
-	
+
 	Return ONLY valid JSON in this format:
 	{
 		"estimatedQuantity": <number>,
@@ -153,31 +147,28 @@ func (g *GeminiProvider) EstimateQuantity(
 		prompt += fmt.Sprintf("\nReference serving: %s %s", *req.ReferenceServingSize, *req.ReferenceServingUnit)
 	}
 
-	data, err := base64.StdEncoding.DecodeString(imageBase64)
+	imageURL := fmt.Sprintf("data:image/jpeg;base64,%s", imageBase64)
+
+	messages := []openai.ChatCompletionMessageParamUnion{
+		openai.UserMessage([]openai.ChatCompletionContentPartUnionParam{
+			openai.TextContentPart(prompt),
+			openai.ImageContentPart(openai.ChatCompletionContentPartImageImageURLParam{
+				URL: imageURL,
+			}),
+		}),
+	}
+
+	chat, err := o.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		Messages: messages,
+		Model:    o.model,
+	})
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode base64 image: %w", err)
+		o.logger.Error("failed to call OpenAI API", "error", err)
+		return nil, fmt.Errorf("failed to call OpenAI API: %w", err)
 	}
 
-	parts := []*genai.Part{
-		{Text: prompt},
-		{InlineData: &genai.Blob{Data: data, MIMEType: "image/jpeg"}},
-	}
-
-	config := &genai.GenerateContentConfig{
-		Temperature:     genai.Ptr(float32(0.4)),
-		TopK:            genai.Ptr(float32(32)),
-		TopP:            genai.Ptr(float32(1)),
-		MaxOutputTokens: 1024,
-	}
-
-	contents := []*genai.Content{{Parts: parts}}
-	result, err := g.client.Models.GenerateContent(ctx, g.model, contents, config)
-	if err != nil {
-		g.logger.Error("failed to call Gemini API", "error", err)
-		return nil, fmt.Errorf("failed to call Gemini API: %w", err)
-	}
-
-	responseText := result.Text()
+	responseText := chat.Choices[0].Message.Content
 
 	// Remove markdown code block formatting if present
 	responseText = strings.TrimPrefix(responseText, "```json\n")
@@ -185,7 +176,7 @@ func (g *GeminiProvider) EstimateQuantity(
 
 	var resultResp domain.EstimateQuantityResponse
 	if err := json.Unmarshal([]byte(responseText), &resultResp); err != nil {
-		g.logger.Error("failed to parse quantity estimation", "error", err, "text", responseText)
+		o.logger.Error("failed to parse quantity estimation", "error", err, "text", responseText)
 		return nil, fmt.Errorf("failed to parse quantity estimation: %w", err)
 	}
 

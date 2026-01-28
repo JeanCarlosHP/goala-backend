@@ -26,7 +26,9 @@ type Config struct {
 	AWSAccessKeyID                     string `mapstructure:"AWS_ACCESS_KEY_ID"`
 	AWSSecretAccessKey                 string `mapstructure:"AWS_SECRET_ACCESS_KEY"`
 	GeminiAPIKey                       string `mapstructure:"GEMINI_API_KEY"`
+	GeminiModel                        string `mapstructure:"GEMINI_MODEL"`
 	OpenAIAPIKey                       string `mapstructure:"OPENAI_API_KEY"`
+	OpenAIModel                        string `mapstructure:"OPENAI_MODEL"`
 	AIProvider                         string `mapstructure:"AI_PROVIDER"`
 	OpenFoodFactsAPIURL                string `mapstructure:"OPENFOODFACTS_API_URL"`
 	CDNDomain                          string `mapstructure:"CDN_DOMAIN"`
