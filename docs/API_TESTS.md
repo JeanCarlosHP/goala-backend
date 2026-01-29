@@ -88,7 +88,7 @@ event: progress
 data: {"stage":"ai_analysis","percentage":50,"message":"Analyzing image..."}
 
 event: complete
-data: {"success":true,"data":{"foodItems":[...],"processingTime":1234},"message":"food recognized successfully"}
+data: {"success":true,"data":{"foodItems":[...]},"message":"food recognized successfully"}
 ```
 
 ### Resposta Final
@@ -114,11 +114,9 @@ data: {"success":true,"data":{"foodItems":[...],"processingTime":1234},"message"
         "carbs": 14,
         "fat": 0,
         "quantity": 100,
-        "unit": "g",
-        "confidence": 0.92
+        "unit": "g"
       }
-    ],
-    "processingTime": 2340
+    ]
   },
   "message": "food recognized successfully"
 }

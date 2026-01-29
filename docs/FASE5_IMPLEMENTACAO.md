@@ -166,11 +166,9 @@ Implementação completa dos endpoints de reconhecimento de alimentos por imagem
         "carbs": 28,
         "fat": 0,
         "quantity": 150,
-        "unit": "g",
-        "confidence": 0.92
+        "unit": "g"
       }
-    ],
-    "processingTime": 1500
+    ]
   },
   "message": "food recognized successfully"
 }

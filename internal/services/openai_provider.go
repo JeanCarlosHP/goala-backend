@@ -50,7 +50,6 @@ func (o *OpenAIProvider) RecognizeFood(
 	- fat: fat in grams (number, can be decimal)
 	- quantity: estimated quantity (number, can be decimal)
 	- unit: unit of measurement (string: g, ml, or serving)
-	- confidence: confidence score between 0 and 1 (number)
 
 	Use the following JSON schema:
 	{
@@ -67,10 +66,9 @@ func (o *OpenAIProvider) RecognizeFood(
 	          "carbs": {"type": "number"},
 	          "fat": {"type": "number"},
 	          "quantity": {"type": "number"},
-	          "unit": {"type": "string"},
-	          "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+	          "unit": {"type": "string"}
 	        },
-	        "required": ["name", "calories", "protein", "carbs", "fat", "quantity", "unit", "confidence"]
+	        "required": ["name", "calories", "protein", "carbs", "fat", "quantity", "unit"]
 	      }
 	    }
 	  },

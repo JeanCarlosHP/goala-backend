@@ -116,12 +116,10 @@ interface RecognizedFoodItem {
   fat: number;
   quantity: number;
   unit: string;
-  confidence: number;
 }
 
 interface FoodRecognitionResponse {
   foodItems: RecognizedFoodItem[];
-  processingTime: number;
 }
 ```
 
@@ -181,10 +179,10 @@ function FoodRecognition() {
 
       {result && (
         <div>
-          <h3>Alimentos Reconhecidos ({result.processingTime}ms)</h3>
+          <h3>Alimentos Reconhecidos</h3>
           {result.foodItems.map((item, i) => (
             <div key={i}>
-              <h4>{item.name} ({item.confidence * 100}% confiança)</h4>
+              <h4>{item.name}</h4>
               <p>
                 Quantidade: {item.quantity} {item.unit} | 
                 Calorias: {item.calories}kcal | 

@@ -594,11 +594,9 @@ Mesmo formato de `GET /achievements`
         "carbs": 28,
         "fat": 0,
         "quantity": 100,
-        "unit": "g",
-        "confidence": 0.95
+        "unit": "g"
       }
-    ],
-    "processingTime": 1500
+    ]
   },
   "message": "string"
 }
@@ -617,16 +615,14 @@ type FoodItem struct {
     Name       string  `json:"name" validate:"required"`
     Calories   int32   `json:"calories" validate:"gte=0,lte=5000"`
     Protein    int32   `json:"protein" validate:"gte=0,lte=500"`
-    Carbs      int32   `json:"carbs" validate:"gte=0,lte=500"`
-    Fat        int32   `json:"fat" validate:"gte=0,lte=500"`
-    Quantity   int32   `json:"quantity" validate:"gte=1,lte=10000"`
-    Unit       string  `json:"unit" validate:"required"`
-    Confidence float64 `json:"confidence" validate:"gte=0,lte=1"`
+    Carbs    int32   `json:"carbs" validate:"gte=0,lte=500"`
+    Fat      int32   `json:"fat" validate:"gte=0,lte=500"`
+    Quantity int32   `json:"quantity" validate:"gte=1,lte=10000"`
+    Unit     string  `json:"unit" validate:"required"`
 }
 
 type FoodRecognitionResponse struct {
-    FoodItems      []FoodItem `json:"foodItems" validate:"required,dive"`
-    ProcessingTime int32      `json:"processingTime" validate:"gte=0"`
+    FoodItems []FoodItem `json:"foodItems" validate:"required,dive"`
 }
 ```
 

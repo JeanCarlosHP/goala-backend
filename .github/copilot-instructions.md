@@ -12,3 +12,4 @@
 - Caso seja nescessario utilize o MCP #io.github.upstash/context7 para consultar documentação técnica.
 - Não adicione comentários em excesso.
 - Não crie documentação extra.
+- Utilize `go vet ./...` e `staticcheck ./...` para garantir a qualidade do código.

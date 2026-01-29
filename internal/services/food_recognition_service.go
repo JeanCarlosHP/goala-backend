@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"go.opentelemetry.io/otel"
@@ -49,8 +48,6 @@ func (s *FoodRecognitionService) RecognizeFoodByPath(
 	ctx, span := tr.Start(ctx, "RecognizeFoodByPath")
 	defer span.End()
 
-	startTime := time.Now()
-
 	// Download image from S3
 	imageBytes, err := s.s3Service.DownloadImage(ctx, imagePath)
 	if err != nil {
@@ -65,11 +62,8 @@ func (s *FoodRecognitionService) RecognizeFoodByPath(
 		return nil, fmt.Errorf("failed to recognize food: %w", err)
 	}
 
-	processingTime := int32(time.Since(startTime).Milliseconds())
-
 	return &domain.FoodRecognitionResponse{
-		FoodItems:      foodItems,
-		ProcessingTime: processingTime,
+		FoodItems: foodItems,
 	}, nil
 }
 
