@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -37,7 +36,7 @@ func NewGeminiProvider(apiKey string, model string, logger domain.Logger) *Gemin
 
 func (g *GeminiProvider) RecognizeFood(
 	ctx context.Context,
-	imageBase64 string,
+	imageBytes []byte,
 ) ([]domain.RecognizedFoodItem, error) {
 	tr := otel.Tracer("services/gemini_provider.go")
 	ctx, span := tr.Start(ctx, "RecognizeFood")
@@ -81,14 +80,13 @@ func (g *GeminiProvider) RecognizeFood(
 	
 	Return ONLY valid, complete JSON matching this schema. Ensure the JSON is properly closed and valid.`
 
-	data, err := base64.StdEncoding.DecodeString(imageBase64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode base64 image: %w", err)
+	parts := []*genai.Part{
+		genai.NewPartFromBytes(imageBytes, "image/jpeg"),
+		genai.NewPartFromText(prompt),
 	}
 
-	parts := []*genai.Part{
-		{Text: prompt},
-		{InlineData: &genai.Blob{Data: data, MIMEType: "image/jpeg"}},
+	contents := []*genai.Content{
+		genai.NewContentFromParts(parts, genai.RoleUser),
 	}
 
 	config := &genai.GenerateContentConfig{
@@ -98,7 +96,6 @@ func (g *GeminiProvider) RecognizeFood(
 		MaxOutputTokens: 4096,
 	}
 
-	contents := []*genai.Content{{Parts: parts}}
 	result, err := g.client.Models.GenerateContent(ctx, g.model, contents, config)
 	if err != nil {
 		g.logger.Error("failed to call Gemini API", "error", err)
@@ -131,7 +128,7 @@ func (g *GeminiProvider) RecognizeFood(
 
 func (g *GeminiProvider) EstimateQuantity(
 	ctx context.Context,
-	imageBase64 string,
+	imageBytes []byte,
 	req *domain.EstimateQuantityRequest,
 ) (*domain.EstimateQuantityResponse, error) {
 	tr := otel.Tracer("services/gemini_provider.go")
@@ -153,14 +150,13 @@ func (g *GeminiProvider) EstimateQuantity(
 		prompt += fmt.Sprintf("\nReference serving: %s %s", *req.ReferenceServingSize, *req.ReferenceServingUnit)
 	}
 
-	data, err := base64.StdEncoding.DecodeString(imageBase64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode base64 image: %w", err)
+	parts := []*genai.Part{
+		genai.NewPartFromBytes(imageBytes, "image/jpeg"),
+		genai.NewPartFromText(prompt),
 	}
 
-	parts := []*genai.Part{
-		{Text: prompt},
-		{InlineData: &genai.Blob{Data: data, MIMEType: "image/jpeg"}},
+	contents := []*genai.Content{
+		genai.NewContentFromParts(parts, genai.RoleUser),
 	}
 
 	config := &genai.GenerateContentConfig{
@@ -170,7 +166,6 @@ func (g *GeminiProvider) EstimateQuantity(
 		MaxOutputTokens: 1024,
 	}
 
-	contents := []*genai.Content{{Parts: parts}}
 	result, err := g.client.Models.GenerateContent(ctx, g.model, contents, config)
 	if err != nil {
 		g.logger.Error("failed to call Gemini API", "error", err)

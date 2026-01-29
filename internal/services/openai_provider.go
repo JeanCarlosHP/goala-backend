@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -34,7 +35,7 @@ func NewOpenAIProvider(apiKey string, model string, logger domain.Logger) *OpenA
 
 func (o *OpenAIProvider) RecognizeFood(
 	ctx context.Context,
-	imageBase64 string,
+	imageBytes []byte,
 ) ([]domain.RecognizedFoodItem, error) {
 	tr := otel.Tracer("services/openai_provider.go")
 	ctx, span := tr.Start(ctx, "RecognizeFood")
@@ -78,6 +79,7 @@ func (o *OpenAIProvider) RecognizeFood(
 
 	Return ONLY valid, complete JSON matching this schema. Ensure the JSON is properly closed and valid.`
 
+	imageBase64 := base64.StdEncoding.EncodeToString(imageBytes)
 	imageURL := fmt.Sprintf("data:image/jpeg;base64,%s", imageBase64)
 
 	messages := []openai.ChatCompletionMessageParamUnion{
@@ -125,7 +127,7 @@ func (o *OpenAIProvider) RecognizeFood(
 
 func (o *OpenAIProvider) EstimateQuantity(
 	ctx context.Context,
-	imageBase64 string,
+	imageBytes []byte,
 	req *domain.EstimateQuantityRequest,
 ) (*domain.EstimateQuantityResponse, error) {
 	tr := otel.Tracer("services/openai_provider.go")
@@ -147,6 +149,7 @@ func (o *OpenAIProvider) EstimateQuantity(
 		prompt += fmt.Sprintf("\nReference serving: %s %s", *req.ReferenceServingSize, *req.ReferenceServingUnit)
 	}
 
+	imageBase64 := base64.StdEncoding.EncodeToString(imageBytes)
 	imageURL := fmt.Sprintf("data:image/jpeg;base64,%s", imageBase64)
 
 	messages := []openai.ChatCompletionMessageParamUnion{

@@ -9,12 +9,12 @@ import (
 type AIProvider interface {
 	RecognizeFood(
 		ctx context.Context,
-		imageBase64 string,
+		imageBase64 []byte,
 	) ([]domain.RecognizedFoodItem, error)
 
 	EstimateQuantity(
 		ctx context.Context,
-		imageBase64 string,
+		imageBase64 []byte,
 		req *domain.EstimateQuantityRequest,
 	) (*domain.EstimateQuantityResponse, error)
 }
