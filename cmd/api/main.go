@@ -142,7 +142,9 @@ func main() {
 	protected.Post("/feedback", feedbackHandler.CreateFeedback)
 
 	protected.Post("/food/image/presigned-url", foodRecognitionHandler.GenerateFoodImageUploadURL)
-	protected.Post("/food/recognize", foodRecognitionHandler.RecognizeFood)
+	protected.Post("/food/recognize",
+		middleware.AIQuotaCheck(aiUsageService, enum.FeatureMealAnalysis, logger),
+		foodRecognitionHandler.RecognizeFood)
 	protected.Get("/food/barcode/:barcode", foodRecognitionHandler.GetFoodByBarcode)
 	protected.Post("/food/estimate-quantity",
 		middleware.AIQuotaCheck(aiUsageService, enum.FeatureMealAnalysis, logger),

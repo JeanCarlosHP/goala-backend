@@ -5,7 +5,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
-	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/internal/services"
 )
 
@@ -36,35 +35,7 @@ func NewFoodRecognitionHandler(
 }
 
 func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
-	userID, ok := c.Locals("user_id").(uuid.UUID)
-	if !ok {
-		h.logger.Warn("Missing user_id in context")
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"success": false,
-			"message": "authentication required",
-		})
-	}
-
-	userIDStr := userID.String()
-
 	ctx := c.UserContext()
-	if err := h.aiUsageService.CheckAndIncrementUsage(ctx, userIDStr, enum.FeatureFoodRecognition); err != nil {
-		if services.IsQuotaExceededError(err) {
-			h.logger.Warn("Quota exceeded for user %s and feature %s", userID, enum.FeatureFoodRecognition)
-			return c.Status(fiber.StatusPaymentRequired).JSON(fiber.Map{
-				"success": false,
-				"message": "quota exceeded for this feature",
-				"code":    "QUOTA_EXCEEDED",
-				"feature": enum.FeatureFoodRecognition,
-			})
-		}
-
-		h.logger.Error("Failed to validate quota: %v, user_id: %s", err, userIDStr)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"success": false,
-			"message": "failed to validate quota",
-		})
-	}
 
 	var req domain.FoodRecognitionRequest
 	if err := c.BodyParser(&req); err != nil {
