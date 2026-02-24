@@ -33,13 +33,17 @@ func (h *MealHandler) CreateMeal(c *fiber.Ctx) error {
 	var req domain.CreateMealRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid request body",
+			"success": false,
+			"error":   "invalid_request_body",
+			"message": "invalid request body",
 		})
 	}
 
 	if err := h.validator.Struct(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
+			"success": false,
+			"error":   "validation_failed",
+			"message": err.Error(),
 		})
 	}
 
@@ -48,11 +52,17 @@ func (h *MealHandler) CreateMeal(c *fiber.Ctx) error {
 	if err != nil {
 		h.logger.Error("Failed to create meal", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to create meal",
+			"success": false,
+			"error":   "create_meal_failed",
+			"message": "failed to create meal",
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(meal)
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"success": true,
+		"data":    meal,
+		"message": "meal created successfully",
+	})
 }
 
 func (h *MealHandler) GetMeals(c *fiber.Ctx) error {
@@ -66,7 +76,9 @@ func (h *MealHandler) GetMeals(c *fiber.Ctx) error {
 	date, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid date format, use YYYY-MM-DD",
+			"success": false,
+			"error":   "invalid_date_format",
+			"message": "invalid date format, use YYYY-MM-DD",
 		})
 	}
 
@@ -75,11 +87,16 @@ func (h *MealHandler) GetMeals(c *fiber.Ctx) error {
 	if err != nil {
 		h.logger.Error("Failed to get meals", "user_id", userID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to get meals",
+			"success": false,
+			"error":   "get_meals_failed",
+			"message": "failed to get meals",
 		})
 	}
 
-	return c.JSON(meals)
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    meals,
+	})
 }
 
 func (h *MealHandler) GetDailySummary(c *fiber.Ctx) error {
@@ -93,7 +110,9 @@ func (h *MealHandler) GetDailySummary(c *fiber.Ctx) error {
 	date, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid date format, use YYYY-MM-DD",
+			"success": false,
+			"error":   "invalid_date_format",
+			"message": "invalid date format, use YYYY-MM-DD",
 		})
 	}
 
@@ -108,9 +127,14 @@ func (h *MealHandler) GetDailySummary(c *fiber.Ctx) error {
 	if err != nil {
 		h.logger.Error("Failed to get daily summary", "user_id", userID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to get daily summary",
+			"success": false,
+			"error":   "get_daily_summary_failed",
+			"message": "failed to get daily summary",
 		})
 	}
 
-	return c.JSON(summary)
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    summary,
+	})
 }

@@ -26,7 +26,9 @@ func (h *FoodHandler) SearchFoods(c *fiber.Ctx) error {
 	query := c.Query("q")
 	if query == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "query parameter 'q' is required",
+			"success": false,
+			"error":   "missing_query_parameter",
+			"message": "query parameter 'q' is required",
 		})
 	}
 
@@ -34,12 +36,15 @@ func (h *FoodHandler) SearchFoods(c *fiber.Ctx) error {
 	if err != nil {
 		h.logger.Error("failed to search foods", "error", err, "query", query)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to search foods",
+			"success": false,
+			"error":   "search_foods_failed",
+			"message": "failed to search foods",
 		})
 	}
 
 	return c.JSON(fiber.Map{
-		"foods": foods,
+		"success": true,
+		"data":    foods,
 	})
 }
 
@@ -49,7 +54,9 @@ func (h *FoodHandler) GetRecentFoods(c *fiber.Ctx) error {
 	parsedUserID, err := uuid.Parse(userID)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid user ID",
+			"success": false,
+			"error":   "invalid_user_id",
+			"message": "invalid user ID",
 		})
 	}
 
@@ -57,12 +64,15 @@ func (h *FoodHandler) GetRecentFoods(c *fiber.Ctx) error {
 	if err != nil {
 		h.logger.Error("failed to get recent foods", "error", err, "user_id", userID)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to get recent foods",
+			"success": false,
+			"error":   "get_recent_foods_failed",
+			"message": "failed to get recent foods",
 		})
 	}
 
 	return c.JSON(fiber.Map{
-		"foods": foods,
+		"success": true,
+		"data":    foods,
 	})
 }
 
@@ -82,13 +92,17 @@ func (h *FoodHandler) AutocompleteFoodMacros(c *fiber.Ctx) error {
 	var req AutocompleteRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "invalid request body",
+			"success": false,
+			"error":   "invalid_request_body",
+			"message": "invalid request body",
 		})
 	}
 
 	if req.FoodName == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "food_name is required",
+			"success": false,
+			"error":   "missing_food_name",
+			"message": "food_name is required",
 		})
 	}
 
@@ -99,7 +113,10 @@ func (h *FoodHandler) AutocompleteFoodMacros(c *fiber.Ctx) error {
 		AutocompleteResponse: req.FoodName,
 	}
 
-	return c.JSON(result)
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    result,
+	})
 }
 
 func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
@@ -108,6 +125,7 @@ func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
 		h.logger.Error("failed to parse request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
+			"error":   "invalid_request_body",
 			"message": "invalid request body",
 		})
 	}
@@ -116,8 +134,8 @@ func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
 		h.logger.Error("validation failed", "error", err, "request", req)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "validation failed",
-			"errors":  err.Error(),
+			"error":   "validation_failed",
+			"message": err.Error(),
 		})
 	}
 
@@ -126,6 +144,7 @@ func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
 		h.logger.Error("failed to create food item", "error", err, "request", req)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
+			"error":   "create_food_item_failed",
 			"message": "failed to create food item",
 		})
 	}
@@ -156,6 +175,7 @@ func (h *FoodHandler) GetFoodItem(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
+			"error":   "invalid_food_item_id",
 			"message": "invalid food item ID",
 		})
 	}
@@ -165,6 +185,7 @@ func (h *FoodHandler) GetFoodItem(c *fiber.Ctx) error {
 		h.logger.Error("failed to get food item", "error", err, "id", idParam)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
+			"error":   "food_item_not_found",
 			"message": "food item not found",
 		})
 	}
@@ -185,7 +206,6 @@ func (h *FoodHandler) GetFoodItem(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"success": true,
 		"data":    response,
-		"message": "food item retrieved successfully",
 	})
 }
 
@@ -195,6 +215,7 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
+			"error":   "invalid_food_item_id",
 			"message": "invalid food item ID",
 		})
 	}
@@ -204,6 +225,7 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 		h.logger.Error("failed to parse request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
+			"error":   "invalid_request_body",
 			"message": "invalid request body",
 		})
 	}
@@ -212,8 +234,8 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 		h.logger.Error("validation failed", "error", err, "request", req)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"message": "validation failed",
-			"errors":  err.Error(),
+			"error":   "validation_failed",
+			"message": err.Error(),
 		})
 	}
 
@@ -222,6 +244,7 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 		h.logger.Error("failed to update food item", "error", err, "id", idParam, "request", req)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
+			"error":   "update_food_item_failed",
 			"message": "failed to update food item",
 		})
 	}
@@ -252,6 +275,7 @@ func (h *FoodHandler) DeleteFoodItem(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
+			"error":   "invalid_food_item_id",
 			"message": "invalid food item ID",
 		})
 	}
@@ -260,6 +284,7 @@ func (h *FoodHandler) DeleteFoodItem(c *fiber.Ctx) error {
 		h.logger.Error("failed to delete food item", "error", err, "id", idParam)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
+			"error":   "delete_food_item_failed",
 			"message": "failed to delete food item",
 		})
 	}
