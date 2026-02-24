@@ -13,13 +13,20 @@ import (
 type StatsService struct {
 	statsRepo *repositories.StatsRepository
 	mealRepo  *repositories.MealRepository
+	foodRepo  *repositories.FoodRepository
 	logger    domain.Logger
 }
 
-func NewStatsService(statsRepo *repositories.StatsRepository, mealRepo *repositories.MealRepository, logger domain.Logger) *StatsService {
+func NewStatsService(
+	statsRepo *repositories.StatsRepository,
+	mealRepo *repositories.MealRepository,
+	foodRepo *repositories.FoodRepository,
+	logger domain.Logger,
+) *StatsService {
 	return &StatsService{
 		statsRepo: statsRepo,
 		mealRepo:  mealRepo,
+		foodRepo:  foodRepo,
 		logger:    logger,
 	}
 }
@@ -73,6 +80,24 @@ func (s *StatsService) GetStatsRange(ctx context.Context, userID uuid.UUID, star
 			s.logger.Error("Failed to get meals for date", "user_id", userID.String(), "date", currentDate.Format("2006-01-02"), "error", err)
 			currentDate = currentDate.AddDate(0, 0, 1)
 			continue
+		}
+
+		mealIDs := make([]uuid.UUID, len(meals))
+		for i, meal := range meals {
+			mealIDs[i] = meal.ID
+		}
+
+		foodItems, err := s.foodRepo.GetByMealIDs(ctx, mealIDs)
+		if err != nil {
+			s.logger.Error("Failed to get food items for meals", "user_id", userID.String(), "date", currentDate.Format("2006-01-02"), "error", err)
+			currentDate = currentDate.AddDate(0, 0, 1)
+			continue
+		}
+
+		for i := range meals {
+			if foods, ok := foodItems[meals[i].ID]; ok {
+				meals[i].Foods = foods
+			}
 		}
 
 		var totalCalories, totalProtein, totalCarbs, totalFat int32
