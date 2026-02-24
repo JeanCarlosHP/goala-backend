@@ -146,6 +146,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*do
 		Gender:               user.Gender,
 		ActivityLevel:        user.ActivityLevel,
 		Language:             user.Language,
+		Timezone:             user.Timezone,
 		NotificationsEnabled: user.NotificationsEnabled,
 		CreatedAt:            user.CreatedAt,
 		UpdatedAt:            user.UpdatedAt,
@@ -168,6 +169,7 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID uuid.UUID, r
 		Gender:               req.Gender,
 		ActivityLevel:        req.ActivityLevel,
 		Language:             req.Language,
+		Timezone:             req.Timezone,
 		NotificationsEnabled: req.NotificationsEnabled,
 	}
 

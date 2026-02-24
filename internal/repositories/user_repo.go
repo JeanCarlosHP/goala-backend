@@ -62,6 +62,7 @@ func (r *UserRepository) GetByFirebaseUID(ctx context.Context, firebaseUID strin
 		Gender:               result.Gender,
 		ActivityLevel:        result.ActivityLevel,
 		Language:             stringPtrValue(result.Language),
+		Timezone:             stringPtrValue(result.Timezone),
 		NotificationsEnabled: boolPtrValue(result.NotificationsEnabled),
 		CreatedAt:            timePtrValue(result.CreatedAt),
 		UpdatedAt:            timePtrValue(result.UpdatedAt),
@@ -90,6 +91,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 		Gender:               result.Gender,
 		ActivityLevel:        result.ActivityLevel,
 		Language:             stringPtrValue(result.Language),
+		Timezone:             stringPtrValue(result.Timezone),
 		NotificationsEnabled: boolPtrValue(result.NotificationsEnabled),
 		CreatedAt:            timePtrValue(result.CreatedAt),
 		UpdatedAt:            timePtrValue(result.UpdatedAt),
@@ -140,6 +142,7 @@ func (r *UserRepository) UpdateProfile(ctx context.Context, user *domain.User) e
 		ActivityLevel:        user.ActivityLevel,
 		Language:             stringToPtr(user.Language),
 		NotificationsEnabled: boolToPtr(user.NotificationsEnabled),
+		Timezone:             stringToPtr(user.Timezone),
 	})
 }
 

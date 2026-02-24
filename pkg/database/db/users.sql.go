@@ -70,7 +70,7 @@ func (q *Queries) ExistsUserByFirebaseUID(ctx context.Context, firebaseUid strin
 
 const getUserByFirebaseUID = `-- name: GetUserByFirebaseUID :one
 SELECT id, firebase_uid, email, display_name, photo_url, created_at, updated_at,
-       weight, height, age, gender, activity_level, language, notifications_enabled
+       weight, height, age, gender, activity_level, language, notifications_enabled, timezone
 FROM users
 WHERE firebase_uid = $1
 `
@@ -93,13 +93,14 @@ func (q *Queries) GetUserByFirebaseUID(ctx context.Context, firebaseUid string) 
 		&i.ActivityLevel,
 		&i.Language,
 		&i.NotificationsEnabled,
+		&i.Timezone,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
 SELECT id, firebase_uid, email, display_name, photo_url, created_at, updated_at,
-       weight, height, age, gender, activity_level, language, notifications_enabled
+       weight, height, age, gender, activity_level, language, notifications_enabled, timezone
 FROM users
 WHERE id = $1
 `
@@ -122,6 +123,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 		&i.ActivityLevel,
 		&i.Language,
 		&i.NotificationsEnabled,
+		&i.Timezone,
 	)
 	return i, err
 }
@@ -131,7 +133,7 @@ UPDATE users
 SET email = $2, display_name = $3, photo_url = $4, updated_at = NOW()
 WHERE id = $1
 RETURNING id, firebase_uid, email, display_name, photo_url, created_at, updated_at,
-          weight, height, age, gender, activity_level, language, notifications_enabled
+          weight, height, age, gender, activity_level, language, notifications_enabled, timezone
 `
 
 type UpdateUserParams struct {
@@ -164,6 +166,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.ActivityLevel,
 		&i.Language,
 		&i.NotificationsEnabled,
+		&i.Timezone,
 	)
 	return i, err
 }
@@ -228,6 +231,7 @@ UPDATE users SET
     activity_level = $9,
     language = $10,
     notifications_enabled = $11,
+    timezone = $12,
     updated_at = NOW()
 WHERE id = $1
 `
@@ -244,6 +248,7 @@ type UpdateUserProfileParams struct {
 	ActivityLevel        *string
 	Language             *string
 	NotificationsEnabled *bool
+	Timezone             *string
 }
 
 func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error {
@@ -259,6 +264,7 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		arg.ActivityLevel,
 		arg.Language,
 		arg.NotificationsEnabled,
+		arg.Timezone,
 	)
 	return err
 }

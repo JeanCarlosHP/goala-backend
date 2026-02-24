@@ -21,6 +21,7 @@ type User struct {
 	Gender               *string   `json:"gender,omitempty"`
 	ActivityLevel        *string   `json:"activityLevel,omitempty"`
 	Language             string    `json:"language"`
+	Timezone             string    `json:"timezone"` // Novo campo para timezone
 	NotificationsEnabled bool      `json:"notificationsEnabled"`
 	CreatedAt            time.Time `json:"createdAt"`
 	UpdatedAt            time.Time `json:"updatedAt"`
@@ -64,6 +65,7 @@ type UserProfileResponse struct {
 	Gender               *string   `json:"gender,omitempty"`
 	ActivityLevel        *string   `json:"activityLevel,omitempty"`
 	Language             string    `json:"language"`
+	Timezone             string    `json:"timezone"` // Novo campo
 	NotificationsEnabled bool      `json:"notificationsEnabled"`
 	CreatedAt            time.Time `json:"createdAt"`
 	UpdatedAt            time.Time `json:"updatedAt"`
@@ -84,6 +86,7 @@ type UpdateProfileRequest struct {
 	Gender               *string `json:"gender" validate:"omitempty,oneof=male female other"`
 	ActivityLevel        *string `json:"activityLevel" validate:"omitempty,oneof=sedentary light moderate active very_active"`
 	Language             string  `json:"language" validate:"required,oneof=en-US pt-BR"`
+	Timezone             string  `json:"timezone" validate:"required"` // Novo campo
 	NotificationsEnabled bool    `json:"notificationsEnabled"`
 }
 

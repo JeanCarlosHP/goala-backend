@@ -76,7 +76,7 @@ func main() {
 	achievementService := services.NewAchievementService(achievementRepo, statsRepo, logger)
 	feedbackService := services.NewFeedbackService(feedbackRepo, logger)
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, logger)
-	aiUsageService := services.NewAIUsageService(aiUsageRepo, subscriptionRepo, logger)
+	aiUsageService := services.NewAIUsageService(aiUsageRepo, subscriptionRepo, userRepo, logger)
 	revenueCatService := services.NewRevenueCatService(configurer.RevenueCatWebhookSecret, logger)
 
 	s3Service, err := services.NewS3Service(configurer, logger)

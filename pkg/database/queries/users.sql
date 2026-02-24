@@ -5,13 +5,13 @@ RETURNING id, firebase_uid, email, display_name, photo_url, created_at, updated_
 
 -- name: GetUserByFirebaseUID :one
 SELECT id, firebase_uid, email, display_name, photo_url, created_at, updated_at,
-       weight, height, age, gender, activity_level, language, notifications_enabled
+       weight, height, age, gender, activity_level, language, notifications_enabled, timezone
 FROM users
 WHERE firebase_uid = $1;
 
 -- name: GetUserByID :one
 SELECT id, firebase_uid, email, display_name, photo_url, created_at, updated_at,
-       weight, height, age, gender, activity_level, language, notifications_enabled
+       weight, height, age, gender, activity_level, language, notifications_enabled, timezone
 FROM users
 WHERE id = $1;
 
@@ -20,7 +20,7 @@ UPDATE users
 SET email = $2, display_name = $3, photo_url = $4, updated_at = NOW()
 WHERE id = $1
 RETURNING id, firebase_uid, email, display_name, photo_url, created_at, updated_at,
-          weight, height, age, gender, activity_level, language, notifications_enabled;
+          weight, height, age, gender, activity_level, language, notifications_enabled, timezone;
 
 -- name: UpdateUserProfile :exec
 UPDATE users SET
@@ -34,6 +34,7 @@ UPDATE users SET
     activity_level = $9,
     language = $10,
     notifications_enabled = $11,
+    timezone = $12,
     updated_at = NOW()
 WHERE id = $1;
 

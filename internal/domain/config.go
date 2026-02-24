@@ -2,8 +2,6 @@ package domain
 
 type Config struct {
 	OtelCollectorURL                   string `mapstructure:"OTEL_COLLECTOR_URL"`
-	ZipkinURL                          string `mapstructure:"ZIPKIN_URL"`
-	JaegerURL                          string `mapstructure:"JAEGER_URL"`
 	HTTPPort                           string `mapstructure:"HTTP_PORT"`
 	HTTPRequestSizeLimit               string `mapstructure:"HTTP_REQUEST_SIZE_LIMIT"`
 	HTTPCorsAllowedOrigins             string `mapstructure:"HTTP_CORS_ALLOWED_ORIGINS"`

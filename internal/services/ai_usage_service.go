@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
@@ -14,17 +15,20 @@ import (
 type AIUsageService struct {
 	usageRepo *repositories.AIUsageRepository
 	subRepo   *repositories.SubscriptionRepository
+	userRepo  *repositories.UserRepository
 	logger    domain.Logger
 }
 
 func NewAIUsageService(
 	usageRepo *repositories.AIUsageRepository,
 	subRepo *repositories.SubscriptionRepository,
+	userRepo *repositories.UserRepository,
 	log domain.Logger,
 ) *AIUsageService {
 	return &AIUsageService{
 		usageRepo: usageRepo,
 		subRepo:   subRepo,
+		userRepo:  userRepo,
 		logger:    log,
 	}
 }
@@ -38,22 +42,13 @@ type QuotaConfig struct {
 
 var featureQuotas = map[enum.AIFeature]QuotaConfig{
 	enum.FeatureFoodRecognition: {
-		Free:    10,
-		Monthly: 100,
-		Yearly:  100,
-		Trial:   50,
+		Free: 10, // Agora é o limite diário fixo
 	},
 	enum.FeatureMealAnalysis: {
-		Free:    5,
-		Monthly: 50,
-		Yearly:  50,
-		Trial:   25,
+		Free: 5,
 	},
 	enum.FeatureNutritionAdvice: {
-		Free:    3,
-		Monthly: 30,
-		Yearly:  30,
-		Trial:   15,
+		Free: 3,
 	},
 }
 
@@ -62,22 +57,13 @@ func (s *AIUsageService) CheckAndIncrementUsage(ctx context.Context, userID stri
 	ctx, span := tr.Start(ctx, "CheckAndIncrementUsage")
 	defer span.End()
 
-	sub, err := s.subRepo.GetByUserID(ctx, userID)
+	user, err := s.userRepo.GetByID(ctx, uuid.MustParse(userID))
 	if err != nil {
-		return fmt.Errorf("failed to get subscription: %w", err)
+		return fmt.Errorf("failed to get user: %w", err)
 	}
 
-	if sub == nil {
-		sub = &domain.Subscription{
-			UserID:   userID,
-			IsActive: false,
-			Plan:     enum.PlanFree,
-			IsTrial:  false,
-		}
-	}
-
-	quota := s.getQuotaForPlan(ctx, feature, sub)
-	periodStart, periodEnd := s.getCurrentPeriod(ctx, sub)
+	quota := s.getQuotaForFeature(ctx, feature)
+	periodStart, periodEnd := s.getCurrentPeriod(ctx, user.Timezone)
 
 	usage, err := s.usageRepo.GetByPeriod(ctx, userID, feature, periodStart)
 	if err != nil {
@@ -130,9 +116,9 @@ func (s *AIUsageService) ListUserUsage(ctx context.Context, userID string) ([]*d
 	return s.usageRepo.ListByUser(ctx, userID)
 }
 
-func (s *AIUsageService) getQuotaForPlan(ctx context.Context, feature enum.AIFeature, sub *domain.Subscription) int32 {
+func (s *AIUsageService) getQuotaForFeature(ctx context.Context, feature enum.AIFeature) int32 {
 	tr := otel.Tracer("services/ai_usage_service.go")
-	ctx, span := tr.Start(ctx, "getQuotaForPlan")
+	ctx, span := tr.Start(ctx, "getQuotaForFeature")
 	defer span.End()
 
 	quotaConfig, exists := featureQuotas[feature]
@@ -140,36 +126,22 @@ func (s *AIUsageService) getQuotaForPlan(ctx context.Context, feature enum.AIFea
 		return 0
 	}
 
-	if sub.IsTrial {
-		return quotaConfig.Trial
-	}
-
-	switch sub.Plan {
-	case enum.PlanMonthly:
-		return quotaConfig.Monthly
-	case enum.PlanYearly:
-		return quotaConfig.Yearly
-	case enum.PlanFree:
-		return quotaConfig.Free
-	default:
-		return quotaConfig.Free
-	}
+	return quotaConfig.Free // Agora sempre retorna o limite diário fixo
 }
 
-func (s *AIUsageService) getCurrentPeriod(ctx context.Context, sub *domain.Subscription) (time.Time, time.Time) {
+func (s *AIUsageService) getCurrentPeriod(ctx context.Context, timezone string) (time.Time, time.Time) {
 	tr := otel.Tracer("services/ai_usage_service.go")
-	ctx, span := tr.Start(ctx, "getQuotaForPlan")
+	ctx, span := tr.Start(ctx, "getCurrentPeriod")
 	defer span.End()
 
-	now := time.Now()
-
-	if sub.CurrentPeriodStart != nil && sub.CurrentPeriodEnd != nil {
-		if now.Before(*sub.CurrentPeriodEnd) {
-			return *sub.CurrentPeriodStart, *sub.CurrentPeriodEnd
-		}
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		// Fallback para UTC se timezone inválida
+		loc = time.UTC
 	}
 
-	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	now := time.Now().In(loc)
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 	endOfDay := startOfDay.Add(24 * time.Hour)
 
 	return startOfDay, endOfDay

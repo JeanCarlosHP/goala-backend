@@ -122,6 +122,7 @@ type User struct {
 	ActivityLevel        *string
 	Language             *string
 	NotificationsEnabled *bool
+	Timezone             *string
 }
 
 type UserAchievement struct {
