@@ -72,7 +72,7 @@ func main() {
 	userService := services.NewUserService(userRepo, goalRepo, configurer.CDNDomain)
 	mealService := services.NewMealService(mealRepo, foodRepo)
 	foodService := services.NewFoodService(foodRepo)
-	statsService := services.NewStatsService(statsRepo, mealRepo, logger)
+	statsService := services.NewStatsService(statsRepo, mealRepo, foodRepo, logger)
 	achievementService := services.NewAchievementService(achievementRepo, statsRepo, logger)
 	feedbackService := services.NewFeedbackService(feedbackRepo, logger)
 	subscriptionService := services.NewSubscriptionService(subscriptionRepo, logger)
