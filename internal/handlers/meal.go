@@ -118,12 +118,7 @@ func (h *MealHandler) GetDailySummary(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
 
-	goal, err := h.userService.GetUserGoal(ctx, userID)
-	if err != nil {
-		h.logger.Warn("Failed to get user goal", "user_id", userID.String(), "error", err)
-	}
-
-	summary, err := h.mealService.GetDailySummary(ctx, userID, date, goal)
+	summary, err := h.mealService.GetDailySummary(ctx, userID, date)
 	if err != nil {
 		h.logger.Error("Failed to get daily summary", "user_id", userID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

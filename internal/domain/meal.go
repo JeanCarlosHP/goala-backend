@@ -78,9 +78,5 @@ type DailySummary struct {
 	TotalProtein  float64 `json:"total_protein"`
 	TotalCarbs    float64 `json:"total_carbs"`
 	TotalFat      float64 `json:"total_fat"`
-	GoalCalories  int     `json:"goal_calories"`
-	GoalProtein   int     `json:"goal_protein"`
-	GoalCarbs     int     `json:"goal_carbs"`
-	GoalFat       int     `json:"goal_fat"`
 	Meals         []Meal  `json:"meals"`
 }

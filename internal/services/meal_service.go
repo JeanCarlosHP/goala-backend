@@ -112,7 +112,7 @@ func (s *MealService) GetMealsByDate(ctx context.Context, userID uuid.UUID, date
 	return meals, nil
 }
 
-func (s *MealService) GetDailySummary(ctx context.Context, userID uuid.UUID, date time.Time, goal *domain.UserGoal) (*domain.DailySummary, error) {
+func (s *MealService) GetDailySummary(ctx context.Context, userID uuid.UUID, date time.Time) (*domain.DailySummary, error) {
 	tr := otel.Tracer("services/meal_service.go")
 	ctx, span := tr.Start(ctx, "GetDailySummary")
 	defer span.End()
@@ -125,13 +125,6 @@ func (s *MealService) GetDailySummary(ctx context.Context, userID uuid.UUID, dat
 	summary := &domain.DailySummary{
 		Date:  date.Format("2006-01-02"),
 		Meals: meals,
-	}
-
-	if goal != nil {
-		summary.GoalCalories = goal.DailyCalorieGoal
-		summary.GoalProtein = goal.DailyProteinGoal
-		summary.GoalCarbs = goal.DailyCarbsGoal
-		summary.GoalFat = goal.DailyFatGoal
 	}
 
 	for _, meal := range meals {
