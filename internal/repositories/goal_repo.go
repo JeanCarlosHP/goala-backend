@@ -27,9 +27,9 @@ func (r *GoalRepository) Upsert(ctx context.Context, goal *domain.UserGoal) erro
 	result, err := r.db.Querier.UpsertUserGoal(ctx, db.UpsertUserGoalParams{
 		UserID:        pgtype.UUID{Bytes: goal.UserID, Valid: true},
 		DailyCalories: goal.DailyCalorieGoal,
-		ProteinG:      intToPtr(goal.DailyProteinGoal),
-		CarbsG:        intToPtr(goal.DailyCarbsGoal),
-		FatG:          intToPtr(goal.DailyFatGoal),
+		Protein:       intToPtr(goal.DailyProteinGoal),
+		Carbs:         intToPtr(goal.DailyCarbsGoal),
+		Fat:           intToPtr(goal.DailyFatGoal),
 	})
 	if err != nil {
 		return err
@@ -52,9 +52,9 @@ func (r *GoalRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*do
 	return &domain.UserGoal{
 		UserID:           result.UserID.Bytes,
 		DailyCalorieGoal: result.DailyCalories,
-		DailyProteinGoal: intPtrValue(result.ProteinG),
-		DailyCarbsGoal:   intPtrValue(result.CarbsG),
-		DailyFatGoal:     intPtrValue(result.FatG),
+		DailyProteinGoal: intPtrValue(result.Protein),
+		DailyCarbsGoal:   intPtrValue(result.Carbs),
+		DailyFatGoal:     intPtrValue(result.Fat),
 		UpdatedAt:        timePtrValue(result.UpdatedAt),
 	}, nil
 }

@@ -31,9 +31,9 @@ func (r *FoodRepository) Create(ctx context.Context, food *domain.FoodItem) erro
 		PortionSize: float64ToNumeric(food.PortionSize),
 		PortionUnit: stringToPtr(food.PortionUnit),
 		Calories:    food.Calories,
-		ProteinG:    float64ToNumeric(food.ProteinG),
-		CarbsG:      float64ToNumeric(food.CarbsG),
-		FatG:        float64ToNumeric(food.FatG),
+		Protein:     float64ToNumeric(food.Protein),
+		Carbs:       float64ToNumeric(food.Carbs),
+		Fat:         float64ToNumeric(food.Fat),
 		Source:      stringToPtr(food.Source),
 	})
 }
@@ -57,9 +57,9 @@ func (r *FoodRepository) GetByMealID(ctx context.Context, mealID uuid.UUID) ([]d
 			PortionSize: numericToFloat64(result.PortionSize),
 			PortionUnit: stringPtrValue(result.PortionUnit),
 			Calories:    result.Calories,
-			ProteinG:    numericToFloat64(result.ProteinG),
-			CarbsG:      numericToFloat64(result.CarbsG),
-			FatG:        numericToFloat64(result.FatG),
+			Protein:     numericToFloat64(result.Protein),
+			Carbs:       numericToFloat64(result.Carbs),
+			Fat:         numericToFloat64(result.Fat),
 			Source:      stringPtrValue(result.Source),
 		})
 	}
@@ -91,9 +91,9 @@ func (r *FoodRepository) GetByMealIDs(ctx context.Context, mealIDs []uuid.UUID) 
 			PortionSize: numericToFloat64(result.PortionSize),
 			PortionUnit: stringPtrValue(result.PortionUnit),
 			Calories:    result.Calories,
-			ProteinG:    numericToFloat64(result.ProteinG),
-			CarbsG:      numericToFloat64(result.CarbsG),
-			FatG:        numericToFloat64(result.FatG),
+			Protein:     numericToFloat64(result.Protein),
+			Carbs:       numericToFloat64(result.Carbs),
+			Fat:         numericToFloat64(result.Fat),
 			Source:      stringPtrValue(result.Source),
 		}
 		foodsByMeal[food.MealID] = append(foodsByMeal[food.MealID], food)
@@ -154,9 +154,9 @@ func (r *FoodRepository) GetRecentFoods(ctx context.Context, userID uuid.UUID, l
 			PortionSize: numericToFloat64(result.PortionSize),
 			PortionUnit: stringPtrValue(result.PortionUnit),
 			Calories:    result.Calories,
-			ProteinG:    numericToFloat64(result.ProteinG),
-			CarbsG:      numericToFloat64(result.CarbsG),
-			FatG:        numericToFloat64(result.FatG),
+			Protein:     numericToFloat64(result.Protein),
+			Carbs:       numericToFloat64(result.Carbs),
+			Fat:         numericToFloat64(result.Fat),
 			LastUsed:    timePtrValue(result.LastUsed),
 		})
 	}
@@ -181,9 +181,9 @@ func (r *FoodRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Foo
 		PortionSize: numericToFloat64(result.PortionSize),
 		PortionUnit: stringPtrValue(result.PortionUnit),
 		Calories:    result.Calories,
-		ProteinG:    numericToFloat64(result.ProteinG),
-		CarbsG:      numericToFloat64(result.CarbsG),
-		FatG:        numericToFloat64(result.FatG),
+		Protein:     numericToFloat64(result.Protein),
+		Carbs:       numericToFloat64(result.Carbs),
+		Fat:         numericToFloat64(result.Fat),
 		Source:      stringPtrValue(result.Source),
 	}, nil
 }
@@ -199,9 +199,9 @@ func (r *FoodRepository) Update(ctx context.Context, id uuid.UUID, food *domain.
 		PortionSize: float64ToNumeric(food.PortionSize),
 		PortionUnit: stringToPtr(food.PortionUnit),
 		Calories:    food.Calories,
-		ProteinG:    float64ToNumeric(food.ProteinG),
-		CarbsG:      float64ToNumeric(food.CarbsG),
-		FatG:        float64ToNumeric(food.FatG),
+		Protein:     float64ToNumeric(food.Protein),
+		Carbs:       float64ToNumeric(food.Carbs),
+		Fat:         float64ToNumeric(food.Fat),
 		Source:      stringToPtr(food.Source),
 	})
 	if err != nil {
@@ -215,9 +215,9 @@ func (r *FoodRepository) Update(ctx context.Context, id uuid.UUID, food *domain.
 		PortionSize: numericToFloat64(result.PortionSize),
 		PortionUnit: stringPtrValue(result.PortionUnit),
 		Calories:    result.Calories,
-		ProteinG:    numericToFloat64(result.ProteinG),
-		CarbsG:      numericToFloat64(result.CarbsG),
-		FatG:        numericToFloat64(result.FatG),
+		Protein:     numericToFloat64(result.Protein),
+		Carbs:       numericToFloat64(result.Carbs),
+		Fat:         numericToFloat64(result.Fat),
 		Source:      stringPtrValue(result.Source),
 	}, nil
 }
@@ -243,9 +243,9 @@ func (r *FoodRepository) CreateStandalone(ctx context.Context, food *domain.Crea
 		PortionSize: float64ToNumeric(food.PortionSize),
 		PortionUnit: stringToPtr(food.PortionUnit),
 		Calories:    food.Calories,
-		ProteinG:    float64ToNumeric(food.ProteinG),
-		CarbsG:      float64ToNumeric(food.CarbsG),
-		FatG:        float64ToNumeric(food.FatG),
+		Protein:     float64ToNumeric(food.Protein),
+		Carbs:       float64ToNumeric(food.Carbs),
+		Fat:         float64ToNumeric(food.Fat),
 		Source:      stringToPtr(food.Source),
 	})
 	if err != nil {
@@ -259,9 +259,9 @@ func (r *FoodRepository) CreateStandalone(ctx context.Context, food *domain.Crea
 		PortionSize: numericToFloat64(result.PortionSize),
 		PortionUnit: stringPtrValue(result.PortionUnit),
 		Calories:    result.Calories,
-		ProteinG:    numericToFloat64(result.ProteinG),
-		CarbsG:      numericToFloat64(result.CarbsG),
-		FatG:        numericToFloat64(result.FatG),
+		Protein:     numericToFloat64(result.Protein),
+		Carbs:       numericToFloat64(result.Carbs),
+		Fat:         numericToFloat64(result.Fat),
 		Source:      stringPtrValue(result.Source),
 	}, nil
 }

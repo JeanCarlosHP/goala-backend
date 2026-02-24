@@ -8,9 +8,9 @@ type CreateFoodItemRequest struct {
 	PortionSize float64   `json:"portion_size" validate:"required,min=0,max=10000"`
 	PortionUnit string    `json:"portion_unit" validate:"required,oneof=g ml serving cup tbsp tsp oz lb kg piece slice unit"`
 	Calories    int       `json:"calories" validate:"required,min=0,max=5000"`
-	ProteinG    float64   `json:"protein_g" validate:"required,min=0,max=500"`
-	CarbsG      float64   `json:"carbs_g" validate:"required,min=0,max=500"`
-	FatG        float64   `json:"fat_g" validate:"required,min=0,max=500"`
+	Protein     float64   `json:"protein" validate:"required,min=0,max=500"`
+	Carbs       float64   `json:"carbs" validate:"required,min=0,max=500"`
+	Fat         float64   `json:"fat" validate:"required,min=0,max=500"`
 	Source      string    `json:"source" validate:"required,oneof=ai_photo ai_text manual barcode"`
 }
 
@@ -19,9 +19,9 @@ type UpdateFoodItemRequest struct {
 	PortionSize float64 `json:"portion_size" validate:"required,min=0,max=10000"`
 	PortionUnit string  `json:"portion_unit" validate:"required,oneof=g ml serving cup tbsp tsp oz lb kg piece slice unit"`
 	Calories    int     `json:"calories" validate:"required,min=0,max=5000"`
-	ProteinG    float64 `json:"protein_g" validate:"required,min=0,max=500"`
-	CarbsG      float64 `json:"carbs_g" validate:"required,min=0,max=500"`
-	FatG        float64 `json:"fat_g" validate:"required,min=0,max=500"`
+	Protein     float64 `json:"protein" validate:"required,min=0,max=500"`
+	Carbs       float64 `json:"carbs" validate:"required,min=0,max=500"`
+	Fat         float64 `json:"fat" validate:"required,min=0,max=500"`
 	Source      string  `json:"source" validate:"required,oneof=ai_photo ai_text manual barcode"`
 }
 
@@ -32,8 +32,8 @@ type FoodItemResponse struct {
 	PortionSize float64   `json:"portion_size"`
 	PortionUnit string    `json:"portion_unit"`
 	Calories    int       `json:"calories"`
-	ProteinG    float64   `json:"protein_g"`
-	CarbsG      float64   `json:"carbs_g"`
-	FatG        float64   `json:"fat_g"`
+	Protein     float64   `json:"protein"`
+	Carbs       float64   `json:"carbs"`
+	Fat         float64   `json:"fat"`
 	Source      string    `json:"source"`
 }

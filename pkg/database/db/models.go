@@ -58,9 +58,9 @@ type FoodDatabase struct {
 	CreatedAt       *time.Time
 	Barcode         *string
 	Calories        *int
-	ProteinG        pgtype.Numeric
-	CarbsG          pgtype.Numeric
-	FatG            pgtype.Numeric
+	Protein         pgtype.Numeric
+	Carbs           pgtype.Numeric
+	Fat             pgtype.Numeric
 	ServingSize     *int
 	ServingUnit     *string
 	Verified        *bool
@@ -74,9 +74,9 @@ type FoodItem struct {
 	PortionSize pgtype.Numeric
 	PortionUnit *string
 	Calories    int
-	ProteinG    pgtype.Numeric
-	CarbsG      pgtype.Numeric
-	FatG        pgtype.Numeric
+	Protein     pgtype.Numeric
+	Carbs       pgtype.Numeric
+	Fat         pgtype.Numeric
 	Source      *string
 }
 
@@ -139,9 +139,9 @@ type UserAchievement struct {
 type UserGoal struct {
 	UserID        pgtype.UUID
 	DailyCalories int
-	ProteinG      *int
-	CarbsG        *int
-	FatG          *int
+	Protein       *int
+	Carbs         *int
+	Fat           *int
 	UpdatedAt     *time.Time
 }
 

@@ -12,7 +12,7 @@ import (
 )
 
 const getUserGoalByUserID = `-- name: GetUserGoalByUserID :one
-SELECT user_id, daily_calories, protein_g, carbs_g, fat_g, updated_at
+SELECT user_id, daily_calories, protein, carbs, fat, updated_at
 FROM user_goals
 WHERE user_id = $1
 `
@@ -23,50 +23,50 @@ func (q *Queries) GetUserGoalByUserID(ctx context.Context, userID pgtype.UUID) (
 	err := row.Scan(
 		&i.UserID,
 		&i.DailyCalories,
-		&i.ProteinG,
-		&i.CarbsG,
-		&i.FatG,
+		&i.Protein,
+		&i.Carbs,
+		&i.Fat,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const upsertUserGoal = `-- name: UpsertUserGoal :one
-INSERT INTO user_goals (user_id, daily_calories, protein_g, carbs_g, fat_g)
+INSERT INTO user_goals (user_id, daily_calories, protein, carbs, fat)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (user_id)
 DO UPDATE SET
     daily_calories = EXCLUDED.daily_calories,
-    protein_g = EXCLUDED.protein_g,
-    carbs_g = EXCLUDED.carbs_g,
-    fat_g = EXCLUDED.fat_g,
+    protein = EXCLUDED.protein,
+    carbs = EXCLUDED.carbs,
+    fat = EXCLUDED.fat,
     updated_at = NOW()
-RETURNING user_id, daily_calories, protein_g, carbs_g, fat_g, updated_at
+RETURNING user_id, daily_calories, protein, carbs, fat, updated_at
 `
 
 type UpsertUserGoalParams struct {
 	UserID        pgtype.UUID
 	DailyCalories int
-	ProteinG      *int
-	CarbsG        *int
-	FatG          *int
+	Protein       *int
+	Carbs         *int
+	Fat           *int
 }
 
 func (q *Queries) UpsertUserGoal(ctx context.Context, arg UpsertUserGoalParams) (UserGoal, error) {
 	row := q.db.QueryRow(ctx, upsertUserGoal,
 		arg.UserID,
 		arg.DailyCalories,
-		arg.ProteinG,
-		arg.CarbsG,
-		arg.FatG,
+		arg.Protein,
+		arg.Carbs,
+		arg.Fat,
 	)
 	var i UserGoal
 	err := row.Scan(
 		&i.UserID,
 		&i.DailyCalories,
-		&i.ProteinG,
-		&i.CarbsG,
-		&i.FatG,
+		&i.Protein,
+		&i.Carbs,
+		&i.Fat,
 		&i.UpdatedAt,
 	)
 	return i, err

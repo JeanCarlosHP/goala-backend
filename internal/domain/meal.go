@@ -24,9 +24,9 @@ type FoodItem struct {
 	PortionSize float64   `json:"portion_size" db:"portion_size"`
 	PortionUnit string    `json:"portion_unit" db:"portion_unit"`
 	Calories    int       `json:"calories" db:"calories"`
-	ProteinG    float64   `json:"protein_g" db:"protein_g"`
-	CarbsG      float64   `json:"carbs_g" db:"carbs_g"`
-	FatG        float64   `json:"fat_g" db:"fat_g"`
+	Protein     float64   `json:"protein" db:"protein"`
+	Carbs       float64   `json:"carbs" db:"carbs"`
+	Fat         float64   `json:"fat" db:"fat"`
 	Source      string    `json:"source" db:"source"`
 }
 
@@ -43,9 +43,9 @@ type CreateFoodRequest struct {
 	PortionSize float64 `json:"portion_size" validate:"required,min=0"`
 	PortionUnit string  `json:"portion_unit" validate:"required"`
 	Calories    int     `json:"calories" validate:"required,min=0"`
-	ProteinG    float64 `json:"protein_g" validate:"min=0"`
-	CarbsG      float64 `json:"carbs_g" validate:"min=0"`
-	FatG        float64 `json:"fat_g" validate:"min=0"`
+	Protein     float64 `json:"protein" validate:"min=0"`
+	Carbs       float64 `json:"carbs" validate:"min=0"`
+	Fat         float64 `json:"fat" validate:"min=0"`
 	Source      string  `json:"source" validate:"required,oneof=ai_photo ai_text manual"`
 }
 
@@ -66,9 +66,9 @@ type RecentFood struct {
 	PortionSize float64   `json:"portion_size"`
 	PortionUnit string    `json:"portion_unit"`
 	Calories    int       `json:"calories"`
-	ProteinG    float64   `json:"protein_g"`
-	CarbsG      float64   `json:"carbs_g"`
-	FatG        float64   `json:"fat_g"`
+	Protein     float64   `json:"protein"`
+	Carbs       float64   `json:"carbs"`
+	Fat         float64   `json:"fat"`
 	LastUsed    time.Time `json:"last_used"`
 }
 

@@ -86,9 +86,9 @@ func (s *StatsService) GetStatsRange(ctx context.Context, userID uuid.UUID, star
 
 			for _, food := range meal.Foods {
 				mealCalories += food.Calories
-				mealProtein += food.ProteinG
-				mealCarbs += food.CarbsG
-				mealFat += food.FatG
+				mealProtein += food.Protein
+				mealCarbs += food.Carbs
+				mealFat += food.Fat
 			}
 
 			totalCalories += int32(mealCalories)

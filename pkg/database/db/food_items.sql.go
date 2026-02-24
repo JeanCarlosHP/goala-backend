@@ -13,7 +13,7 @@ import (
 )
 
 const createFoodItem = `-- name: CreateFoodItem :exec
-INSERT INTO food_items (id, meal_id, name, portion_size, portion_unit, calories, protein_g, carbs_g, fat_g, source)
+INSERT INTO food_items (id, meal_id, name, portion_size, portion_unit, calories, protein, carbs, fat, source)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
@@ -24,9 +24,9 @@ type CreateFoodItemParams struct {
 	PortionSize pgtype.Numeric
 	PortionUnit *string
 	Calories    int
-	ProteinG    pgtype.Numeric
-	CarbsG      pgtype.Numeric
-	FatG        pgtype.Numeric
+	Protein     pgtype.Numeric
+	Carbs       pgtype.Numeric
+	Fat         pgtype.Numeric
 	Source      *string
 }
 
@@ -38,18 +38,18 @@ func (q *Queries) CreateFoodItem(ctx context.Context, arg CreateFoodItemParams) 
 		arg.PortionSize,
 		arg.PortionUnit,
 		arg.Calories,
-		arg.ProteinG,
-		arg.CarbsG,
-		arg.FatG,
+		arg.Protein,
+		arg.Carbs,
+		arg.Fat,
 		arg.Source,
 	)
 	return err
 }
 
 const createStandaloneFoodItem = `-- name: CreateStandaloneFoodItem :one
-INSERT INTO food_items (id, meal_id, name, portion_size, portion_unit, calories, protein_g, carbs_g, fat_g, source)
+INSERT INTO food_items (id, meal_id, name, portion_size, portion_unit, calories, protein, carbs, fat, source)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING id, meal_id, name, portion_size, portion_unit, calories, protein_g, carbs_g, fat_g, source
+RETURNING id, meal_id, name, portion_size, portion_unit, calories, protein, carbs, fat, source
 `
 
 type CreateStandaloneFoodItemParams struct {
@@ -59,9 +59,9 @@ type CreateStandaloneFoodItemParams struct {
 	PortionSize pgtype.Numeric
 	PortionUnit *string
 	Calories    int
-	ProteinG    pgtype.Numeric
-	CarbsG      pgtype.Numeric
-	FatG        pgtype.Numeric
+	Protein     pgtype.Numeric
+	Carbs       pgtype.Numeric
+	Fat         pgtype.Numeric
 	Source      *string
 }
 
@@ -73,9 +73,9 @@ func (q *Queries) CreateStandaloneFoodItem(ctx context.Context, arg CreateStanda
 		arg.PortionSize,
 		arg.PortionUnit,
 		arg.Calories,
-		arg.ProteinG,
-		arg.CarbsG,
-		arg.FatG,
+		arg.Protein,
+		arg.Carbs,
+		arg.Fat,
 		arg.Source,
 	)
 	var i FoodItem
@@ -86,9 +86,9 @@ func (q *Queries) CreateStandaloneFoodItem(ctx context.Context, arg CreateStanda
 		&i.PortionSize,
 		&i.PortionUnit,
 		&i.Calories,
-		&i.ProteinG,
-		&i.CarbsG,
-		&i.FatG,
+		&i.Protein,
+		&i.Carbs,
+		&i.Fat,
 		&i.Source,
 	)
 	return i, err
@@ -105,7 +105,7 @@ func (q *Queries) DeleteFoodItem(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getFoodItemByID = `-- name: GetFoodItemByID :one
-SELECT id, meal_id, name, portion_size, portion_unit, calories, protein_g, carbs_g, fat_g, source
+SELECT id, meal_id, name, portion_size, portion_unit, calories, protein, carbs, fat, source
 FROM food_items
 WHERE id = $1
 `
@@ -120,16 +120,16 @@ func (q *Queries) GetFoodItemByID(ctx context.Context, id pgtype.UUID) (FoodItem
 		&i.PortionSize,
 		&i.PortionUnit,
 		&i.Calories,
-		&i.ProteinG,
-		&i.CarbsG,
-		&i.FatG,
+		&i.Protein,
+		&i.Carbs,
+		&i.Fat,
 		&i.Source,
 	)
 	return i, err
 }
 
 const getFoodItemsByMealID = `-- name: GetFoodItemsByMealID :many
-SELECT id, meal_id, name, portion_size, portion_unit, calories, protein_g, carbs_g, fat_g, source
+SELECT id, meal_id, name, portion_size, portion_unit, calories, protein, carbs, fat, source
 FROM food_items
 WHERE meal_id = $1
 `
@@ -150,9 +150,9 @@ func (q *Queries) GetFoodItemsByMealID(ctx context.Context, mealID pgtype.UUID) 
 			&i.PortionSize,
 			&i.PortionUnit,
 			&i.Calories,
-			&i.ProteinG,
-			&i.CarbsG,
-			&i.FatG,
+			&i.Protein,
+			&i.Carbs,
+			&i.Fat,
 			&i.Source,
 		); err != nil {
 			return nil, err
@@ -166,7 +166,7 @@ func (q *Queries) GetFoodItemsByMealID(ctx context.Context, mealID pgtype.UUID) 
 }
 
 const getFoodItemsByMealIDs = `-- name: GetFoodItemsByMealIDs :many
-SELECT id, meal_id, name, portion_size, portion_unit, calories, protein_g, carbs_g, fat_g, source
+SELECT id, meal_id, name, portion_size, portion_unit, calories, protein, carbs, fat, source
 FROM food_items
 WHERE meal_id = ANY($1::uuid[])
 `
@@ -187,9 +187,9 @@ func (q *Queries) GetFoodItemsByMealIDs(ctx context.Context, dollar_1 []pgtype.U
 			&i.PortionSize,
 			&i.PortionUnit,
 			&i.Calories,
-			&i.ProteinG,
-			&i.CarbsG,
-			&i.FatG,
+			&i.Protein,
+			&i.Carbs,
+			&i.Fat,
 			&i.Source,
 		); err != nil {
 			return nil, err
@@ -208,9 +208,9 @@ SELECT DISTINCT ON (fi.name)
     fi.portion_size,
     fi.portion_unit,
     fi.calories,
-    fi.protein_g,
-    fi.carbs_g,
-    fi.fat_g,
+    fi.protein,
+    fi.carbs,
+    fi.fat,
     m.created_at as last_used
 FROM food_items fi
 JOIN meals m ON fi.meal_id = m.id
@@ -229,9 +229,9 @@ type GetRecentFoodsRow struct {
 	PortionSize pgtype.Numeric
 	PortionUnit *string
 	Calories    int
-	ProteinG    pgtype.Numeric
-	CarbsG      pgtype.Numeric
-	FatG        pgtype.Numeric
+	Protein     pgtype.Numeric
+	Carbs       pgtype.Numeric
+	Fat         pgtype.Numeric
 	LastUsed    *time.Time
 }
 
@@ -249,9 +249,9 @@ func (q *Queries) GetRecentFoods(ctx context.Context, arg GetRecentFoodsParams) 
 			&i.PortionSize,
 			&i.PortionUnit,
 			&i.Calories,
-			&i.ProteinG,
-			&i.CarbsG,
-			&i.FatG,
+			&i.Protein,
+			&i.Carbs,
+			&i.Fat,
 			&i.LastUsed,
 		); err != nil {
 			return nil, err
@@ -327,9 +327,9 @@ SET name = $2,
     portion_size = $3,
     portion_unit = $4,
     calories = $5,
-    protein_g = $6,
-    carbs_g = $7,
-    fat_g = $8
+    protein = $6,
+    carbs = $7,
+    fat = $8
 WHERE id = $1
 `
 
@@ -339,9 +339,9 @@ type UpdateFoodItemParams struct {
 	PortionSize pgtype.Numeric
 	PortionUnit *string
 	Calories    int
-	ProteinG    pgtype.Numeric
-	CarbsG      pgtype.Numeric
-	FatG        pgtype.Numeric
+	Protein     pgtype.Numeric
+	Carbs       pgtype.Numeric
+	Fat         pgtype.Numeric
 }
 
 func (q *Queries) UpdateFoodItem(ctx context.Context, arg UpdateFoodItemParams) error {
@@ -351,9 +351,9 @@ func (q *Queries) UpdateFoodItem(ctx context.Context, arg UpdateFoodItemParams) 
 		arg.PortionSize,
 		arg.PortionUnit,
 		arg.Calories,
-		arg.ProteinG,
-		arg.CarbsG,
-		arg.FatG,
+		arg.Protein,
+		arg.Carbs,
+		arg.Fat,
 	)
 	return err
 }
@@ -364,12 +364,12 @@ SET name = $2,
     portion_size = $3,
     portion_unit = $4,
     calories = $5,
-    protein_g = $6,
-    carbs_g = $7,
-    fat_g = $8,
+    protein = $6,
+    carbs = $7,
+    fat = $8,
     source = $9
 WHERE id = $1
-RETURNING id, meal_id, name, portion_size, portion_unit, calories, protein_g, carbs_g, fat_g, source
+RETURNING id, meal_id, name, portion_size, portion_unit, calories, protein, carbs, fat, source
 `
 
 type UpdateFoodItemCompleteParams struct {
@@ -378,9 +378,9 @@ type UpdateFoodItemCompleteParams struct {
 	PortionSize pgtype.Numeric
 	PortionUnit *string
 	Calories    int
-	ProteinG    pgtype.Numeric
-	CarbsG      pgtype.Numeric
-	FatG        pgtype.Numeric
+	Protein     pgtype.Numeric
+	Carbs       pgtype.Numeric
+	Fat         pgtype.Numeric
 	Source      *string
 }
 
@@ -391,9 +391,9 @@ func (q *Queries) UpdateFoodItemComplete(ctx context.Context, arg UpdateFoodItem
 		arg.PortionSize,
 		arg.PortionUnit,
 		arg.Calories,
-		arg.ProteinG,
-		arg.CarbsG,
-		arg.FatG,
+		arg.Protein,
+		arg.Carbs,
+		arg.Fat,
 		arg.Source,
 	)
 	var i FoodItem
@@ -404,9 +404,9 @@ func (q *Queries) UpdateFoodItemComplete(ctx context.Context, arg UpdateFoodItem
 		&i.PortionSize,
 		&i.PortionUnit,
 		&i.Calories,
-		&i.ProteinG,
-		&i.CarbsG,
-		&i.FatG,
+		&i.Protein,
+		&i.Carbs,
+		&i.Fat,
 		&i.Source,
 	)
 	return i, err

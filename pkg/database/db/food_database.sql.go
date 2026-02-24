@@ -13,10 +13,10 @@ import (
 
 const createFoodFromBarcode = `-- name: CreateFoodFromBarcode :one
 INSERT INTO food_database (
-    barcode, name, brand, calories, protein_g, carbs_g, fat_g,
+    barcode, name, brand, calories, protein, carbs, fat,
     serving_size, serving_unit, source
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein_g, carbs_g, fat_g, serving_size, serving_unit, verified, updated_at
+RETURNING id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at
 `
 
 type CreateFoodFromBarcodeParams struct {
@@ -24,9 +24,9 @@ type CreateFoodFromBarcodeParams struct {
 	Name        string
 	Brand       *string
 	Calories    *int
-	ProteinG    pgtype.Numeric
-	CarbsG      pgtype.Numeric
-	FatG        pgtype.Numeric
+	Protein     pgtype.Numeric
+	Carbs       pgtype.Numeric
+	Fat         pgtype.Numeric
 	ServingSize *int
 	ServingUnit *string
 	Source      *string
@@ -38,9 +38,9 @@ func (q *Queries) CreateFoodFromBarcode(ctx context.Context, arg CreateFoodFromB
 		arg.Name,
 		arg.Brand,
 		arg.Calories,
-		arg.ProteinG,
-		arg.CarbsG,
-		arg.FatG,
+		arg.Protein,
+		arg.Carbs,
+		arg.Fat,
 		arg.ServingSize,
 		arg.ServingUnit,
 		arg.Source,
@@ -58,9 +58,9 @@ func (q *Queries) CreateFoodFromBarcode(ctx context.Context, arg CreateFoodFromB
 		&i.CreatedAt,
 		&i.Barcode,
 		&i.Calories,
-		&i.ProteinG,
-		&i.CarbsG,
-		&i.FatG,
+		&i.Protein,
+		&i.Carbs,
+		&i.Fat,
 		&i.ServingSize,
 		&i.ServingUnit,
 		&i.Verified,
@@ -70,7 +70,7 @@ func (q *Queries) CreateFoodFromBarcode(ctx context.Context, arg CreateFoodFromB
 }
 
 const getFoodByBarcode = `-- name: GetFoodByBarcode :one
-SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein_g, carbs_g, fat_g, serving_size, serving_unit, verified, updated_at FROM food_database WHERE barcode = $1
+SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at FROM food_database WHERE barcode = $1
 `
 
 func (q *Queries) GetFoodByBarcode(ctx context.Context, barcode *string) (FoodDatabase, error) {
@@ -88,9 +88,9 @@ func (q *Queries) GetFoodByBarcode(ctx context.Context, barcode *string) (FoodDa
 		&i.CreatedAt,
 		&i.Barcode,
 		&i.Calories,
-		&i.ProteinG,
-		&i.CarbsG,
-		&i.FatG,
+		&i.Protein,
+		&i.Carbs,
+		&i.Fat,
 		&i.ServingSize,
 		&i.ServingUnit,
 		&i.Verified,
@@ -100,7 +100,7 @@ func (q *Queries) GetFoodByBarcode(ctx context.Context, barcode *string) (FoodDa
 }
 
 const getFoodByID = `-- name: GetFoodByID :one
-SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein_g, carbs_g, fat_g, serving_size, serving_unit, verified, updated_at FROM food_database WHERE id = $1
+SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at FROM food_database WHERE id = $1
 `
 
 func (q *Queries) GetFoodByID(ctx context.Context, id pgtype.UUID) (FoodDatabase, error) {
@@ -118,9 +118,9 @@ func (q *Queries) GetFoodByID(ctx context.Context, id pgtype.UUID) (FoodDatabase
 		&i.CreatedAt,
 		&i.Barcode,
 		&i.Calories,
-		&i.ProteinG,
-		&i.CarbsG,
-		&i.FatG,
+		&i.Protein,
+		&i.Carbs,
+		&i.Fat,
 		&i.ServingSize,
 		&i.ServingUnit,
 		&i.Verified,
@@ -130,7 +130,7 @@ func (q *Queries) GetFoodByID(ctx context.Context, id pgtype.UUID) (FoodDatabase
 }
 
 const listVerifiedFoods = `-- name: ListVerifiedFoods :many
-SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein_g, carbs_g, fat_g, serving_size, serving_unit, verified, updated_at FROM food_database
+SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at FROM food_database
 WHERE verified = true
 ORDER BY name
 LIMIT $1 OFFSET $2
@@ -162,9 +162,9 @@ func (q *Queries) ListVerifiedFoods(ctx context.Context, arg ListVerifiedFoodsPa
 			&i.CreatedAt,
 			&i.Barcode,
 			&i.Calories,
-			&i.ProteinG,
-			&i.CarbsG,
-			&i.FatG,
+			&i.Protein,
+			&i.Carbs,
+			&i.Fat,
 			&i.ServingSize,
 			&i.ServingUnit,
 			&i.Verified,
@@ -181,7 +181,7 @@ func (q *Queries) ListVerifiedFoods(ctx context.Context, arg ListVerifiedFoodsPa
 }
 
 const searchFoodByName = `-- name: SearchFoodByName :many
-SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein_g, carbs_g, fat_g, serving_size, serving_unit, verified, updated_at FROM food_database
+SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at FROM food_database
 WHERE LOWER(name) LIKE LOWER($1)
 ORDER BY verified DESC, name
 LIMIT $2
@@ -213,9 +213,9 @@ func (q *Queries) SearchFoodByName(ctx context.Context, arg SearchFoodByNamePara
 			&i.CreatedAt,
 			&i.Barcode,
 			&i.Calories,
-			&i.ProteinG,
-			&i.CarbsG,
-			&i.FatG,
+			&i.Protein,
+			&i.Carbs,
+			&i.Fat,
 			&i.ServingSize,
 			&i.ServingUnit,
 			&i.Verified,

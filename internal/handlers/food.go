@@ -156,9 +156,9 @@ func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
 		PortionSize: foodItem.PortionSize,
 		PortionUnit: foodItem.PortionUnit,
 		Calories:    foodItem.Calories,
-		ProteinG:    foodItem.ProteinG,
-		CarbsG:      foodItem.CarbsG,
-		FatG:        foodItem.FatG,
+		Protein:     foodItem.Protein,
+		Carbs:       foodItem.Carbs,
+		Fat:         foodItem.Fat,
 		Source:      foodItem.Source,
 	}
 
@@ -197,9 +197,9 @@ func (h *FoodHandler) GetFoodItem(c *fiber.Ctx) error {
 		PortionSize: foodItem.PortionSize,
 		PortionUnit: foodItem.PortionUnit,
 		Calories:    foodItem.Calories,
-		ProteinG:    foodItem.ProteinG,
-		CarbsG:      foodItem.CarbsG,
-		FatG:        foodItem.FatG,
+		Protein:     foodItem.Protein,
+		Carbs:       foodItem.Carbs,
+		Fat:         foodItem.Fat,
 		Source:      foodItem.Source,
 	}
 
@@ -256,9 +256,9 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 		PortionSize: foodItem.PortionSize,
 		PortionUnit: foodItem.PortionUnit,
 		Calories:    foodItem.Calories,
-		ProteinG:    foodItem.ProteinG,
-		CarbsG:      foodItem.CarbsG,
-		FatG:        foodItem.FatG,
+		Protein:     foodItem.Protein,
+		Carbs:       foodItem.Carbs,
+		Fat:         foodItem.Fat,
 		Source:      foodItem.Source,
 	}
 

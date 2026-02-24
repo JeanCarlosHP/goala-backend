@@ -3,7 +3,7 @@ SELECT * FROM food_database WHERE barcode = $1;
 
 -- name: CreateFoodFromBarcode :one
 INSERT INTO food_database (
-    barcode, name, brand, calories, protein_g, carbs_g, fat_g,
+    barcode, name, brand, calories, protein, carbs, fat,
     serving_size, serving_unit, source
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING *;

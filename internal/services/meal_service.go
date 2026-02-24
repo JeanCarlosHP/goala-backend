@@ -63,9 +63,9 @@ func (s *MealService) CreateMeal(ctx context.Context, userID uuid.UUID, req doma
 			PortionSize: foodReq.PortionSize,
 			PortionUnit: foodReq.PortionUnit,
 			Calories:    foodReq.Calories,
-			ProteinG:    foodReq.ProteinG,
-			CarbsG:      foodReq.CarbsG,
-			FatG:        foodReq.FatG,
+			Protein:     foodReq.Protein,
+			Carbs:       foodReq.Carbs,
+			Fat:         foodReq.Fat,
 			Source:      foodReq.Source,
 		}
 
@@ -137,9 +137,9 @@ func (s *MealService) GetDailySummary(ctx context.Context, userID uuid.UUID, dat
 	for _, meal := range meals {
 		for _, food := range meal.Foods {
 			summary.TotalCalories += food.Calories
-			summary.TotalProtein += food.ProteinG
-			summary.TotalCarbs += food.CarbsG
-			summary.TotalFat += food.FatG
+			summary.TotalProtein += food.Protein
+			summary.TotalCarbs += food.Carbs
+			summary.TotalFat += food.Fat
 		}
 	}
 

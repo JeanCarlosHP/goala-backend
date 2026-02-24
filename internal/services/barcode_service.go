@@ -144,9 +144,9 @@ func (s *BarcodeService) cacheFoodInDB(ctx context.Context, barcode string, food
 		Barcode:  &barcode,
 		Name:     food.Name,
 		Calories: intPtrFromInt32Ptr(&food.Calories),
-		ProteinG: float64ToNumeric(float64(food.Protein)),
-		CarbsG:   float64ToNumeric(float64(food.Carbs)),
-		FatG:     float64ToNumeric(float64(food.Fat)),
+		Protein:  float64ToNumeric(float64(food.Protein)),
+		Carbs:    float64ToNumeric(float64(food.Carbs)),
+		Fat:      float64ToNumeric(float64(food.Fat)),
 	}
 
 	if food.Brand != nil {
@@ -181,9 +181,9 @@ func (s *BarcodeService) mapDBToResponse(ctx context.Context, food *db.FoodDatab
 		calories = int32(*food.Calories)
 	}
 
-	protein := int32(numericToFloat64(food.ProteinG))
-	carbs := int32(numericToFloat64(food.CarbsG))
-	fat := int32(numericToFloat64(food.FatG))
+	protein := int32(numericToFloat64(food.Protein))
+	carbs := int32(numericToFloat64(food.Carbs))
+	fat := int32(numericToFloat64(food.Fat))
 
 	var servingSize *int32
 	if food.ServingSize != nil {
