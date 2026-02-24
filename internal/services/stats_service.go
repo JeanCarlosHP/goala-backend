@@ -76,7 +76,6 @@ func (s *StatsService) GetStatsRange(ctx context.Context, userID uuid.UUID, star
 		}
 
 		var totalCalories, totalProtein, totalCarbs, totalFat int32
-		mealResponses := make([]domain.Meal, 0)
 
 		for _, meal := range meals {
 			mealCalories := 0
@@ -95,8 +94,6 @@ func (s *StatsService) GetStatsRange(ctx context.Context, userID uuid.UUID, star
 			totalProtein += int32(mealProtein)
 			totalCarbs += int32(mealCarbs)
 			totalFat += int32(mealFat)
-
-			mealResponses = append(mealResponses, meal)
 		}
 
 		dayStats := domain.DayStats{
@@ -105,8 +102,7 @@ func (s *StatsService) GetStatsRange(ctx context.Context, userID uuid.UUID, star
 			TotalProtein:  totalProtein,
 			TotalCarbs:    totalCarbs,
 			TotalFat:      totalFat,
-			Meals:         mealResponses,
-			WaterIntake:   0,
+			Meals:         meals,
 		}
 
 		allDays = append(allDays, dayStats)
@@ -117,10 +113,7 @@ func (s *StatsService) GetStatsRange(ctx context.Context, userID uuid.UUID, star
 	totalPages := (total + limit - 1) / limit
 
 	offset := (page - 1) * limit
-	end := offset + limit
-	if end > total {
-		end = total
-	}
+	end := min(offset+limit, total)
 	if offset > total {
 		offset = total
 	}

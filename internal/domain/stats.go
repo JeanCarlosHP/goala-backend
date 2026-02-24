@@ -38,7 +38,6 @@ type DayStats struct {
 	TotalCarbs    int32     `json:"totalCarbs" validate:"gte=0"`
 	TotalFat      int32     `json:"totalFat" validate:"gte=0"`
 	Meals         []Meal    `json:"meals" validate:"dive"`
-	WaterIntake   int32     `json:"waterIntake" validate:"gte=0"`
 }
 
 type Pagination struct {
