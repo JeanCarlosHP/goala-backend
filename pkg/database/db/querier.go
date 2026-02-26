@@ -39,6 +39,7 @@ type Querier interface {
 	GetFoodItemsByMealIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]FoodItem, error)
 	GetMealByID(ctx context.Context, id pgtype.UUID) (Meal, error)
 	GetMealsByUserAndDate(ctx context.Context, arg GetMealsByUserAndDateParams) ([]Meal, error)
+	GetMealsWithFoodsInRange(ctx context.Context, arg GetMealsWithFoodsInRangeParams) ([]GetMealsWithFoodsInRangeRow, error)
 	GetRecentFoods(ctx context.Context, arg GetRecentFoodsParams) ([]GetRecentFoodsRow, error)
 	GetSubscriptionByRevenueCatUserID(ctx context.Context, revenuecatUserID string) (Subscription, error)
 	GetSubscriptionByUserID(ctx context.Context, userID pgtype.UUID) (Subscription, error)

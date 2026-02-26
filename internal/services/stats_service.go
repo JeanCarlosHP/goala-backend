@@ -71,54 +71,28 @@ func (s *StatsService) GetStatsRange(ctx context.Context, userID uuid.UUID, star
 		limit = 30
 	}
 
+	mealsByDate, err := s.mealRepo.GetMealsWithFoodsInRange(ctx, userID, startDate, endDate)
+	if err != nil {
+		s.logger.Error("Failed to get meals with foods in range", "user_id", userID.String(), "error", err)
+		return nil, err
+	}
+
 	allDays := []domain.DayStats{}
 	currentDate := startDate
 
 	for !currentDate.After(endDate) {
-		meals, err := s.mealRepo.GetByUserAndDate(ctx, userID, currentDate)
-		if err != nil {
-			s.logger.Error("Failed to get meals for date", "user_id", userID.String(), "date", currentDate.Format("2006-01-02"), "error", err)
-			currentDate = currentDate.AddDate(0, 0, 1)
-			continue
-		}
-
-		mealIDs := make([]uuid.UUID, len(meals))
-		for i, meal := range meals {
-			mealIDs[i] = meal.ID
-		}
-
-		foodItems, err := s.foodRepo.GetByMealIDs(ctx, mealIDs)
-		if err != nil {
-			s.logger.Error("Failed to get food items for meals", "user_id", userID.String(), "date", currentDate.Format("2006-01-02"), "error", err)
-			currentDate = currentDate.AddDate(0, 0, 1)
-			continue
-		}
-
-		for i := range meals {
-			if foods, ok := foodItems[meals[i].ID]; ok {
-				meals[i].Foods = foods
-			}
-		}
+		dateKey := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+		meals := mealsByDate[dateKey]
 
 		var totalCalories, totalProtein, totalCarbs, totalFat int32
 
 		for _, meal := range meals {
-			mealCalories := 0
-			mealProtein := 0.0
-			mealCarbs := 0.0
-			mealFat := 0.0
-
 			for _, food := range meal.Foods {
-				mealCalories += food.Calories
-				mealProtein += food.Protein
-				mealCarbs += food.Carbs
-				mealFat += food.Fat
+				totalCalories += int32(food.Calories)
+				totalProtein += int32(food.Protein)
+				totalCarbs += int32(food.Carbs)
+				totalFat += int32(food.Fat)
 			}
-
-			totalCalories += int32(mealCalories)
-			totalProtein += int32(mealProtein)
-			totalCarbs += int32(mealCarbs)
-			totalFat += int32(mealFat)
 		}
 
 		dayStats := domain.DayStats{

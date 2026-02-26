@@ -131,3 +131,82 @@ func (r *MealRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Mea
 		CreatedAt: timePtrValue(result.CreatedAt),
 	}, nil
 }
+
+func (r *MealRepository) GetMealsWithFoodsInRange(ctx context.Context, userID uuid.UUID, startDate, endDate time.Time) (map[time.Time][]domain.Meal, error) {
+	tr := otel.Tracer("repositories/meal_repo.go")
+	ctx, span := tr.Start(ctx, "GetMealsWithFoodsInRange")
+	defer span.End()
+
+	var pgStartDate, pgEndDate pgtype.Date
+	_ = pgStartDate.Scan(startDate)
+	_ = pgEndDate.Scan(endDate)
+
+	rows, err := r.db.Querier.GetMealsWithFoodsInRange(ctx, db.GetMealsWithFoodsInRangeParams{
+		UserID:     pgtype.UUID{Bytes: userID, Valid: true},
+		MealDate:   pgStartDate,
+		MealDate_2: pgEndDate,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	mealsMap := make(map[uuid.UUID]*domain.Meal)
+	mealsByDate := make(map[time.Time][]domain.Meal)
+
+	for _, row := range rows {
+		mealID := row.MealID.Bytes
+
+		meal, exists := mealsMap[mealID]
+		if !exists {
+			var mealTime *time.Time
+			if row.MealTime.Valid {
+				t := row.MealTime.Microseconds / 1000000
+				h := int(t / 3600)
+				m := int((t % 3600) / 60)
+				s := int(t % 60)
+				parsed := time.Date(0, 1, 1, h, m, s, 0, time.UTC)
+				mealTime = &parsed
+			}
+
+			var mealDate time.Time
+			if row.MealDate.Valid {
+				mealDate = row.MealDate.Time
+			}
+
+			meal = &domain.Meal{
+				ID:        mealID,
+				UserID:    row.UserID.Bytes,
+				MealType:  stringPtrValue(row.MealType),
+				MealDate:  mealDate,
+				MealTime:  mealTime,
+				PhotoURL:  row.PhotoUrl,
+				CreatedAt: timePtrValue(row.MealCreatedAt),
+				Foods:     []domain.FoodItem{},
+			}
+			mealsMap[mealID] = meal
+		}
+
+		if row.FoodID.Valid && row.FoodName != nil {
+			food := domain.FoodItem{
+				ID:          row.FoodID.Bytes,
+				MealID:      mealID,
+				Name:        *row.FoodName,
+				PortionSize: numericToFloat64(row.PortionSize),
+				PortionUnit: stringPtrValue(row.PortionUnit),
+				Calories:    intPtrValue(row.Calories),
+				Protein:     numericToFloat64(row.Protein),
+				Carbs:       numericToFloat64(row.Carbs),
+				Fat:         numericToFloat64(row.Fat),
+				Source:      stringPtrValue(row.Source),
+			}
+			meal.Foods = append(meal.Foods, food)
+		}
+	}
+
+	for _, meal := range mealsMap {
+		dateKey := time.Date(meal.MealDate.Year(), meal.MealDate.Month(), meal.MealDate.Day(), 0, 0, 0, 0, time.UTC)
+		mealsByDate[dateKey] = append(mealsByDate[dateKey], *meal)
+	}
+
+	return mealsByDate, nil
+}
