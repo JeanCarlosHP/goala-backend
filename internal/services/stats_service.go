@@ -83,6 +83,9 @@ func (s *StatsService) GetStatsRange(ctx context.Context, userID uuid.UUID, star
 	for !currentDate.After(endDate) {
 		dateKey := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
 		meals := mealsByDate[dateKey]
+		if meals == nil {
+			meals = []domain.Meal{}
+		}
 
 		var totalCalories, totalProtein, totalCarbs, totalFat int32
 
