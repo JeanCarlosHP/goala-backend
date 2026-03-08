@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -150,7 +149,7 @@ func main() {
 		foodRecognitionHandler.EstimateQuantity)
 
 	go func() {
-		if err := app.Listen(fmt.Sprintf(":%s", configurer.HTTPPort)); err != nil {
+		if err := httpServer.StartServer(); err != nil {
 			logger.Fatal("failed to start server:", err)
 		}
 	}()
@@ -162,7 +161,7 @@ func main() {
 	<-quit
 
 	logger.Info("shutting down server...")
-	if err := app.Shutdown(); err != nil {
+	if err := httpServer.ShutdownServer(); err != nil {
 		logger.Fatal("server forced to shutdown:", err)
 	}
 

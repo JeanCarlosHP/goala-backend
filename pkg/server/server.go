@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/bytedance/sonic"
-	"github.com/gofiber/contrib/otelfiber"
+	fiberotel "github.com/gofiber/contrib/v3/otel"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/healthcheck"
@@ -54,8 +54,15 @@ func New(config *domain.Config, logger domain.Logger) domain.HTTPServer {
 }
 
 func (s *httpServer) StartServer() error {
-	s.logger.Info("starting server", "port", s.Config.HTTPPort)
-	return s.App.Listen(fmt.Sprintf(":%s", s.Config.HTTPPort))
+	config := fiber.ListenConfig{
+		DisableStartupMessage: true,
+		EnablePrefork:         false,
+	}
+
+	return s.App.Listen(
+		fmt.Sprintf(":%s", s.Config.HTTPPort),
+		config,
+	)
 }
 
 func (s *httpServer) ShutdownServer() error {
@@ -72,7 +79,7 @@ func (s *httpServer) GetLogger() domain.Logger {
 
 func (s *httpServer) ConfigureMiddlewares() {
 	// OpenTelemetry tracing middleware deve ser o primeiro
-	s.App.Use(otelfiber.Middleware())
+	s.App.Use(fiberotel.Middleware())
 	s.App.Use(cors.New(cors.Config{
 		AllowHeaders: s.Config.HTTPCorsAllowedHeaders,
 		AllowMethods: s.Config.HTTPCorsAllowedMethods,
@@ -90,8 +97,10 @@ func (s *httpServer) ConfigureMiddlewares() {
 
 	s.App.Use(requestid.New())
 
-	s.App.Use(healthcheck.New())
-	s.App.Use(recover.New())
+	s.App.Get(healthcheck.LivenessEndpoint, healthcheck.New())
+	s.App.Get(healthcheck.ReadinessEndpoint, healthcheck.New())
+	s.App.Get(healthcheck.StartupEndpoint, healthcheck.New())
+
 	s.App.Use(middleware.PrometheusMetrics())
 	s.App.Use(middleware.RequestLogger(s.logger))
 }
