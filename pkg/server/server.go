@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"fmt"
-	"runtime"
 	"strconv"
 
 	"github.com/bytedance/sonic"
@@ -88,11 +87,6 @@ func (s *httpServer) ConfigureMiddlewares() {
 
 	s.App.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
-		StackTraceHandler: func(c fiber.Ctx, e any) {
-			buf := make([]byte, 4096)
-			buf = buf[:runtime.Stack(buf, false)]
-			s.GetLogger().Error(fmt.Sprintf("panic: %v\n%s\n", e, buf))
-		},
 	}))
 
 	s.App.Use(requestid.New())
