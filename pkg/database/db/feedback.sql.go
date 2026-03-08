@@ -8,7 +8,7 @@ package db
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const createFeedback = `-- name: CreateFeedback :one
@@ -20,7 +20,7 @@ RETURNING id, user_id, type, title, description, user_email, platform, os_versio
 `
 
 type CreateFeedbackParams struct {
-	UserID      pgtype.UUID
+	UserID      uuid.UUID
 	Type        string
 	Title       string
 	Description string
@@ -62,7 +62,7 @@ const getFeedback = `-- name: GetFeedback :one
 SELECT id, user_id, type, title, description, user_email, platform, os_version, app_version, status, created_at FROM feedback WHERE id = $1
 `
 
-func (q *Queries) GetFeedback(ctx context.Context, id pgtype.UUID) (Feedback, error) {
+func (q *Queries) GetFeedback(ctx context.Context, id uuid.UUID) (Feedback, error) {
 	row := q.db.QueryRow(ctx, getFeedback, id)
 	var i Feedback
 	err := row.Scan(
@@ -132,7 +132,7 @@ WHERE user_id = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) GetFeedbackByUser(ctx context.Context, userID pgtype.UUID) ([]Feedback, error) {
+func (q *Queries) GetFeedbackByUser(ctx context.Context, userID uuid.UUID) ([]Feedback, error) {
 	rows, err := q.db.Query(ctx, getFeedbackByUser, userID)
 	if err != nil {
 		return nil, err
@@ -212,7 +212,7 @@ UPDATE feedback SET status = $2 WHERE id = $1
 `
 
 type UpdateFeedbackStatusParams struct {
-	ID     pgtype.UUID
+	ID     uuid.UUID
 	Status *string
 }
 

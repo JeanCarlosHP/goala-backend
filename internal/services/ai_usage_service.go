@@ -118,7 +118,7 @@ func (s *AIUsageService) ListUserUsage(ctx context.Context, userID string) ([]*d
 
 func (s *AIUsageService) getQuotaForFeature(ctx context.Context, feature enum.AIFeature) int32 {
 	tr := otel.Tracer("services/ai_usage_service.go")
-	ctx, span := tr.Start(ctx, "getQuotaForFeature")
+	_, span := tr.Start(ctx, "getQuotaForFeature")
 	defer span.End()
 
 	quotaConfig, exists := featureQuotas[feature]
@@ -131,7 +131,7 @@ func (s *AIUsageService) getQuotaForFeature(ctx context.Context, feature enum.AI
 
 func (s *AIUsageService) getCurrentPeriod(ctx context.Context, timezone string) (time.Time, time.Time) {
 	tr := otel.Tracer("services/ai_usage_service.go")
-	ctx, span := tr.Start(ctx, "getCurrentPeriod")
+	_, span := tr.Start(ctx, "getCurrentPeriod")
 	defer span.End()
 
 	loc, err := time.LoadLocation(timezone)

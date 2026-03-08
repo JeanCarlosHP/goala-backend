@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
@@ -26,10 +26,10 @@ func NewUserHandler(userService *services.UserService, s3Service *services.S3Ser
 	}
 }
 
-func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
+func (h *UserHandler) GetProfile(c fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
@@ -55,11 +55,11 @@ func (h *UserHandler) GetProfile(c *fiber.Ctx) error {
 	})
 }
 
-func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
+func (h *UserHandler) UpdateProfile(c fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
 	var req domain.UpdateProfileRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -76,7 +76,7 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
@@ -119,11 +119,11 @@ func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
 	})
 }
 
-func (h *UserHandler) GenerateAvatarUploadURL(c *fiber.Ctx) error {
+func (h *UserHandler) GenerateAvatarUploadURL(c fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
 	var req domain.AvatarUploadRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -140,7 +140,7 @@ func (h *UserHandler) GenerateAvatarUploadURL(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
@@ -170,11 +170,11 @@ func (h *UserHandler) GenerateAvatarUploadURL(c *fiber.Ctx) error {
 	})
 }
 
-func (h *UserHandler) PatchUserPreferences(c *fiber.Ctx) error {
+func (h *UserHandler) PatchUserPreferences(c fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
 	var req domain.PatchUserPreferencesRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -193,7 +193,7 @@ func (h *UserHandler) PatchUserPreferences(c *fiber.Ctx) error {
 
 	fmt.Print(req)
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
@@ -219,11 +219,11 @@ func (h *UserHandler) PatchUserPreferences(c *fiber.Ctx) error {
 	})
 }
 
-func (h *AuthHandler) UpdateGoals(c *fiber.Ctx) error {
+func (h *AuthHandler) UpdateGoals(c fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
 	var req domain.UpdateGoalRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid request body",
@@ -237,7 +237,7 @@ func (h *AuthHandler) UpdateGoals(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{

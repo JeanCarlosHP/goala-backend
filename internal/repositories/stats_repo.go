@@ -26,19 +26,14 @@ func (r *StatsRepository) GetUserStats(ctx context.Context, userID uuid.UUID) (*
 	ctx, span := tr.Start(ctx, "GetUserStats")
 	defer span.End()
 
-	var pgUserID pgtype.UUID
-	if err := pgUserID.Scan(userID.String()); err != nil {
-		return nil, err
-	}
-
-	dbStats, err := r.queries.GetUserStats(ctx, pgUserID)
+	dbStats, err := r.queries.GetUserStats(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	stats := &domain.UserStats{
-		ID:                    uuidFromPgtype(dbStats.ID),
-		UserID:                uuidFromPgtype(dbStats.UserID),
+		ID:                    dbStats.ID,
+		UserID:                dbStats.UserID,
 		CurrentStreak:         int32(dbStats.CurrentStreak),
 		LongestStreak:         int32(dbStats.LongestStreak),
 		TotalMealsLogged:      int32(dbStats.TotalMealsLogged),
@@ -70,19 +65,14 @@ func (r *StatsRepository) CreateUserStats(ctx context.Context, userID uuid.UUID)
 	ctx, span := tr.Start(ctx, "CreateUserStats")
 	defer span.End()
 
-	var pgUserID pgtype.UUID
-	if err := pgUserID.Scan(userID.String()); err != nil {
-		return nil, err
-	}
-
-	dbStats, err := r.queries.CreateUserStats(ctx, pgUserID)
+	dbStats, err := r.queries.CreateUserStats(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	stats := &domain.UserStats{
-		ID:                    uuidFromPgtype(dbStats.ID),
-		UserID:                uuidFromPgtype(dbStats.UserID),
+		ID:                    dbStats.ID,
+		UserID:                dbStats.UserID,
 		CurrentStreak:         int32(dbStats.CurrentStreak),
 		LongestStreak:         int32(dbStats.LongestStreak),
 		TotalMealsLogged:      int32(dbStats.TotalMealsLogged),
@@ -114,11 +104,6 @@ func (r *StatsRepository) UpdateUserStats(ctx context.Context, stats *domain.Use
 	ctx, span := tr.Start(ctx, "UpdateUserStats")
 	defer span.End()
 
-	var pgUserID pgtype.UUID
-	if err := pgUserID.Scan(stats.UserID.String()); err != nil {
-		return err
-	}
-
 	var lastLogDate pgtype.Date
 	if stats.LastLogDate != nil {
 		lastLogDate.Time = *stats.LastLogDate
@@ -126,7 +111,7 @@ func (r *StatsRepository) UpdateUserStats(ctx context.Context, stats *domain.Use
 	}
 
 	params := db.UpdateUserStatsParams{
-		UserID:                pgUserID,
+		UserID:                stats.UserID,
 		CurrentStreak:         int(stats.CurrentStreak),
 		LongestStreak:         int(stats.LongestStreak),
 		TotalMealsLogged:      int(stats.TotalMealsLogged),
@@ -146,12 +131,7 @@ func (r *StatsRepository) IncrementMealCount(ctx context.Context, userID uuid.UU
 	ctx, span := tr.Start(ctx, "IncrementMealCount")
 	defer span.End()
 
-	var pgUserID pgtype.UUID
-	if err := pgUserID.Scan(userID.String()); err != nil {
-		return err
-	}
-
-	return r.queries.IncrementMealCount(ctx, pgUserID)
+	return r.queries.IncrementMealCount(ctx, userID)
 }
 
 func (r *StatsRepository) UpdateStreakAndLastLogDate(ctx context.Context, userID uuid.UUID, currentStreak int32, lastLogDate time.Time) error {
@@ -159,17 +139,12 @@ func (r *StatsRepository) UpdateStreakAndLastLogDate(ctx context.Context, userID
 	ctx, span := tr.Start(ctx, "UpdateStreakAndLastLogDate")
 	defer span.End()
 
-	var pgUserID pgtype.UUID
-	if err := pgUserID.Scan(userID.String()); err != nil {
-		return err
-	}
-
 	var pgLastLogDate pgtype.Date
 	pgLastLogDate.Time = lastLogDate
 	pgLastLogDate.Valid = true
 
 	params := db.UpdateStreakAndLastLogDateParams{
-		UserID:        pgUserID,
+		UserID:        userID,
 		CurrentStreak: int(currentStreak),
 		LastLogDate:   pgLastLogDate,
 	}
@@ -182,13 +157,8 @@ func (r *StatsRepository) AddNutritionToStats(ctx context.Context, userID uuid.U
 	ctx, span := tr.Start(ctx, "AddNutritionToStats")
 	defer span.End()
 
-	var pgUserID pgtype.UUID
-	if err := pgUserID.Scan(userID.String()); err != nil {
-		return err
-	}
-
 	params := db.AddNutritionToStatsParams{
-		UserID:                pgUserID,
+		UserID:                userID,
 		TotalCaloriesConsumed: int(calories),
 		TotalProteinConsumed:  int(protein),
 		TotalCarbsConsumed:    int(carbs),

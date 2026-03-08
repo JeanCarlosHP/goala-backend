@@ -5,7 +5,7 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	firebaseApp "github.com/jeancarloshp/calorieai/pkg/firebase"
 )
@@ -26,15 +26,15 @@ func NewAuthHandler(userService *services.UserService, firebaseApp *firebase.App
 	}
 }
 
-func (h *AuthHandler) Register(c *fiber.Ctx) error {
+func (h *AuthHandler) Register(c fiber.Ctx) error {
 	var req domain.RegisterRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid request body",
 		})
 	}
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	authClient, err := firebaseApp.GetAuthClient(ctx, h.firebaseApp)
 	if err != nil {
 		h.logger.Error("Failed to get auth client", "error", err)
@@ -77,10 +77,10 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(user)
 }
 
-func (h *AuthHandler) GetMe(c *fiber.Ctx) error {
+func (h *AuthHandler) GetMe(c fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)

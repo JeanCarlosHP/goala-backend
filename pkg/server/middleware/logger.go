@@ -3,18 +3,18 @@ package middleware
 import (
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"go.opentelemetry.io/otel"
 )
 
 func RequestLogger(logger domain.Logger) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		ctx := c.UserContext()
+	return func(c fiber.Ctx) error {
+		ctx := c.Context()
 
 		tr := otel.Tracer("middleware/logger.go")
-		ctx, span := tr.Start(ctx, "RequestLogger")
+		_, span := tr.Start(ctx, "RequestLogger")
 		defer span.End()
 
 		start := time.Now()

@@ -8,7 +8,7 @@ package db
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const getUserGoalByUserID = `-- name: GetUserGoalByUserID :one
@@ -17,7 +17,7 @@ FROM user_goals
 WHERE user_id = $1
 `
 
-func (q *Queries) GetUserGoalByUserID(ctx context.Context, userID pgtype.UUID) (UserGoal, error) {
+func (q *Queries) GetUserGoalByUserID(ctx context.Context, userID uuid.UUID) (UserGoal, error) {
 	row := q.db.QueryRow(ctx, getUserGoalByUserID, userID)
 	var i UserGoal
 	err := row.Scan(
@@ -45,7 +45,7 @@ RETURNING user_id, daily_calories, protein, carbs, fat, updated_at
 `
 
 type UpsertUserGoalParams struct {
-	UserID        pgtype.UUID
+	UserID        uuid.UUID
 	DailyCalories int
 	Protein       *int
 	Carbs         *int

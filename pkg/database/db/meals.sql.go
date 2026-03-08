@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -18,8 +19,8 @@ RETURNING id, user_id, meal_type, meal_date, meal_time, photo_url, created_at
 `
 
 type CreateMealParams struct {
-	ID       pgtype.UUID
-	UserID   pgtype.UUID
+	ID       uuid.UUID
+	UserID   uuid.UUID
 	MealType *string
 	MealDate pgtype.Date
 	MealTime pgtype.Time
@@ -54,7 +55,7 @@ FROM meals
 WHERE id = $1
 `
 
-func (q *Queries) GetMealByID(ctx context.Context, id pgtype.UUID) (Meal, error) {
+func (q *Queries) GetMealByID(ctx context.Context, id uuid.UUID) (Meal, error) {
 	row := q.db.QueryRow(ctx, getMealByID, id)
 	var i Meal
 	err := row.Scan(
@@ -77,7 +78,7 @@ ORDER BY meal_time ASC, created_at ASC
 `
 
 type GetMealsByUserAndDateParams struct {
-	UserID   pgtype.UUID
+	UserID   uuid.UUID
 	MealDate pgtype.Date
 }
 

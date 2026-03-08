@@ -47,3 +47,36 @@ sql:
         - db_type: "integer"
           go_type:
             type: "int"
+
+        - db_type: "uuid"
+          go_type:
+            type: "UUID"
+            import: "github.com/google/uuid"
+
+        - db_type: "uuid"
+          nullable: true
+          go_type:
+            type: "UUID"
+            import: "github.com/google/uuid"
+
+        - db_type: "pg_catalog.numeric"
+          nullable: true
+          go_type:
+            type: "float64"
+            pointer: true
+
+        - db_type: "pg_catalog.numeric"
+          nullable: false
+          go_type:
+            type: "float64"
+
+        - db_type: "numeric"
+          nullable: true
+          go_type:
+            type: "float64"
+            pointer: true
+
+        - db_type: "numeric"
+          nullable: false
+          go_type:
+            type: "float64"

@@ -185,11 +185,12 @@ func (s *StatsService) UpdateStreakForUser(ctx context.Context, userID uuid.UUID
 		lastLog := time.Date(stats.LastLogDate.Year(), stats.LastLogDate.Month(), stats.LastLogDate.Day(), 0, 0, 0, 0, time.UTC)
 		daysSinceLastLog := int(today.Sub(lastLog).Hours() / 24)
 
-		if daysSinceLastLog == 0 {
+		switch daysSinceLastLog {
+		case 0:
 			return nil
-		} else if daysSinceLastLog == 1 {
+		case 1:
 			stats.CurrentStreak++
-		} else {
+		default:
 			stats.CurrentStreak = 1
 		}
 		stats.LastLogDate = &today

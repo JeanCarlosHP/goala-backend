@@ -9,7 +9,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const createFoodItem = `-- name: CreateFoodItem :exec
@@ -18,15 +18,15 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
 type CreateFoodItemParams struct {
-	ID          pgtype.UUID
-	MealID      pgtype.UUID
+	ID          uuid.UUID
+	MealID      uuid.UUID
 	Name        string
-	PortionSize pgtype.Numeric
+	PortionSize *float64
 	PortionUnit *string
 	Calories    int
-	Protein     pgtype.Numeric
-	Carbs       pgtype.Numeric
-	Fat         pgtype.Numeric
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
 	Source      *string
 }
 
@@ -53,15 +53,15 @@ RETURNING id, meal_id, name, portion_size, portion_unit, calories, protein, carb
 `
 
 type CreateStandaloneFoodItemParams struct {
-	ID          pgtype.UUID
-	MealID      pgtype.UUID
+	ID          uuid.UUID
+	MealID      uuid.UUID
 	Name        string
-	PortionSize pgtype.Numeric
+	PortionSize *float64
 	PortionUnit *string
 	Calories    int
-	Protein     pgtype.Numeric
-	Carbs       pgtype.Numeric
-	Fat         pgtype.Numeric
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
 	Source      *string
 }
 
@@ -99,7 +99,7 @@ DELETE FROM food_items
 WHERE id = $1
 `
 
-func (q *Queries) DeleteFoodItem(ctx context.Context, id pgtype.UUID) error {
+func (q *Queries) DeleteFoodItem(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteFoodItem, id)
 	return err
 }
@@ -110,7 +110,7 @@ FROM food_items
 WHERE id = $1
 `
 
-func (q *Queries) GetFoodItemByID(ctx context.Context, id pgtype.UUID) (FoodItem, error) {
+func (q *Queries) GetFoodItemByID(ctx context.Context, id uuid.UUID) (FoodItem, error) {
 	row := q.db.QueryRow(ctx, getFoodItemByID, id)
 	var i FoodItem
 	err := row.Scan(
@@ -134,7 +134,7 @@ FROM food_items
 WHERE meal_id = $1
 `
 
-func (q *Queries) GetFoodItemsByMealID(ctx context.Context, mealID pgtype.UUID) ([]FoodItem, error) {
+func (q *Queries) GetFoodItemsByMealID(ctx context.Context, mealID uuid.UUID) ([]FoodItem, error) {
 	rows, err := q.db.Query(ctx, getFoodItemsByMealID, mealID)
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ FROM food_items
 WHERE meal_id = ANY($1::uuid[])
 `
 
-func (q *Queries) GetFoodItemsByMealIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]FoodItem, error) {
+func (q *Queries) GetFoodItemsByMealIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]FoodItem, error) {
 	rows, err := q.db.Query(ctx, getFoodItemsByMealIDs, dollar_1)
 	if err != nil {
 		return nil, err
@@ -220,18 +220,18 @@ LIMIT $2
 `
 
 type GetRecentFoodsParams struct {
-	UserID pgtype.UUID
+	UserID uuid.UUID
 	Limit  int
 }
 
 type GetRecentFoodsRow struct {
 	Name        string
-	PortionSize pgtype.Numeric
+	PortionSize *float64
 	PortionUnit *string
 	Calories    int
-	Protein     pgtype.Numeric
-	Carbs       pgtype.Numeric
-	Fat         pgtype.Numeric
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
 	LastUsed    *time.Time
 }
 
@@ -280,13 +280,13 @@ type SearchFoodDatabaseParams struct {
 }
 
 type SearchFoodDatabaseRow struct {
-	ID              pgtype.UUID
+	ID              uuid.UUID
 	Name            string
 	Brand           *string
 	CaloriesPer100g *int
-	ProteinPer100g  pgtype.Numeric
-	CarbsPer100g    pgtype.Numeric
-	FatPer100g      pgtype.Numeric
+	ProteinPer100g  *float64
+	CarbsPer100g    *float64
+	FatPer100g      *float64
 	Source          *string
 	CreatedAt       *time.Time
 }
@@ -334,14 +334,14 @@ WHERE id = $1
 `
 
 type UpdateFoodItemParams struct {
-	ID          pgtype.UUID
+	ID          uuid.UUID
 	Name        string
-	PortionSize pgtype.Numeric
+	PortionSize *float64
 	PortionUnit *string
 	Calories    int
-	Protein     pgtype.Numeric
-	Carbs       pgtype.Numeric
-	Fat         pgtype.Numeric
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
 }
 
 func (q *Queries) UpdateFoodItem(ctx context.Context, arg UpdateFoodItemParams) error {
@@ -373,14 +373,14 @@ RETURNING id, meal_id, name, portion_size, portion_unit, calories, protein, carb
 `
 
 type UpdateFoodItemCompleteParams struct {
-	ID          pgtype.UUID
+	ID          uuid.UUID
 	Name        string
-	PortionSize pgtype.Numeric
+	PortionSize *float64
 	PortionUnit *string
 	Calories    int
-	Protein     pgtype.Numeric
-	Carbs       pgtype.Numeric
-	Fat         pgtype.Numeric
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
 	Source      *string
 }
 

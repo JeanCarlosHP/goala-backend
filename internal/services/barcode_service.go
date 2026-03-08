@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
 	"go.opentelemetry.io/otel"
@@ -83,7 +82,11 @@ func (s *BarcodeService) fetchFromOpenFoodFacts(ctx context.Context, barcode str
 		s.logger.Error("failed to call OpenFoodFacts", "error", err)
 		return nil, fmt.Errorf("failed to call OpenFoodFacts: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			s.logger.Warn("failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("barcode not found")
@@ -144,9 +147,9 @@ func (s *BarcodeService) cacheFoodInDB(ctx context.Context, barcode string, food
 		Barcode:  &barcode,
 		Name:     food.Name,
 		Calories: intPtrFromInt32Ptr(&food.Calories),
-		Protein:  float64ToNumeric(float64(food.Protein)),
-		Carbs:    float64ToNumeric(float64(food.Carbs)),
-		Fat:      float64ToNumeric(float64(food.Fat)),
+		Protein:  new(float64(food.Protein)),
+		Carbs:    new(float64(food.Carbs)),
+		Fat:      new(float64(food.Fat)),
 	}
 
 	if food.Brand != nil {
@@ -167,7 +170,7 @@ func (s *BarcodeService) cacheFoodInDB(ctx context.Context, barcode string, food
 
 func (s *BarcodeService) mapDBToResponse(ctx context.Context, food *db.FoodDatabase) *domain.FoodBarcodeResponse {
 	tr := otel.Tracer("services/barcode_service.go")
-	ctx, span := tr.Start(ctx, "mapDBToResponse")
+	_, span := tr.Start(ctx, "mapDBToResponse")
 	defer span.End()
 
 	source := "Database"
@@ -181,9 +184,18 @@ func (s *BarcodeService) mapDBToResponse(ctx context.Context, food *db.FoodDatab
 		calories = int32(*food.Calories)
 	}
 
-	protein := int32(numericToFloat64(food.Protein))
-	carbs := int32(numericToFloat64(food.Carbs))
-	fat := int32(numericToFloat64(food.Fat))
+	var protein int32
+	if food.Protein != nil {
+		protein = int32(*food.Protein)
+	}
+	var carbs int32
+	if food.Carbs != nil {
+		carbs = int32(*food.Carbs)
+	}
+	var fat int32
+	if food.Fat != nil {
+		fat = int32(*food.Fat)
+	}
 
 	var servingSize *int32
 	if food.ServingSize != nil {
@@ -211,18 +223,4 @@ func intPtrFromInt32Ptr(i *int32) *int {
 	}
 	val := int(*i)
 	return &val
-}
-
-func float64ToNumeric(f float64) pgtype.Numeric {
-	var num pgtype.Numeric
-	num.Scan(f)
-	return num
-}
-
-func numericToFloat64(n pgtype.Numeric) float64 {
-	if !n.Valid {
-		return 0
-	}
-	f, _ := n.Float64Value()
-	return f.Float64
 }

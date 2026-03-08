@@ -26,7 +26,7 @@ func NewRevenueCatService(webhookSecret string, log domain.Logger) *RevenueCatSe
 
 func (s *RevenueCatService) VerifyWebhookSignature(ctx context.Context, payload []byte, signature string) error {
 	tr := otel.Tracer("services/revenuecat_service.go")
-	ctx, span := tr.Start(ctx, "VerifyWebhookSignature")
+	_, span := tr.Start(ctx, "VerifyWebhookSignature")
 	defer span.End()
 
 	if s.webhookSecret == "" {
@@ -47,7 +47,7 @@ func (s *RevenueCatService) VerifyWebhookSignature(ctx context.Context, payload 
 
 func (s *RevenueCatService) ParseWebhook(ctx context.Context, payload []byte) (*domain.RevenueCatWebhook, error) {
 	tr := otel.Tracer("services/revenuecat_service.go")
-	ctx, span := tr.Start(ctx, "ParseWebhook")
+	_, span := tr.Start(ctx, "ParseWebhook")
 	defer span.End()
 
 	var webhook domain.RevenueCatWebhook

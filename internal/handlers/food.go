@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
@@ -22,7 +22,7 @@ func NewFoodHandler(foodService *services.FoodService, validator *validator.Vali
 	}
 }
 
-func (h *FoodHandler) SearchFoods(c *fiber.Ctx) error {
+func (h *FoodHandler) SearchFoods(c fiber.Ctx) error {
 	query := c.Query("q")
 	if query == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -32,7 +32,7 @@ func (h *FoodHandler) SearchFoods(c *fiber.Ctx) error {
 		})
 	}
 
-	foods, err := h.foodService.SearchFoods(c.UserContext(), query)
+	foods, err := h.foodService.SearchFoods(c.Context(), query)
 	if err != nil {
 		h.logger.Error("failed to search foods", "error", err, "query", query)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -48,7 +48,7 @@ func (h *FoodHandler) SearchFoods(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FoodHandler) GetRecentFoods(c *fiber.Ctx) error {
+func (h *FoodHandler) GetRecentFoods(c fiber.Ctx) error {
 	userID := c.Locals("userID").(string)
 
 	parsedUserID, err := uuid.Parse(userID)
@@ -60,7 +60,7 @@ func (h *FoodHandler) GetRecentFoods(c *fiber.Ctx) error {
 		})
 	}
 
-	foods, err := h.foodService.GetRecentFoods(c.UserContext(), parsedUserID)
+	foods, err := h.foodService.GetRecentFoods(c.Context(), parsedUserID)
 	if err != nil {
 		h.logger.Error("failed to get recent foods", "error", err, "user_id", userID)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -88,9 +88,9 @@ type AutocompleteResponse struct {
 	FatPer100g      float64 `json:"fat_per_100g"`
 }
 
-func (h *FoodHandler) AutocompleteFoodMacros(c *fiber.Ctx) error {
+func (h *FoodHandler) AutocompleteFoodMacros(c fiber.Ctx) error {
 	var req AutocompleteRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"error":   "invalid_request_body",
@@ -119,9 +119,9 @@ func (h *FoodHandler) AutocompleteFoodMacros(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
+func (h *FoodHandler) CreateFoodItem(c fiber.Ctx) error {
 	var req domain.CreateFoodItemRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		h.logger.Error("failed to parse request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -139,7 +139,7 @@ func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
 		})
 	}
 
-	foodItem, err := h.foodService.CreateFoodItem(c.UserContext(), &req)
+	foodItem, err := h.foodService.CreateFoodItem(c.Context(), &req)
 	if err != nil {
 		h.logger.Error("failed to create food item", "error", err, "request", req)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -169,7 +169,7 @@ func (h *FoodHandler) CreateFoodItem(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FoodHandler) GetFoodItem(c *fiber.Ctx) error {
+func (h *FoodHandler) GetFoodItem(c fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
@@ -180,7 +180,7 @@ func (h *FoodHandler) GetFoodItem(c *fiber.Ctx) error {
 		})
 	}
 
-	foodItem, err := h.foodService.GetFoodItem(c.UserContext(), id)
+	foodItem, err := h.foodService.GetFoodItem(c.Context(), id)
 	if err != nil {
 		h.logger.Error("failed to get food item", "error", err, "id", idParam)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -209,7 +209,7 @@ func (h *FoodHandler) GetFoodItem(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
+func (h *FoodHandler) UpdateFoodItem(c fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
@@ -221,7 +221,7 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 	}
 
 	var req domain.UpdateFoodItemRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		h.logger.Error("failed to parse request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -239,7 +239,7 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 		})
 	}
 
-	foodItem, err := h.foodService.UpdateFoodItem(c.UserContext(), id, &req)
+	foodItem, err := h.foodService.UpdateFoodItem(c.Context(), id, &req)
 	if err != nil {
 		h.logger.Error("failed to update food item", "error", err, "id", idParam, "request", req)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -269,7 +269,7 @@ func (h *FoodHandler) UpdateFoodItem(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FoodHandler) DeleteFoodItem(c *fiber.Ctx) error {
+func (h *FoodHandler) DeleteFoodItem(c fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
@@ -280,7 +280,7 @@ func (h *FoodHandler) DeleteFoodItem(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := h.foodService.DeleteFoodItem(c.UserContext(), id); err != nil {
+	if err := h.foodService.DeleteFoodItem(c.Context(), id); err != nil {
 		h.logger.Error("failed to delete food item", "error", err, "id", idParam)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,

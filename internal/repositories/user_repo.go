@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
@@ -25,7 +24,7 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	defer span.End()
 
 	result, err := r.db.Querier.CreateUser(ctx, db.CreateUserParams{
-		ID:          pgtype.UUID{Bytes: user.ID, Valid: true},
+		ID:          user.ID,
 		FirebaseUid: user.FirebaseUID,
 		Email:       stringToPtr(user.Email),
 		DisplayName: stringToPtr(user.DisplayName),
@@ -51,7 +50,7 @@ func (r *UserRepository) GetByFirebaseUID(ctx context.Context, firebaseUID strin
 	}
 
 	return &domain.User{
-		ID:                   result.ID.Bytes,
+		ID:                   result.ID,
 		FirebaseUID:          result.FirebaseUid,
 		Email:                stringPtrValue(result.Email),
 		DisplayName:          stringPtrValue(result.DisplayName),
@@ -74,13 +73,13 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 	ctx, span := tr.Start(ctx, "GetByID")
 	defer span.End()
 
-	result, err := r.db.Querier.GetUserByID(ctx, pgtype.UUID{Bytes: id, Valid: true})
+	result, err := r.db.Querier.GetUserByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	return &domain.User{
-		ID:                   result.ID.Bytes,
+		ID:                   result.ID,
 		FirebaseUID:          result.FirebaseUid,
 		Email:                stringPtrValue(result.Email),
 		DisplayName:          stringPtrValue(result.DisplayName),
@@ -104,7 +103,7 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	defer span.End()
 
 	result, err := r.db.Querier.UpdateUser(ctx, db.UpdateUserParams{
-		ID:          pgtype.UUID{Bytes: user.ID, Valid: true},
+		ID:          user.ID,
 		Email:       stringToPtr(user.Email),
 		DisplayName: stringToPtr(user.DisplayName),
 		PhotoUrl:    user.PhotoURL,
@@ -131,7 +130,7 @@ func (r *UserRepository) UpdateProfile(ctx context.Context, user *domain.User) e
 	defer span.End()
 
 	return r.db.Querier.UpdateUserProfile(ctx, db.UpdateUserProfileParams{
-		ID:                   pgtype.UUID{Bytes: user.ID, Valid: true},
+		ID:                   user.ID,
 		DisplayName:          stringToPtr(user.DisplayName),
 		Email:                stringToPtr(user.Email),
 		PhotoUrl:             user.PhotoURL,
@@ -152,7 +151,7 @@ func (r *UserRepository) UpdateAvatar(ctx context.Context, userID uuid.UUID, pho
 	defer span.End()
 
 	return r.db.Querier.UpdateUserAvatar(ctx, db.UpdateUserAvatarParams{
-		ID:       pgtype.UUID{Bytes: userID, Valid: true},
+		ID:       userID,
 		PhotoUrl: photoURL,
 	})
 }
@@ -163,7 +162,7 @@ func (r *UserRepository) UpdateDisplayName(ctx context.Context, userID uuid.UUID
 	defer span.End()
 
 	return r.db.Querier.UpdateUserDisplayName(ctx, db.UpdateUserDisplayNameParams{
-		ID:          pgtype.UUID{Bytes: userID, Valid: true},
+		ID:          userID,
 		DisplayName: displayName,
 	})
 }
@@ -174,7 +173,7 @@ func (r *UserRepository) UpdateNotifications(ctx context.Context, userID uuid.UU
 	defer span.End()
 
 	return r.db.Querier.UpdateUserNotifications(ctx, db.UpdateUserNotificationsParams{
-		ID:                   pgtype.UUID{Bytes: userID, Valid: true},
+		ID:                   userID,
 		NotificationsEnabled: notificationsEnabled,
 	})
 }

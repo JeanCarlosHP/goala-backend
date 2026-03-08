@@ -47,7 +47,16 @@ func NewMigrator(conn *pgxpool.Pool, migrationURL string, logger domain.Logger) 
 }
 
 func (mg *Migrator) Migrate() (err error) {
-	defer mg.migrator.Close()
+	defer func() {
+		if srcErr, dbErr := mg.migrator.Close(); srcErr != nil || dbErr != nil {
+			if srcErr != nil {
+				mg.logger.Warn("failed to close migration source", "error", srcErr)
+			}
+			if dbErr != nil {
+				mg.logger.Warn("failed to close migration database connection", "error", dbErr)
+			}
+		}
+	}()
 
 	v, d, err := mg.migrator.Version()
 	if err != nil {

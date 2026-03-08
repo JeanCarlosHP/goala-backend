@@ -34,8 +34,8 @@ func (r *MealRepository) Create(ctx context.Context, meal *domain.Meal) error {
 	}
 
 	result, err := r.db.Querier.CreateMeal(ctx, db.CreateMealParams{
-		ID:       pgtype.UUID{Bytes: meal.ID, Valid: true},
-		UserID:   pgtype.UUID{Bytes: meal.UserID, Valid: true},
+		ID:       meal.ID,
+		UserID:   meal.UserID,
 		MealType: stringToPtr(meal.MealType),
 		MealDate: mealDate,
 		MealTime: mealTime,
@@ -58,7 +58,7 @@ func (r *MealRepository) GetByUserAndDate(ctx context.Context, userID uuid.UUID,
 	_ = mealDate.Scan(date)
 
 	results, err := r.db.Querier.GetMealsByUserAndDate(ctx, db.GetMealsByUserAndDateParams{
-		UserID:   pgtype.UUID{Bytes: userID, Valid: true},
+		UserID:   userID,
 		MealDate: mealDate,
 	})
 	if err != nil {
@@ -83,8 +83,8 @@ func (r *MealRepository) GetByUserAndDate(ctx context.Context, userID uuid.UUID,
 		}
 
 		meals = append(meals, domain.Meal{
-			ID:        result.ID.Bytes,
-			UserID:    result.UserID.Bytes,
+			ID:        result.ID,
+			UserID:    result.UserID,
 			MealType:  stringPtrValue(result.MealType),
 			MealDate:  mealDate,
 			MealTime:  mealTime,
@@ -101,7 +101,7 @@ func (r *MealRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Mea
 	ctx, span := tr.Start(ctx, "GetByID")
 	defer span.End()
 
-	result, err := r.db.Querier.GetMealByID(ctx, pgtype.UUID{Bytes: id, Valid: true})
+	result, err := r.db.Querier.GetMealByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -122,8 +122,8 @@ func (r *MealRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Mea
 	}
 
 	return &domain.Meal{
-		ID:        result.ID.Bytes,
-		UserID:    result.UserID.Bytes,
+		ID:        result.ID,
+		UserID:    result.UserID,
 		MealType:  stringPtrValue(result.MealType),
 		MealDate:  mealDate,
 		MealTime:  mealTime,
@@ -142,7 +142,7 @@ func (r *MealRepository) GetMealsWithFoodsInRange(ctx context.Context, userID uu
 	_ = pgEndDate.Scan(endDate)
 
 	rows, err := r.db.Querier.GetMealsWithFoodsInRange(ctx, db.GetMealsWithFoodsInRangeParams{
-		UserID:     pgtype.UUID{Bytes: userID, Valid: true},
+		UserID:     userID,
 		MealDate:   pgStartDate,
 		MealDate_2: pgEndDate,
 	})
@@ -154,7 +154,7 @@ func (r *MealRepository) GetMealsWithFoodsInRange(ctx context.Context, userID uu
 	mealsByDate := make(map[time.Time][]domain.Meal)
 
 	for _, row := range rows {
-		mealID := row.MealID.Bytes
+		mealID := row.MealID
 
 		meal, exists := mealsMap[mealID]
 		if !exists {
@@ -175,7 +175,7 @@ func (r *MealRepository) GetMealsWithFoodsInRange(ctx context.Context, userID uu
 
 			meal = &domain.Meal{
 				ID:        mealID,
-				UserID:    row.UserID.Bytes,
+				UserID:    row.UserID,
 				MealType:  stringPtrValue(row.MealType),
 				MealDate:  mealDate,
 				MealTime:  mealTime,
@@ -186,17 +186,17 @@ func (r *MealRepository) GetMealsWithFoodsInRange(ctx context.Context, userID uu
 			mealsMap[mealID] = meal
 		}
 
-		if row.FoodID.Valid && row.FoodName != nil {
+		if row.FoodID != uuid.Nil && row.FoodName != nil {
 			food := domain.FoodItem{
-				ID:          row.FoodID.Bytes,
+				ID:          row.FoodID,
 				MealID:      mealID,
 				Name:        *row.FoodName,
-				PortionSize: numericToFloat64(row.PortionSize),
+				PortionSize: *row.PortionSize,
 				PortionUnit: stringPtrValue(row.PortionUnit),
 				Calories:    intPtrValue(row.Calories),
-				Protein:     numericToFloat64(row.Protein),
-				Carbs:       numericToFloat64(row.Carbs),
-				Fat:         numericToFloat64(row.Fat),
+				Protein:     *row.Protein,
+				Carbs:       *row.Carbs,
+				Fat:         *row.Fat,
 				Source:      stringPtrValue(row.Source),
 			}
 			meal.Foods = append(meal.Foods, food)

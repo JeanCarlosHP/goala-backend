@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
@@ -34,11 +34,11 @@ func NewFoodRecognitionHandler(
 	}
 }
 
-func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (h *FoodRecognitionHandler) RecognizeFood(c fiber.Ctx) error {
+	ctx := c.Context()
 
 	var req domain.FoodRecognitionRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -72,8 +72,8 @@ func (h *FoodRecognitionHandler) RecognizeFood(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FoodRecognitionHandler) GetFoodByBarcode(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (h *FoodRecognitionHandler) GetFoodByBarcode(c fiber.Ctx) error {
+	ctx := c.Context()
 
 	barcode := c.Params("barcode")
 	if barcode == "" {
@@ -107,11 +107,11 @@ func (h *FoodRecognitionHandler) GetFoodByBarcode(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FoodRecognitionHandler) EstimateQuantity(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (h *FoodRecognitionHandler) EstimateQuantity(c fiber.Ctx) error {
+	ctx := c.Context()
 
 	var req domain.EstimateQuantityRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -145,7 +145,7 @@ func (h *FoodRecognitionHandler) EstimateQuantity(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FoodRecognitionHandler) GenerateFoodImageUploadURL(c *fiber.Ctx) error {
+func (h *FoodRecognitionHandler) GenerateFoodImageUploadURL(c fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
 		h.logger.Warn("Missing user_id in context")
@@ -156,7 +156,7 @@ func (h *FoodRecognitionHandler) GenerateFoodImageUploadURL(c *fiber.Ctx) error 
 	}
 
 	var req domain.FoodImageUploadRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -173,7 +173,7 @@ func (h *FoodRecognitionHandler) GenerateFoodImageUploadURL(c *fiber.Ctx) error 
 		})
 	}
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	uploadURL, imagePath, err := h.s3Service.GenerateFoodImageUploadPresignedURL(ctx, userID.String(), req.ContentType, req.FileSize)
 	if err != nil {
 		h.logger.Error("Failed to generate presigned URL", "user_id", userID.String(), "error", err)

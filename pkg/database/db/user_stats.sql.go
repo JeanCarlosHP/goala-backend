@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -22,7 +23,7 @@ WHERE user_id = $1
 `
 
 type AddNutritionToStatsParams struct {
-	UserID                pgtype.UUID
+	UserID                uuid.UUID
 	TotalCaloriesConsumed int
 	TotalProteinConsumed  int
 	TotalCarbsConsumed    int
@@ -46,7 +47,7 @@ VALUES ($1)
 RETURNING id, user_id, current_streak, longest_streak, total_meals_logged, total_days_logged, total_calories_consumed, total_protein_consumed, total_carbs_consumed, total_fat_consumed, last_log_date, created_at, updated_at
 `
 
-func (q *Queries) CreateUserStats(ctx context.Context, userID pgtype.UUID) (UserStat, error) {
+func (q *Queries) CreateUserStats(ctx context.Context, userID uuid.UUID) (UserStat, error) {
 	row := q.db.QueryRow(ctx, createUserStats, userID)
 	var i UserStat
 	err := row.Scan(
@@ -71,7 +72,7 @@ const getUserStats = `-- name: GetUserStats :one
 SELECT id, user_id, current_streak, longest_streak, total_meals_logged, total_days_logged, total_calories_consumed, total_protein_consumed, total_carbs_consumed, total_fat_consumed, last_log_date, created_at, updated_at FROM user_stats WHERE user_id = $1
 `
 
-func (q *Queries) GetUserStats(ctx context.Context, userID pgtype.UUID) (UserStat, error) {
+func (q *Queries) GetUserStats(ctx context.Context, userID uuid.UUID) (UserStat, error) {
 	row := q.db.QueryRow(ctx, getUserStats, userID)
 	var i UserStat
 	err := row.Scan(
@@ -99,7 +100,7 @@ UPDATE user_stats SET
 WHERE user_id = $1
 `
 
-func (q *Queries) IncrementMealCount(ctx context.Context, userID pgtype.UUID) error {
+func (q *Queries) IncrementMealCount(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, incrementMealCount, userID)
 	return err
 }
@@ -114,7 +115,7 @@ WHERE user_id = $1
 `
 
 type UpdateStreakAndLastLogDateParams struct {
-	UserID        pgtype.UUID
+	UserID        uuid.UUID
 	CurrentStreak int
 	LastLogDate   pgtype.Date
 }
@@ -140,7 +141,7 @@ WHERE user_id = $1
 `
 
 type UpdateUserStatsParams struct {
-	UserID                pgtype.UUID
+	UserID                uuid.UUID
 	CurrentStreak         int
 	LongestStreak         int
 	TotalMealsLogged      int

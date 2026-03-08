@@ -9,7 +9,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -19,7 +19,7 @@ RETURNING id, firebase_uid, email, display_name, photo_url, created_at, updated_
 `
 
 type CreateUserParams struct {
-	ID          pgtype.UUID
+	ID          uuid.UUID
 	FirebaseUid string
 	Email       *string
 	DisplayName *string
@@ -27,7 +27,7 @@ type CreateUserParams struct {
 }
 
 type CreateUserRow struct {
-	ID          pgtype.UUID
+	ID          uuid.UUID
 	FirebaseUid string
 	Email       *string
 	DisplayName *string
@@ -105,7 +105,7 @@ FROM users
 WHERE id = $1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error) {
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
@@ -137,7 +137,7 @@ RETURNING id, firebase_uid, email, display_name, photo_url, created_at, updated_
 `
 
 type UpdateUserParams struct {
-	ID          pgtype.UUID
+	ID          uuid.UUID
 	Email       *string
 	DisplayName *string
 	PhotoUrl    *string
@@ -178,7 +178,7 @@ WHERE id = $1
 `
 
 type UpdateUserAvatarParams struct {
-	ID       pgtype.UUID
+	ID       uuid.UUID
 	PhotoUrl *string
 }
 
@@ -194,7 +194,7 @@ WHERE id = $1
 `
 
 type UpdateUserDisplayNameParams struct {
-	ID          pgtype.UUID
+	ID          uuid.UUID
 	DisplayName *string
 }
 
@@ -210,7 +210,7 @@ WHERE id = $1
 `
 
 type UpdateUserNotificationsParams struct {
-	ID                   pgtype.UUID
+	ID                   uuid.UUID
 	NotificationsEnabled *bool
 }
 
@@ -237,7 +237,7 @@ WHERE id = $1
 `
 
 type UpdateUserProfileParams struct {
-	ID                   pgtype.UUID
+	ID                   uuid.UUID
 	DisplayName          *string
 	Email                *string
 	PhotoUrl             *string

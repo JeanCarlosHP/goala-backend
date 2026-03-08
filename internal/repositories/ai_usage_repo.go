@@ -29,7 +29,7 @@ func (r *AIUsageRepository) Increment(ctx context.Context, userID string, featur
 	defer span.End()
 
 	result, err := r.db.Querier.IncrementAIUsage(ctx, db.IncrementAIUsageParams{
-		UserID:      stringToPgUUID(userID),
+		UserID:      uuid.MustParse(userID),
 		Feature:     feature.String(),
 		Quota:       int(quota),
 		PeriodStart: pgtype.Timestamptz{Time: periodStart, Valid: true},
@@ -48,7 +48,7 @@ func (r *AIUsageRepository) Get(ctx context.Context, userID string, feature enum
 	defer span.End()
 
 	result, err := r.db.Querier.GetAIUsage(ctx, db.GetAIUsageParams{
-		UserID:  stringToPgUUID(userID),
+		UserID:  uuid.MustParse(userID),
 		Feature: feature.String(),
 	})
 	if err != nil {
@@ -67,7 +67,7 @@ func (r *AIUsageRepository) GetByPeriod(ctx context.Context, userID string, feat
 	defer span.End()
 
 	result, err := r.db.Querier.GetAIUsageByPeriod(ctx, db.GetAIUsageByPeriodParams{
-		UserID:      stringToPgUUID(userID),
+		UserID:      uuid.MustParse(userID),
 		Feature:     feature.String(),
 		PeriodStart: pgtype.Timestamptz{Time: periodStart, Valid: true},
 	})
@@ -94,7 +94,7 @@ func (r *AIUsageRepository) ListByUser(ctx context.Context, userID string) ([]*d
 	ctx, span := tr.Start(ctx, "ListByUser")
 	defer span.End()
 
-	results, err := r.db.Querier.ListUserAIUsage(ctx, stringToPgUUID(userID))
+	results, err := r.db.Querier.ListUserAIUsage(ctx, uuid.MustParse(userID))
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (r *AIUsageRepository) CreateOrReset(ctx context.Context, userID string, fe
 	defer span.End()
 
 	result, err := r.db.Querier.CreateOrResetAIUsage(ctx, db.CreateOrResetAIUsageParams{
-		UserID:      stringToPgUUID(userID),
+		UserID:      uuid.MustParse(userID),
 		Feature:     feature.String(),
 		Quota:       int(quota),
 		PeriodStart: pgtype.Timestamptz{Time: periodStart, Valid: true},
@@ -128,7 +128,7 @@ func (r *AIUsageRepository) CreateOrReset(ctx context.Context, userID string, fe
 func toAIUsage(u *db.AiUsage) *domain.AIUsage {
 	return &domain.AIUsage{
 		ID:          u.ID,
-		UserID:      uuid.UUID(u.UserID.Bytes).String(),
+		UserID:      u.UserID.String(),
 		Feature:     enum.AIFeature(u.Feature),
 		UsageCount:  int32(u.UsageCount),
 		Quota:       int32(u.Quota),
@@ -137,9 +137,4 @@ func toAIUsage(u *db.AiUsage) *domain.AIUsage {
 		CreatedAt:   u.CreatedAt.Time,
 		UpdatedAt:   u.UpdatedAt.Time,
 	}
-}
-
-func stringToPgUUID(s string) pgtype.UUID {
-	u, _ := uuid.Parse(s)
-	return pgtype.UUID{Bytes: u, Valid: true}
 }

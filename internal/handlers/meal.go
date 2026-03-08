@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
@@ -26,12 +26,12 @@ func NewMealHandler(mealService *services.MealService, userService *services.Use
 	}
 }
 
-func (h *MealHandler) CreateMeal(c *fiber.Ctx) error {
+func (h *MealHandler) CreateMeal(c fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 	userID := c.Locals("user_id").(uuid.UUID)
 
 	var req domain.CreateMealRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"error":   "invalid_request_body",
@@ -47,7 +47,7 @@ func (h *MealHandler) CreateMeal(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	meal, err := h.mealService.CreateMeal(ctx, userID, req)
 	if err != nil {
 		h.logger.Error("Failed to create meal", "firebase_uid", firebaseUID, "error", err)
@@ -65,7 +65,7 @@ func (h *MealHandler) CreateMeal(c *fiber.Ctx) error {
 	})
 }
 
-func (h *MealHandler) GetMeals(c *fiber.Ctx) error {
+func (h *MealHandler) GetMeals(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(uuid.UUID)
 
 	dateStr := c.Query("date")
@@ -82,7 +82,7 @@ func (h *MealHandler) GetMeals(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	meals, err := h.mealService.GetMealsByDate(ctx, userID, date)
 	if err != nil {
 		h.logger.Error("Failed to get meals", "user_id", userID.String(), "error", err)
@@ -99,7 +99,7 @@ func (h *MealHandler) GetMeals(c *fiber.Ctx) error {
 	})
 }
 
-func (h *MealHandler) GetDailySummary(c *fiber.Ctx) error {
+func (h *MealHandler) GetDailySummary(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(uuid.UUID)
 
 	dateStr := c.Query("date")
@@ -116,7 +116,7 @@ func (h *MealHandler) GetDailySummary(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 
 	summary, err := h.mealService.GetDailySummary(ctx, userID, date)
 	if err != nil {

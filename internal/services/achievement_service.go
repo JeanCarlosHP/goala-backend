@@ -100,7 +100,7 @@ func (s *AchievementService) SyncAchievements(ctx context.Context, userID uuid.U
 
 func (s *AchievementService) calculateAchievementProgress(ctx context.Context, achievement domain.Achievement, stats *domain.UserStats) (int32, bool) {
 	tr := otel.Tracer("services/achievement_service.go")
-	ctx, span := tr.Start(ctx, "calculateAchievementProgress")
+	_, span := tr.Start(ctx, "calculateAchievementProgress")
 	defer span.End()
 	var progress int32
 

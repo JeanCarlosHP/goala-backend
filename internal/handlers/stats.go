@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
@@ -24,10 +24,10 @@ func NewStatsHandler(statsService *services.StatsService, logger domain.Logger) 
 	}
 }
 
-func (h *StatsHandler) GetStats(c *fiber.Ctx) error {
+func (h *StatsHandler) GetStats(c fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	userID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
 		h.logger.Error("Invalid user ID", "firebase_uid", firebaseUID)
@@ -53,11 +53,11 @@ func (h *StatsHandler) GetStats(c *fiber.Ctx) error {
 	})
 }
 
-func (h *StatsHandler) GetStatsRange(c *fiber.Ctx) error {
+func (h *StatsHandler) GetStatsRange(c fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
 	var query domain.StatsRangeQuery
-	if err := c.QueryParser(&query); err != nil {
+	if err := c.Bind().Query(&query); err != nil {
 		h.logger.Error("Invalid query parameters", "firebase_uid", firebaseUID, "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -99,7 +99,7 @@ func (h *StatsHandler) GetStatsRange(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	userID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
 		h.logger.Error("Invalid user ID", "firebase_uid", firebaseUID)

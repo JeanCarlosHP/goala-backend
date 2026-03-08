@@ -25,7 +25,6 @@ import (
 )
 
 var (
-	err        error
 	configurer *domain.Config
 	logger     domain.Logger
 )

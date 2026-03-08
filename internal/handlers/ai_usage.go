@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
@@ -20,9 +20,9 @@ func NewAIUsageHandler(aiUsageService *services.AIUsageService, log domain.Logge
 	}
 }
 
-func (h *AIUsageHandler) GetUsage(c *fiber.Ctx) error {
+func (h *AIUsageHandler) GetUsage(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
-	ctx := c.UserContext()
+	ctx := c.Context()
 
 	usages, err := h.aiUsageService.ListUserUsage(ctx, userID)
 	if err != nil {
@@ -52,11 +52,11 @@ func (h *AIUsageHandler) GetUsage(c *fiber.Ctx) error {
 	})
 }
 
-func (h *AIUsageHandler) CheckFeatureQuota(c *fiber.Ctx) error {
+func (h *AIUsageHandler) CheckFeatureQuota(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
 	featureStr := c.Params("feature")
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 
 	feature := enum.AIFeature(featureStr)
 	if !feature.IsValid() {

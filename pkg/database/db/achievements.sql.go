@@ -9,14 +9,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const getAchievementByID = `-- name: GetAchievementByID :one
 SELECT id, name_key, description_key, icon, target, category, created_at FROM achievements WHERE id = $1
 `
 
-func (q *Queries) GetAchievementByID(ctx context.Context, id pgtype.UUID) (Achievement, error) {
+func (q *Queries) GetAchievementByID(ctx context.Context, id uuid.UUID) (Achievement, error) {
 	row := q.db.QueryRow(ctx, getAchievementByID, id)
 	var i Achievement
 	err := row.Scan(
@@ -101,8 +101,8 @@ WHERE user_id = $1 AND achievement_id = $2
 `
 
 type GetUserAchievementParams struct {
-	UserID        pgtype.UUID
-	AchievementID pgtype.UUID
+	UserID        uuid.UUID
+	AchievementID uuid.UUID
 }
 
 func (q *Queries) GetUserAchievement(ctx context.Context, arg GetUserAchievementParams) (UserAchievement, error) {
@@ -130,9 +130,9 @@ ORDER BY ua.unlocked DESC, a.category, a.target
 `
 
 type GetUserAchievementsRow struct {
-	ID             pgtype.UUID
-	UserID         pgtype.UUID
-	AchievementID  pgtype.UUID
+	ID             uuid.UUID
+	UserID         uuid.UUID
+	AchievementID  uuid.UUID
 	Unlocked       bool
 	Progress       int
 	UnlockedAt     *time.Time
@@ -145,7 +145,7 @@ type GetUserAchievementsRow struct {
 	Category       string
 }
 
-func (q *Queries) GetUserAchievements(ctx context.Context, userID pgtype.UUID) ([]GetUserAchievementsRow, error) {
+func (q *Queries) GetUserAchievements(ctx context.Context, userID uuid.UUID) ([]GetUserAchievementsRow, error) {
 	rows, err := q.db.Query(ctx, getUserAchievements, userID)
 	if err != nil {
 		return nil, err
@@ -188,9 +188,9 @@ ORDER BY ua.unlocked_at DESC
 `
 
 type GetUserUnlockedAchievementsRow struct {
-	ID             pgtype.UUID
-	UserID         pgtype.UUID
-	AchievementID  pgtype.UUID
+	ID             uuid.UUID
+	UserID         uuid.UUID
+	AchievementID  uuid.UUID
 	Unlocked       bool
 	Progress       int
 	UnlockedAt     *time.Time
@@ -203,7 +203,7 @@ type GetUserUnlockedAchievementsRow struct {
 	Category       string
 }
 
-func (q *Queries) GetUserUnlockedAchievements(ctx context.Context, userID pgtype.UUID) ([]GetUserUnlockedAchievementsRow, error) {
+func (q *Queries) GetUserUnlockedAchievements(ctx context.Context, userID uuid.UUID) ([]GetUserUnlockedAchievementsRow, error) {
 	rows, err := q.db.Query(ctx, getUserUnlockedAchievements, userID)
 	if err != nil {
 		return nil, err
@@ -245,8 +245,8 @@ WHERE user_id = $1 AND achievement_id = $2
 `
 
 type UpdateAchievementProgressParams struct {
-	UserID        pgtype.UUID
-	AchievementID pgtype.UUID
+	UserID        uuid.UUID
+	AchievementID uuid.UUID
 	Progress      int
 }
 
@@ -266,8 +266,8 @@ ON CONFLICT (user_id, achievement_id) DO UPDATE SET
 `
 
 type UpsertUserAchievementParams struct {
-	UserID        pgtype.UUID
-	AchievementID pgtype.UUID
+	UserID        uuid.UUID
+	AchievementID uuid.UUID
 	Unlocked      bool
 	Progress      int
 	UnlockedAt    *time.Time

@@ -1,6 +1,6 @@
 package domain
 
-import "github.com/gofiber/fiber/v2"
+import "github.com/gofiber/fiber/v3"
 
 type HTTPServer interface {
 	StartServer() error

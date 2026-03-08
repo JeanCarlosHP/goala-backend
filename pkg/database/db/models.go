@@ -7,11 +7,12 @@ package db
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Achievement struct {
-	ID             pgtype.UUID
+	ID             uuid.UUID
 	NameKey        string
 	DescriptionKey string
 	Icon           string
@@ -22,7 +23,7 @@ type Achievement struct {
 
 type AiUsage struct {
 	ID          int64
-	UserID      pgtype.UUID
+	UserID      uuid.UUID
 	Feature     string
 	UsageCount  int
 	Quota       int
@@ -33,8 +34,8 @@ type AiUsage struct {
 }
 
 type Feedback struct {
-	ID          pgtype.UUID
-	UserID      pgtype.UUID
+	ID          uuid.UUID
+	UserID      uuid.UUID
 	Type        string
 	Title       string
 	Description string
@@ -47,20 +48,20 @@ type Feedback struct {
 }
 
 type FoodDatabase struct {
-	ID              pgtype.UUID
+	ID              uuid.UUID
 	Name            string
 	Brand           *string
 	CaloriesPer100g *int
-	ProteinPer100g  pgtype.Numeric
-	CarbsPer100g    pgtype.Numeric
-	FatPer100g      pgtype.Numeric
+	ProteinPer100g  *float64
+	CarbsPer100g    *float64
+	FatPer100g      *float64
 	Source          *string
 	CreatedAt       *time.Time
 	Barcode         *string
 	Calories        *int
-	Protein         pgtype.Numeric
-	Carbs           pgtype.Numeric
-	Fat             pgtype.Numeric
+	Protein         *float64
+	Carbs           *float64
+	Fat             *float64
 	ServingSize     *int
 	ServingUnit     *string
 	Verified        *bool
@@ -68,21 +69,21 @@ type FoodDatabase struct {
 }
 
 type FoodItem struct {
-	ID          pgtype.UUID
-	MealID      pgtype.UUID
+	ID          uuid.UUID
+	MealID      uuid.UUID
 	Name        string
-	PortionSize pgtype.Numeric
+	PortionSize *float64
 	PortionUnit *string
 	Calories    int
-	Protein     pgtype.Numeric
-	Carbs       pgtype.Numeric
-	Fat         pgtype.Numeric
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
 	Source      *string
 }
 
 type Meal struct {
-	ID        pgtype.UUID
-	UserID    pgtype.UUID
+	ID        uuid.UUID
+	UserID    uuid.UUID
 	MealType  *string
 	MealDate  pgtype.Date
 	MealTime  pgtype.Time
@@ -92,7 +93,7 @@ type Meal struct {
 
 type Subscription struct {
 	ID                              int64
-	UserID                          pgtype.UUID
+	UserID                          uuid.UUID
 	RevenuecatUserID                string
 	RevenuecatOriginalTransactionID *string
 	IsActive                        bool
@@ -108,7 +109,7 @@ type Subscription struct {
 }
 
 type User struct {
-	ID                   pgtype.UUID
+	ID                   uuid.UUID
 	FirebaseUid          string
 	Email                *string
 	DisplayName          *string
@@ -126,9 +127,9 @@ type User struct {
 }
 
 type UserAchievement struct {
-	ID            pgtype.UUID
-	UserID        pgtype.UUID
-	AchievementID pgtype.UUID
+	ID            uuid.UUID
+	UserID        uuid.UUID
+	AchievementID uuid.UUID
 	Unlocked      bool
 	Progress      int
 	UnlockedAt    *time.Time
@@ -137,7 +138,7 @@ type UserAchievement struct {
 }
 
 type UserGoal struct {
-	UserID        pgtype.UUID
+	UserID        uuid.UUID
 	DailyCalories int
 	Protein       *int
 	Carbs         *int
@@ -146,8 +147,8 @@ type UserGoal struct {
 }
 
 type UserStat struct {
-	ID                    pgtype.UUID
-	UserID                pgtype.UUID
+	ID                    uuid.UUID
+	UserID                uuid.UUID
 	CurrentStreak         int
 	LongestStreak         int
 	TotalMealsLogged      int

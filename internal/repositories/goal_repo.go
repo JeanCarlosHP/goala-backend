@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
@@ -25,7 +24,7 @@ func (r *GoalRepository) Upsert(ctx context.Context, goal *domain.UserGoal) erro
 	defer span.End()
 
 	result, err := r.db.Querier.UpsertUserGoal(ctx, db.UpsertUserGoalParams{
-		UserID:        pgtype.UUID{Bytes: goal.UserID, Valid: true},
+		UserID:        goal.UserID,
 		DailyCalories: goal.DailyCalorieGoal,
 		Protein:       intToPtr(goal.DailyProteinGoal),
 		Carbs:         intToPtr(goal.DailyCarbsGoal),
@@ -44,13 +43,13 @@ func (r *GoalRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*do
 	ctx, span := tr.Start(ctx, "GetByUserID")
 	defer span.End()
 
-	result, err := r.db.Querier.GetUserGoalByUserID(ctx, pgtype.UUID{Bytes: userID, Valid: true})
+	result, err := r.db.Querier.GetUserGoalByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &domain.UserGoal{
-		UserID:           result.UserID.Bytes,
+		UserID:           result.UserID,
 		DailyCalorieGoal: result.DailyCalories,
 		DailyProteinGoal: intPtrValue(result.Protein),
 		DailyCarbsGoal:   intPtrValue(result.Carbs),

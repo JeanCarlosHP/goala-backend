@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/domain/enum"
@@ -37,7 +36,7 @@ func (r *FeedbackRepository) Create(ctx context.Context, userID uuid.UUID, req *
 	}
 
 	result, err := r.db.Querier.CreateFeedback(ctx, db.CreateFeedbackParams{
-		UserID:      pgtype.UUID{Bytes: userID, Valid: true},
+		UserID:      userID,
 		Type:        req.Type,
 		Title:       req.Title,
 		Description: req.Description,
@@ -51,8 +50,8 @@ func (r *FeedbackRepository) Create(ctx context.Context, userID uuid.UUID, req *
 	}
 
 	return &domain.Feedback{
-		ID:          uuid.UUID(result.ID.Bytes).String(),
-		UserID:      uuidToStringPtr(result.UserID),
+		ID:          uuid.UUID(result.ID).String(),
+		UserID:      new(result.UserID.String()),
 		Type:        enum.FeedbackType(result.Type),
 		Title:       result.Title,
 		Description: result.Description,
@@ -70,14 +69,14 @@ func (r *FeedbackRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain
 	ctx, span := tr.Start(ctx, "GetByID")
 	defer span.End()
 
-	result, err := r.db.Querier.GetFeedback(ctx, pgtype.UUID{Bytes: id, Valid: true})
+	result, err := r.db.Querier.GetFeedback(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	return &domain.Feedback{
-		ID:          uuid.UUID(result.ID.Bytes).String(),
-		UserID:      uuidToStringPtr(result.UserID),
+		ID:          uuid.UUID(result.ID).String(),
+		UserID:      new(result.UserID.String()),
 		Type:        enum.FeedbackType(result.Type),
 		Title:       result.Title,
 		Description: result.Description,
@@ -106,8 +105,8 @@ func (r *FeedbackRepository) List(ctx context.Context, limit, offset int32) ([]d
 	feedbacks := make([]domain.Feedback, len(results))
 	for i, result := range results {
 		feedbacks[i] = domain.Feedback{
-			ID:          uuid.UUID(result.ID.Bytes).String(),
-			UserID:      uuidToStringPtr(result.UserID),
+			ID:          uuid.UUID(result.ID).String(),
+			UserID:      new(result.UserID.String()),
 			Type:        enum.FeedbackType(result.Type),
 			Title:       result.Title,
 			Description: result.Description,
@@ -128,7 +127,7 @@ func (r *FeedbackRepository) GetByUser(ctx context.Context, userID uuid.UUID) ([
 	ctx, span := tr.Start(ctx, "GetByUser")
 	defer span.End()
 
-	results, err := r.db.Querier.GetFeedbackByUser(ctx, pgtype.UUID{Bytes: userID, Valid: true})
+	results, err := r.db.Querier.GetFeedbackByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -136,8 +135,8 @@ func (r *FeedbackRepository) GetByUser(ctx context.Context, userID uuid.UUID) ([
 	feedbacks := make([]domain.Feedback, len(results))
 	for i, result := range results {
 		feedbacks[i] = domain.Feedback{
-			ID:          uuid.UUID(result.ID.Bytes).String(),
-			UserID:      uuidToStringPtr(result.UserID),
+			ID:          uuid.UUID(result.ID).String(),
+			UserID:      new(result.UserID.String()),
 			Type:        enum.FeedbackType(result.Type),
 			Title:       result.Title,
 			Description: result.Description,
@@ -151,13 +150,4 @@ func (r *FeedbackRepository) GetByUser(ctx context.Context, userID uuid.UUID) ([
 	}
 
 	return feedbacks, nil
-}
-
-func uuidToStringPtr(pguuid pgtype.UUID) *string {
-	if !pguuid.Valid {
-		return nil
-	}
-	id := uuid.UUID(pguuid.Bytes)
-	str := id.String()
-	return &str
 }

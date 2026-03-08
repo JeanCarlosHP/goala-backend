@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
@@ -24,11 +24,11 @@ func NewFeedbackHandler(feedbackService *services.FeedbackService, userService *
 	}
 }
 
-func (h *FeedbackHandler) CreateFeedback(c *fiber.Ctx) error {
+func (h *FeedbackHandler) CreateFeedback(c fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
 	var req domain.CreateFeedbackRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().JSON(&req); err != nil {
 		h.logger.Error("Invalid request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
@@ -45,7 +45,7 @@ func (h *FeedbackHandler) CreateFeedback(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
@@ -69,10 +69,10 @@ func (h *FeedbackHandler) CreateFeedback(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FeedbackHandler) GetUserFeedback(c *fiber.Ctx) error {
+func (h *FeedbackHandler) GetUserFeedback(c fiber.Ctx) error {
 	firebaseUID := c.Locals("firebase_uid").(string)
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
 	if err != nil {
 		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
@@ -98,7 +98,7 @@ func (h *FeedbackHandler) GetUserFeedback(c *fiber.Ctx) error {
 	})
 }
 
-func (h *FeedbackHandler) GetFeedback(c *fiber.Ctx) error {
+func (h *FeedbackHandler) GetFeedback(c fiber.Ctx) error {
 	feedbackID := c.Params("id")
 
 	id, err := uuid.Parse(feedbackID)
@@ -110,7 +110,7 @@ func (h *FeedbackHandler) GetFeedback(c *fiber.Ctx) error {
 		})
 	}
 
-	ctx := c.UserContext()
+	ctx := c.Context()
 	feedback, err := h.feedbackService.GetFeedback(ctx, id)
 	if err != nil {
 		h.logger.Error("Failed to get feedback", "feedback_id", feedbackID, "error", err)

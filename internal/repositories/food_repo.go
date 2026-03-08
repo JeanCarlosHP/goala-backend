@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
@@ -25,15 +24,15 @@ func (r *FoodRepository) Create(ctx context.Context, food *domain.FoodItem) erro
 	defer span.End()
 
 	return r.db.Querier.CreateFoodItem(ctx, db.CreateFoodItemParams{
-		ID:          pgtype.UUID{Bytes: food.ID, Valid: true},
-		MealID:      pgtype.UUID{Bytes: food.MealID, Valid: true},
+		ID:          food.ID,
+		MealID:      food.MealID,
 		Name:        food.Name,
-		PortionSize: float64ToNumeric(food.PortionSize),
+		PortionSize: &food.PortionSize,
 		PortionUnit: stringToPtr(food.PortionUnit),
 		Calories:    food.Calories,
-		Protein:     float64ToNumeric(food.Protein),
-		Carbs:       float64ToNumeric(food.Carbs),
-		Fat:         float64ToNumeric(food.Fat),
+		Protein:     &food.Protein,
+		Carbs:       &food.Carbs,
+		Fat:         &food.Fat,
 		Source:      stringToPtr(food.Source),
 	})
 }
@@ -43,7 +42,7 @@ func (r *FoodRepository) GetByMealID(ctx context.Context, mealID uuid.UUID) ([]d
 	ctx, span := tr.Start(ctx, "GetByMealID")
 	defer span.End()
 
-	results, err := r.db.Querier.GetFoodItemsByMealID(ctx, pgtype.UUID{Bytes: mealID, Valid: true})
+	results, err := r.db.Querier.GetFoodItemsByMealID(ctx, mealID)
 	if err != nil {
 		return nil, err
 	}
@@ -51,15 +50,15 @@ func (r *FoodRepository) GetByMealID(ctx context.Context, mealID uuid.UUID) ([]d
 	foods := make([]domain.FoodItem, 0, len(results))
 	for _, result := range results {
 		foods = append(foods, domain.FoodItem{
-			ID:          result.ID.Bytes,
-			MealID:      result.MealID.Bytes,
+			ID:          result.ID,
+			MealID:      result.MealID,
 			Name:        result.Name,
-			PortionSize: numericToFloat64(result.PortionSize),
+			PortionSize: *result.PortionSize,
 			PortionUnit: stringPtrValue(result.PortionUnit),
 			Calories:    result.Calories,
-			Protein:     numericToFloat64(result.Protein),
-			Carbs:       numericToFloat64(result.Carbs),
-			Fat:         numericToFloat64(result.Fat),
+			Protein:     *result.Protein,
+			Carbs:       *result.Carbs,
+			Fat:         *result.Fat,
 			Source:      stringPtrValue(result.Source),
 		})
 	}
@@ -72,12 +71,7 @@ func (r *FoodRepository) GetByMealIDs(ctx context.Context, mealIDs []uuid.UUID) 
 	ctx, span := tr.Start(ctx, "GetByMealIDs")
 	defer span.End()
 
-	pgUUIDs := make([]pgtype.UUID, len(mealIDs))
-	for i, id := range mealIDs {
-		pgUUIDs[i] = pgtype.UUID{Bytes: id, Valid: true}
-	}
-
-	results, err := r.db.Querier.GetFoodItemsByMealIDs(ctx, pgUUIDs)
+	results, err := r.db.Querier.GetFoodItemsByMealIDs(ctx, mealIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -85,15 +79,15 @@ func (r *FoodRepository) GetByMealIDs(ctx context.Context, mealIDs []uuid.UUID) 
 	foodsByMeal := make(map[uuid.UUID][]domain.FoodItem)
 	for _, result := range results {
 		food := domain.FoodItem{
-			ID:          result.ID.Bytes,
-			MealID:      result.MealID.Bytes,
+			ID:          result.ID,
+			MealID:      result.MealID,
 			Name:        result.Name,
-			PortionSize: numericToFloat64(result.PortionSize),
-			PortionUnit: stringPtrValue(result.PortionUnit),
+			PortionSize: *result.PortionSize,
+			PortionUnit: *result.PortionUnit,
 			Calories:    result.Calories,
-			Protein:     numericToFloat64(result.Protein),
-			Carbs:       numericToFloat64(result.Carbs),
-			Fat:         numericToFloat64(result.Fat),
+			Protein:     *result.Protein,
+			Carbs:       *result.Carbs,
+			Fat:         *result.Fat,
 			Source:      stringPtrValue(result.Source),
 		}
 		foodsByMeal[food.MealID] = append(foodsByMeal[food.MealID], food)
@@ -119,13 +113,13 @@ func (r *FoodRepository) SearchFoodDatabase(ctx context.Context, query string, l
 	foods := make([]domain.FoodDatabase, 0, len(results))
 	for _, result := range results {
 		foods = append(foods, domain.FoodDatabase{
-			ID:              result.ID.Bytes,
+			ID:              result.ID,
 			Name:            result.Name,
 			Brand:           result.Brand,
 			CaloriesPer100g: intPtrValue(result.CaloriesPer100g),
-			ProteinPer100g:  numericToFloat64(result.ProteinPer100g),
-			CarbsPer100g:    numericToFloat64(result.CarbsPer100g),
-			FatPer100g:      numericToFloat64(result.FatPer100g),
+			ProteinPer100g:  *result.ProteinPer100g,
+			CarbsPer100g:    *result.CarbsPer100g,
+			FatPer100g:      *result.FatPer100g,
 			Source:          stringPtrValue(result.Source),
 			CreatedAt:       timePtrValue(result.CreatedAt),
 		})
@@ -140,7 +134,7 @@ func (r *FoodRepository) GetRecentFoods(ctx context.Context, userID uuid.UUID, l
 	defer span.End()
 
 	results, err := r.db.Querier.GetRecentFoods(ctx, db.GetRecentFoodsParams{
-		UserID: pgtype.UUID{Bytes: userID, Valid: true},
+		UserID: userID,
 		Limit:  limit,
 	})
 	if err != nil {
@@ -151,12 +145,12 @@ func (r *FoodRepository) GetRecentFoods(ctx context.Context, userID uuid.UUID, l
 	for _, result := range results {
 		foods = append(foods, domain.RecentFood{
 			Name:        result.Name,
-			PortionSize: numericToFloat64(result.PortionSize),
+			PortionSize: *result.PortionSize,
 			PortionUnit: stringPtrValue(result.PortionUnit),
 			Calories:    result.Calories,
-			Protein:     numericToFloat64(result.Protein),
-			Carbs:       numericToFloat64(result.Carbs),
-			Fat:         numericToFloat64(result.Fat),
+			Protein:     *result.Protein,
+			Carbs:       *result.Carbs,
+			Fat:         *result.Fat,
 			LastUsed:    timePtrValue(result.LastUsed),
 		})
 	}
@@ -169,21 +163,21 @@ func (r *FoodRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Foo
 	ctx, span := tr.Start(ctx, "GetByID")
 	defer span.End()
 
-	result, err := r.db.Querier.GetFoodItemByID(ctx, pgtype.UUID{Bytes: id, Valid: true})
+	result, err := r.db.Querier.GetFoodItemByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	return &domain.FoodItem{
-		ID:          result.ID.Bytes,
-		MealID:      result.MealID.Bytes,
+		ID:          result.ID,
+		MealID:      result.MealID,
 		Name:        result.Name,
-		PortionSize: numericToFloat64(result.PortionSize),
+		PortionSize: *result.PortionSize,
 		PortionUnit: stringPtrValue(result.PortionUnit),
 		Calories:    result.Calories,
-		Protein:     numericToFloat64(result.Protein),
-		Carbs:       numericToFloat64(result.Carbs),
-		Fat:         numericToFloat64(result.Fat),
+		Protein:     *result.Protein,
+		Carbs:       *result.Carbs,
+		Fat:         *result.Fat,
 		Source:      stringPtrValue(result.Source),
 	}, nil
 }
@@ -194,14 +188,14 @@ func (r *FoodRepository) Update(ctx context.Context, id uuid.UUID, food *domain.
 	defer span.End()
 
 	result, err := r.db.Querier.UpdateFoodItemComplete(ctx, db.UpdateFoodItemCompleteParams{
-		ID:          pgtype.UUID{Bytes: id, Valid: true},
+		ID:          id,
 		Name:        food.Name,
-		PortionSize: float64ToNumeric(food.PortionSize),
+		PortionSize: &food.PortionSize,
 		PortionUnit: stringToPtr(food.PortionUnit),
 		Calories:    food.Calories,
-		Protein:     float64ToNumeric(food.Protein),
-		Carbs:       float64ToNumeric(food.Carbs),
-		Fat:         float64ToNumeric(food.Fat),
+		Protein:     &food.Protein,
+		Carbs:       &food.Carbs,
+		Fat:         &food.Fat,
 		Source:      stringToPtr(food.Source),
 	})
 	if err != nil {
@@ -209,15 +203,15 @@ func (r *FoodRepository) Update(ctx context.Context, id uuid.UUID, food *domain.
 	}
 
 	return &domain.FoodItem{
-		ID:          result.ID.Bytes,
-		MealID:      result.MealID.Bytes,
+		ID:          result.ID,
+		MealID:      result.MealID,
 		Name:        result.Name,
-		PortionSize: numericToFloat64(result.PortionSize),
+		PortionSize: *result.PortionSize,
 		PortionUnit: stringPtrValue(result.PortionUnit),
 		Calories:    result.Calories,
-		Protein:     numericToFloat64(result.Protein),
-		Carbs:       numericToFloat64(result.Carbs),
-		Fat:         numericToFloat64(result.Fat),
+		Protein:     *result.Protein,
+		Carbs:       *result.Carbs,
+		Fat:         *result.Fat,
 		Source:      stringPtrValue(result.Source),
 	}, nil
 }
@@ -227,7 +221,7 @@ func (r *FoodRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	ctx, span := tr.Start(ctx, "Delete")
 	defer span.End()
 
-	return r.db.Querier.DeleteFoodItem(ctx, pgtype.UUID{Bytes: id, Valid: true})
+	return r.db.Querier.DeleteFoodItem(ctx, id)
 }
 
 func (r *FoodRepository) CreateStandalone(ctx context.Context, food *domain.CreateFoodItemRequest) (*domain.FoodItem, error) {
@@ -237,15 +231,15 @@ func (r *FoodRepository) CreateStandalone(ctx context.Context, food *domain.Crea
 
 	id := uuid.New()
 	result, err := r.db.Querier.CreateStandaloneFoodItem(ctx, db.CreateStandaloneFoodItemParams{
-		ID:          pgtype.UUID{Bytes: id, Valid: true},
-		MealID:      pgtype.UUID{Bytes: food.MealID, Valid: true},
+		ID:          id,
+		MealID:      food.MealID,
 		Name:        food.Name,
-		PortionSize: float64ToNumeric(food.PortionSize),
+		PortionSize: &food.PortionSize,
 		PortionUnit: stringToPtr(food.PortionUnit),
 		Calories:    food.Calories,
-		Protein:     float64ToNumeric(food.Protein),
-		Carbs:       float64ToNumeric(food.Carbs),
-		Fat:         float64ToNumeric(food.Fat),
+		Protein:     &food.Protein,
+		Carbs:       &food.Carbs,
+		Fat:         &food.Fat,
 		Source:      stringToPtr(food.Source),
 	})
 	if err != nil {
@@ -253,15 +247,15 @@ func (r *FoodRepository) CreateStandalone(ctx context.Context, food *domain.Crea
 	}
 
 	return &domain.FoodItem{
-		ID:          result.ID.Bytes,
-		MealID:      result.MealID.Bytes,
+		ID:          result.ID,
+		MealID:      result.MealID,
 		Name:        result.Name,
-		PortionSize: numericToFloat64(result.PortionSize),
+		PortionSize: *result.PortionSize,
 		PortionUnit: stringPtrValue(result.PortionUnit),
 		Calories:    result.Calories,
-		Protein:     numericToFloat64(result.Protein),
-		Carbs:       numericToFloat64(result.Carbs),
-		Fat:         numericToFloat64(result.Fat),
+		Protein:     *result.Protein,
+		Carbs:       *result.Carbs,
+		Fat:         *result.Fat,
 		Source:      stringPtrValue(result.Source),
 	}, nil
 }

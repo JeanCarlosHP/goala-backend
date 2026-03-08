@@ -3,7 +3,7 @@ package handlers
 import (
 	"io"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/internal/services"
@@ -27,9 +27,9 @@ func NewSubscriptionHandler(
 	}
 }
 
-func (h *SubscriptionHandler) GetStatus(c *fiber.Ctx) error {
+func (h *SubscriptionHandler) GetStatus(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(string)
-	ctx := c.UserContext()
+	ctx := c.Context()
 
 	subscription, err := h.subscriptionService.GetOrCreateSubscription(ctx, userID)
 	if err != nil {
@@ -55,8 +55,8 @@ func (h *SubscriptionHandler) GetStatus(c *fiber.Ctx) error {
 	})
 }
 
-func (h *SubscriptionHandler) HandleWebhook(c *fiber.Ctx) error {
-	ctx := c.UserContext()
+func (h *SubscriptionHandler) HandleWebhook(c fiber.Ctx) error {
+	ctx := c.Context()
 
 	signature := c.Get("X-Revenuecat-Signature")
 	if signature == "" {

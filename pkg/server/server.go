@@ -1,17 +1,18 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"strconv"
 
 	"github.com/bytedance/sonic"
 	"github.com/gofiber/contrib/otelfiber"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/healthcheck"
-	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/healthcheck"
+	"github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/server/middleware"
 )
@@ -32,12 +33,11 @@ func New(config *domain.Config, logger domain.Logger) domain.HTTPServer {
 	headerSizeLimit := 16 * 1024 // 16Kb
 
 	cfg := fiber.Config{
-		DisableStartupMessage: true,
-		ErrorHandler:          ErrorHandler,
-		BodyLimit:             requestSizeLimit,
-		ReadBufferSize:        headerSizeLimit,
-		JSONEncoder:           sonic.Marshal,
-		JSONDecoder:           sonic.Unmarshal,
+		ErrorHandler:   ErrorHandler,
+		BodyLimit:      requestSizeLimit,
+		ReadBufferSize: headerSizeLimit,
+		JSONEncoder:    sonic.Marshal,
+		JSONDecoder:    sonic.Unmarshal,
 	}
 
 	app := fiber.New(cfg)
@@ -81,7 +81,7 @@ func (s *httpServer) ConfigureMiddlewares() {
 
 	s.App.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
-		StackTraceHandler: func(c *fiber.Ctx, e any) {
+		StackTraceHandler: func(c fiber.Ctx, e any) {
 			buf := make([]byte, 4096)
 			buf = buf[:runtime.Stack(buf, false)]
 			s.GetLogger().Error(fmt.Sprintf("panic: %v\n%s\n", e, buf))
@@ -96,11 +96,15 @@ func (s *httpServer) ConfigureMiddlewares() {
 	s.App.Use(middleware.RequestLogger(s.logger))
 }
 
-func ErrorHandler(c *fiber.Ctx, err error) error {
+func ErrorHandler(c fiber.Ctx, err error) error {
 	code := fiber.StatusInternalServerError
-	if e, ok := err.(*fiber.Error); ok {
+
+	var e *fiber.Error
+	if errors.As(err, &e) {
 		code = e.Code
 	}
+
+	c.Set(fiber.HeaderContentType, fiber.MIMETextPlainCharsetUTF8)
 
 	return c.Status(code).JSON(fiber.Map{
 		"error": err.Error(),

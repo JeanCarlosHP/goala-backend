@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"go.opentelemetry.io/otel"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
@@ -10,8 +10,8 @@ import (
 )
 
 func SubscriptionRequired(subscriptionService *services.SubscriptionService, log domain.Logger) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		ctx := c.UserContext()
+	return func(c fiber.Ctx) error {
+		ctx := c.Context()
 
 		tr := otel.Tracer("middleware/subscription.go")
 		ctx, span := tr.Start(ctx, "SubscriptionRequired")
@@ -51,8 +51,8 @@ func SubscriptionRequired(subscriptionService *services.SubscriptionService, log
 }
 
 func AIQuotaCheck(aiUsageService *services.AIUsageService, feature enum.AIFeature, log domain.Logger) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		ctx := c.UserContext()
+	return func(c fiber.Ctx) error {
+		ctx := c.Context()
 
 		tr := otel.Tracer("middleware/subscription.go")
 		ctx, span := tr.Start(ctx, "AIQuotaCheck")

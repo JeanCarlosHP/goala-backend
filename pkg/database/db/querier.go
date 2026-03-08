@@ -7,7 +7,7 @@ package db
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 type Querier interface {
@@ -21,41 +21,41 @@ type Querier interface {
 	CreateStandaloneFoodItem(ctx context.Context, arg CreateStandaloneFoodItemParams) (FoodItem, error)
 	CreateSubscription(ctx context.Context, arg CreateSubscriptionParams) (Subscription, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
-	CreateUserStats(ctx context.Context, userID pgtype.UUID) (UserStat, error)
-	DeleteFoodItem(ctx context.Context, id pgtype.UUID) error
+	CreateUserStats(ctx context.Context, userID uuid.UUID) (UserStat, error)
+	DeleteFoodItem(ctx context.Context, id uuid.UUID) error
 	ExistsUserByFirebaseUID(ctx context.Context, firebaseUid string) (bool, error)
 	GetAIUsage(ctx context.Context, arg GetAIUsageParams) (AiUsage, error)
 	GetAIUsageByPeriod(ctx context.Context, arg GetAIUsageByPeriodParams) (AiUsage, error)
-	GetAchievementByID(ctx context.Context, id pgtype.UUID) (Achievement, error)
+	GetAchievementByID(ctx context.Context, id uuid.UUID) (Achievement, error)
 	GetAchievementsByCategory(ctx context.Context, category string) ([]Achievement, error)
 	GetAllAchievements(ctx context.Context) ([]Achievement, error)
-	GetFeedback(ctx context.Context, id pgtype.UUID) (Feedback, error)
+	GetFeedback(ctx context.Context, id uuid.UUID) (Feedback, error)
 	GetFeedbackByType(ctx context.Context, arg GetFeedbackByTypeParams) ([]Feedback, error)
-	GetFeedbackByUser(ctx context.Context, userID pgtype.UUID) ([]Feedback, error)
+	GetFeedbackByUser(ctx context.Context, userID uuid.UUID) ([]Feedback, error)
 	GetFoodByBarcode(ctx context.Context, barcode *string) (FoodDatabase, error)
-	GetFoodByID(ctx context.Context, id pgtype.UUID) (FoodDatabase, error)
-	GetFoodItemByID(ctx context.Context, id pgtype.UUID) (FoodItem, error)
-	GetFoodItemsByMealID(ctx context.Context, mealID pgtype.UUID) ([]FoodItem, error)
-	GetFoodItemsByMealIDs(ctx context.Context, dollar_1 []pgtype.UUID) ([]FoodItem, error)
-	GetMealByID(ctx context.Context, id pgtype.UUID) (Meal, error)
+	GetFoodByID(ctx context.Context, id uuid.UUID) (FoodDatabase, error)
+	GetFoodItemByID(ctx context.Context, id uuid.UUID) (FoodItem, error)
+	GetFoodItemsByMealID(ctx context.Context, mealID uuid.UUID) ([]FoodItem, error)
+	GetFoodItemsByMealIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]FoodItem, error)
+	GetMealByID(ctx context.Context, id uuid.UUID) (Meal, error)
 	GetMealsByUserAndDate(ctx context.Context, arg GetMealsByUserAndDateParams) ([]Meal, error)
 	GetMealsWithFoodsInRange(ctx context.Context, arg GetMealsWithFoodsInRangeParams) ([]GetMealsWithFoodsInRangeRow, error)
 	GetRecentFoods(ctx context.Context, arg GetRecentFoodsParams) ([]GetRecentFoodsRow, error)
 	GetSubscriptionByRevenueCatUserID(ctx context.Context, revenuecatUserID string) (Subscription, error)
-	GetSubscriptionByUserID(ctx context.Context, userID pgtype.UUID) (Subscription, error)
+	GetSubscriptionByUserID(ctx context.Context, userID uuid.UUID) (Subscription, error)
 	GetUserAchievement(ctx context.Context, arg GetUserAchievementParams) (UserAchievement, error)
-	GetUserAchievements(ctx context.Context, userID pgtype.UUID) ([]GetUserAchievementsRow, error)
+	GetUserAchievements(ctx context.Context, userID uuid.UUID) ([]GetUserAchievementsRow, error)
 	GetUserByFirebaseUID(ctx context.Context, firebaseUid string) (User, error)
-	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
-	GetUserGoalByUserID(ctx context.Context, userID pgtype.UUID) (UserGoal, error)
-	GetUserStats(ctx context.Context, userID pgtype.UUID) (UserStat, error)
-	GetUserUnlockedAchievements(ctx context.Context, userID pgtype.UUID) ([]GetUserUnlockedAchievementsRow, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
+	GetUserGoalByUserID(ctx context.Context, userID uuid.UUID) (UserGoal, error)
+	GetUserStats(ctx context.Context, userID uuid.UUID) (UserStat, error)
+	GetUserUnlockedAchievements(ctx context.Context, userID uuid.UUID) ([]GetUserUnlockedAchievementsRow, error)
 	IncrementAIUsage(ctx context.Context, arg IncrementAIUsageParams) (AiUsage, error)
-	IncrementMealCount(ctx context.Context, userID pgtype.UUID) error
+	IncrementMealCount(ctx context.Context, userID uuid.UUID) error
 	ListActiveSubscriptions(ctx context.Context) ([]Subscription, error)
 	ListExpiredSubscriptions(ctx context.Context) ([]Subscription, error)
 	ListFeedback(ctx context.Context, arg ListFeedbackParams) ([]Feedback, error)
-	ListUserAIUsage(ctx context.Context, userID pgtype.UUID) ([]AiUsage, error)
+	ListUserAIUsage(ctx context.Context, userID uuid.UUID) ([]AiUsage, error)
 	ListVerifiedFoods(ctx context.Context, arg ListVerifiedFoodsParams) ([]FoodDatabase, error)
 	ResetAIUsage(ctx context.Context) error
 	SearchFoodByName(ctx context.Context, arg SearchFoodByNameParams) ([]FoodDatabase, error)

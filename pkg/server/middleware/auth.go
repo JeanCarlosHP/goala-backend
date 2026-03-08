@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	firebase "firebase.google.com/go/v4"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	fbApp "github.com/jeancarloshp/calorieai/pkg/firebase"
 	"go.opentelemetry.io/otel"
 
@@ -13,8 +13,8 @@ import (
 )
 
 func AuthRequired(firebaseApp *firebase.App, logger domain.Logger) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		ctx := c.UserContext()
+	return func(c fiber.Ctx) error {
+		ctx := c.Context()
 
 		tr := otel.Tracer("middleware/auth.go")
 		ctx, span := tr.Start(ctx, "AuthRequired")
@@ -57,8 +57,8 @@ func AuthRequired(firebaseApp *firebase.App, logger domain.Logger) fiber.Handler
 }
 
 func UserContext(userRepo *repositories.UserRepository, logger domain.Logger) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		ctx := c.UserContext()
+	return func(c fiber.Ctx) error {
+		ctx := c.Context()
 
 		tr := otel.Tracer("middleware/auth.go")
 		ctx, span := tr.Start(ctx, "UserContext")

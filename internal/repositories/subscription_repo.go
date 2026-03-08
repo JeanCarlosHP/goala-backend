@@ -30,7 +30,7 @@ func (r *SubscriptionRepository) Create(ctx context.Context, sub *domain.Subscri
 	defer span.End()
 
 	result, err := r.db.Querier.CreateSubscription(ctx, db.CreateSubscriptionParams{
-		UserID:                          stringToPgUUID(sub.UserID),
+		UserID:                          uuid.MustParse(sub.UserID),
 		RevenuecatUserID:                sub.RevenueCatUserID,
 		RevenuecatOriginalTransactionID: stringPtr(sub.RevenueCatOriginalTransactionID),
 		IsActive:                        sub.IsActive,
@@ -54,7 +54,7 @@ func (r *SubscriptionRepository) GetByUserID(ctx context.Context, userID string)
 	ctx, span := tr.Start(ctx, "GetByUserID")
 	defer span.End()
 
-	result, err := r.db.Querier.GetSubscriptionByUserID(ctx, stringToPgUUID(userID))
+	result, err := r.db.Querier.GetSubscriptionByUserID(ctx, uuid.MustParse(userID))
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
@@ -87,7 +87,7 @@ func (r *SubscriptionRepository) Upsert(ctx context.Context, sub *domain.Subscri
 	defer span.End()
 
 	result, err := r.db.Querier.UpsertSubscription(ctx, db.UpsertSubscriptionParams{
-		UserID:                          stringToPgUUID(sub.UserID),
+		UserID:                          uuid.MustParse(sub.UserID),
 		RevenuecatUserID:                sub.RevenueCatUserID,
 		RevenuecatOriginalTransactionID: stringPtr(sub.RevenueCatOriginalTransactionID),
 		IsActive:                        sub.IsActive,
@@ -112,7 +112,7 @@ func (r *SubscriptionRepository) Update(ctx context.Context, sub *domain.Subscri
 	defer span.End()
 
 	result, err := r.db.Querier.UpdateSubscription(ctx, db.UpdateSubscriptionParams{
-		UserID:             stringToPgUUID(sub.UserID),
+		UserID:             uuid.MustParse(sub.UserID),
 		IsActive:           sub.IsActive,
 		Plan:               sub.Plan.String(),
 		IsTrial:            sub.IsTrial,
@@ -178,7 +178,7 @@ func (r *SubscriptionRepository) ListExpired(ctx context.Context) ([]*domain.Sub
 func toSubscription(s *db.Subscription) *domain.Subscription {
 	return &domain.Subscription{
 		ID:                              s.ID,
-		UserID:                          uuid.UUID(s.UserID.Bytes).String(),
+		UserID:                          s.UserID.String(),
 		RevenueCatUserID:                s.RevenuecatUserID,
 		RevenueCatOriginalTransactionID: stringValue(s.RevenuecatOriginalTransactionID),
 		IsActive:                        s.IsActive,

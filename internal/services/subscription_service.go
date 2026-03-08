@@ -159,7 +159,7 @@ func (s *SubscriptionService) ProcessWebhookEvent(ctx context.Context, event *do
 
 func (s *SubscriptionService) mapProductIDToPlan(ctx context.Context, productID string) enum.SubscriptionPlan {
 	tr := otel.Tracer("services/subscription_service.go")
-	ctx, span := tr.Start(ctx, "mapProductIDToPlan")
+	_, span := tr.Start(ctx, "mapProductIDToPlan")
 	defer span.End()
 
 	switch productID {
@@ -174,7 +174,7 @@ func (s *SubscriptionService) mapProductIDToPlan(ctx context.Context, productID 
 
 func (s *SubscriptionService) isActiveEvent(ctx context.Context, eventType enum.RevenueCatEventType) bool {
 	tr := otel.Tracer("services/subscription_service.go")
-	ctx, span := tr.Start(ctx, "mapProductIDToPlan")
+	_, span := tr.Start(ctx, "isActiveEvent")
 	defer span.End()
 
 	switch eventType {

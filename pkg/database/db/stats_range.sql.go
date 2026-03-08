@@ -9,6 +9,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -39,27 +40,27 @@ ORDER BY m.meal_date ASC, m.meal_time ASC, m.created_at ASC
 `
 
 type GetMealsWithFoodsInRangeParams struct {
-	UserID     pgtype.UUID
+	UserID     uuid.UUID
 	MealDate   pgtype.Date
 	MealDate_2 pgtype.Date
 }
 
 type GetMealsWithFoodsInRangeRow struct {
-	MealID        pgtype.UUID
-	UserID        pgtype.UUID
+	MealID        uuid.UUID
+	UserID        uuid.UUID
 	MealType      *string
 	MealDate      pgtype.Date
 	MealTime      pgtype.Time
 	PhotoUrl      *string
 	MealCreatedAt *time.Time
-	FoodID        pgtype.UUID
+	FoodID        uuid.UUID
 	FoodName      *string
-	PortionSize   pgtype.Numeric
+	PortionSize   *float64
 	PortionUnit   *string
 	Calories      *int
-	Protein       pgtype.Numeric
-	Carbs         pgtype.Numeric
-	Fat           pgtype.Numeric
+	Protein       *float64
+	Carbs         *float64
+	Fat           *float64
 	Source        *string
 }
 

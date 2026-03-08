@@ -26,7 +26,7 @@ func NewUserService(userRepo *repositories.UserRepository, goalRepo *repositorie
 
 func (s *UserService) buildPhotoURL(ctx context.Context, photoPath *string) *string {
 	tr := otel.Tracer("services/user_service.go")
-	ctx, span := tr.Start(ctx, "buildPhotoURL")
+	_, span := tr.Start(ctx, "buildPhotoURL")
 	defer span.End()
 
 	if photoPath == nil || *photoPath == "" {

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"github.com/jeancarloshp/calorieai/pkg/database/db"
 	"go.opentelemetry.io/otel"
@@ -34,7 +33,7 @@ func (r *AchievementRepository) GetAllAchievements(ctx context.Context) ([]domai
 	achievements := make([]domain.Achievement, 0, len(dbAchievements))
 	for _, dbAch := range dbAchievements {
 		achievement := domain.Achievement{
-			ID:             uuidFromPgtype(dbAch.ID),
+			ID:             dbAch.ID,
 			NameKey:        dbAch.NameKey,
 			DescriptionKey: dbAch.DescriptionKey,
 			Icon:           dbAch.Icon,
@@ -57,18 +56,13 @@ func (r *AchievementRepository) GetAchievementByID(ctx context.Context, achievem
 	ctx, span := tr.Start(ctx, "GetAchievementByID")
 	defer span.End()
 
-	var pgAchievementID pgtype.UUID
-	if err := pgAchievementID.Scan(achievementID.String()); err != nil {
-		return nil, err
-	}
-
-	dbAch, err := r.queries.GetAchievementByID(ctx, pgAchievementID)
+	dbAch, err := r.queries.GetAchievementByID(ctx, achievementID)
 	if err != nil {
 		return nil, err
 	}
 
 	achievement := &domain.Achievement{
-		ID:             uuidFromPgtype(dbAch.ID),
+		ID:             dbAch.ID,
 		NameKey:        dbAch.NameKey,
 		DescriptionKey: dbAch.DescriptionKey,
 		Icon:           dbAch.Icon,
@@ -88,12 +82,7 @@ func (r *AchievementRepository) GetUserAchievements(ctx context.Context, userID 
 	ctx, span := tr.Start(ctx, "GetUserAchievements")
 	defer span.End()
 
-	var pgUserID pgtype.UUID
-	if err := pgUserID.Scan(userID.String()); err != nil {
-		return nil, err
-	}
-
-	dbUserAchievements, err := r.queries.GetUserAchievements(ctx, pgUserID)
+	dbUserAchievements, err := r.queries.GetUserAchievements(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +90,7 @@ func (r *AchievementRepository) GetUserAchievements(ctx context.Context, userID 
 	achievements := make([]domain.AchievementResponse, 0, len(dbUserAchievements))
 	for _, dbUA := range dbUserAchievements {
 		achievement := domain.AchievementResponse{
-			ID:             uuidFromPgtype(dbUA.AchievementID).String(),
+			ID:             dbUA.AchievementID.String(),
 			NameKey:        dbUA.NameKey,
 			DescriptionKey: dbUA.DescriptionKey,
 			Icon:           dbUA.Icon,
@@ -122,17 +111,9 @@ func (r *AchievementRepository) UpsertUserAchievement(ctx context.Context, userI
 	ctx, span := tr.Start(ctx, "UpsertUserAchievement")
 	defer span.End()
 
-	var pgUserID, pgAchievementID pgtype.UUID
-	if err := pgUserID.Scan(userID.String()); err != nil {
-		return err
-	}
-	if err := pgAchievementID.Scan(achievementID.String()); err != nil {
-		return err
-	}
-
 	params := db.UpsertUserAchievementParams{
-		UserID:        pgUserID,
-		AchievementID: pgAchievementID,
+		UserID:        userID,
+		AchievementID: achievementID,
 		Unlocked:      unlocked,
 		Progress:      int(progress),
 		UnlockedAt:    unlockedAt,
@@ -146,17 +127,9 @@ func (r *AchievementRepository) UpdateAchievementProgress(ctx context.Context, u
 	ctx, span := tr.Start(ctx, "UpdateAchievementProgress")
 	defer span.End()
 
-	var pgUserID, pgAchievementID pgtype.UUID
-	if err := pgUserID.Scan(userID.String()); err != nil {
-		return err
-	}
-	if err := pgAchievementID.Scan(achievementID.String()); err != nil {
-		return err
-	}
-
 	params := db.UpdateAchievementProgressParams{
-		UserID:        pgUserID,
-		AchievementID: pgAchievementID,
+		UserID:        userID,
+		AchievementID: achievementID,
 		Progress:      int(progress),
 	}
 
@@ -168,17 +141,9 @@ func (r *AchievementRepository) GetUserAchievement(ctx context.Context, userID, 
 	ctx, span := tr.Start(ctx, "GetUserAchievement")
 	defer span.End()
 
-	var pgUserID, pgAchievementID pgtype.UUID
-	if err := pgUserID.Scan(userID.String()); err != nil {
-		return nil, err
-	}
-	if err := pgAchievementID.Scan(achievementID.String()); err != nil {
-		return nil, err
-	}
-
 	params := db.GetUserAchievementParams{
-		UserID:        pgUserID,
-		AchievementID: pgAchievementID,
+		UserID:        userID,
+		AchievementID: achievementID,
 	}
 
 	dbUA, err := r.queries.GetUserAchievement(ctx, params)
@@ -187,9 +152,9 @@ func (r *AchievementRepository) GetUserAchievement(ctx context.Context, userID, 
 	}
 
 	userAchievement := &domain.UserAchievement{
-		ID:            uuidFromPgtype(dbUA.ID),
-		UserID:        uuidFromPgtype(dbUA.UserID),
-		AchievementID: uuidFromPgtype(dbUA.AchievementID),
+		ID:            dbUA.ID,
+		UserID:        dbUA.UserID,
+		AchievementID: dbUA.AchievementID,
 		Unlocked:      dbUA.Unlocked,
 		Progress:      int32(dbUA.Progress),
 		UnlockedAt:    dbUA.UnlockedAt,

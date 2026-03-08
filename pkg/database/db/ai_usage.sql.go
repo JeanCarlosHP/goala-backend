@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -30,7 +31,7 @@ RETURNING id, user_id, feature, usage_count, quota, period_start, period_end, cr
 `
 
 type CreateOrResetAIUsageParams struct {
-	UserID      pgtype.UUID
+	UserID      uuid.UUID
 	Feature     string
 	Quota       int
 	PeriodStart pgtype.Timestamptz
@@ -70,7 +71,7 @@ LIMIT 1
 `
 
 type GetAIUsageParams struct {
-	UserID  pgtype.UUID
+	UserID  uuid.UUID
 	Feature string
 }
 
@@ -100,7 +101,7 @@ LIMIT 1
 `
 
 type GetAIUsageByPeriodParams struct {
-	UserID      pgtype.UUID
+	UserID      uuid.UUID
 	Feature     string
 	PeriodStart pgtype.Timestamptz
 }
@@ -140,7 +141,7 @@ RETURNING id, user_id, feature, usage_count, quota, period_start, period_end, cr
 `
 
 type IncrementAIUsageParams struct {
-	UserID      pgtype.UUID
+	UserID      uuid.UUID
 	Feature     string
 	Quota       int
 	PeriodStart pgtype.Timestamptz
@@ -177,7 +178,7 @@ AND period_end > NOW()
 ORDER BY feature ASC
 `
 
-func (q *Queries) ListUserAIUsage(ctx context.Context, userID pgtype.UUID) ([]AiUsage, error) {
+func (q *Queries) ListUserAIUsage(ctx context.Context, userID uuid.UUID) ([]AiUsage, error) {
 	rows, err := q.db.Query(ctx, listUserAIUsage, userID)
 	if err != nil {
 		return nil, err

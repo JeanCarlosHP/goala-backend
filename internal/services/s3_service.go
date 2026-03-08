@@ -82,7 +82,7 @@ func (s *S3Service) UploadImage(ctx context.Context, fileContent io.Reader, file
 
 func getExtensionFromMimeType(ctx context.Context, mimeType string) string {
 	tr := otel.Tracer("services/s3_service.go")
-	ctx, span := tr.Start(ctx, "getExtensionFromMimeType")
+	_, span := tr.Start(ctx, "getExtensionFromMimeType")
 	defer span.End()
 
 	extensions := map[string]string{
@@ -240,7 +240,11 @@ func (s *S3Service) DownloadImage(ctx context.Context, imagePath string) ([]byte
 		s.logger.Error("failed to download image from S3", "error", err, "imagePath", imagePath)
 		return nil, fmt.Errorf("failed to download image: %w", err)
 	}
-	defer result.Body.Close()
+	defer func() {
+		if err := result.Body.Close(); err != nil {
+			s.logger.Warn("failed to close response body", "error", err)
+		}
+	}()
 
 	imageBytes, err := io.ReadAll(result.Body)
 	if err != nil {

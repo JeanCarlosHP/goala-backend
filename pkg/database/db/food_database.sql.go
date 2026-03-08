@@ -8,7 +8,7 @@ package db
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const createFoodFromBarcode = `-- name: CreateFoodFromBarcode :one
@@ -24,9 +24,9 @@ type CreateFoodFromBarcodeParams struct {
 	Name        string
 	Brand       *string
 	Calories    *int
-	Protein     pgtype.Numeric
-	Carbs       pgtype.Numeric
-	Fat         pgtype.Numeric
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
 	ServingSize *int
 	ServingUnit *string
 	Source      *string
@@ -103,7 +103,7 @@ const getFoodByID = `-- name: GetFoodByID :one
 SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at FROM food_database WHERE id = $1
 `
 
-func (q *Queries) GetFoodByID(ctx context.Context, id pgtype.UUID) (FoodDatabase, error) {
+func (q *Queries) GetFoodByID(ctx context.Context, id uuid.UUID) (FoodDatabase, error) {
 	row := q.db.QueryRow(ctx, getFoodByID, id)
 	var i FoodDatabase
 	err := row.Scan(
@@ -236,7 +236,7 @@ UPDATE food_database SET verified = $2, updated_at = NOW() WHERE id = $1
 `
 
 type UpdateFoodVerifiedParams struct {
-	ID       pgtype.UUID
+	ID       uuid.UUID
 	Verified *bool
 }
 
