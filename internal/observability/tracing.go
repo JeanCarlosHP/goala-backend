@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 func InitTracer(ctx context.Context, serviceName string, config *domain.Config) (*sdktrace.TracerProvider, error) {
@@ -18,11 +19,13 @@ func InitTracer(ctx context.Context, serviceName string, config *domain.Config) 
 		),
 	)
 	if err != nil {
+		otel.SetTracerProvider(noop.NewTracerProvider())
 		return nil, err
 	}
 
 	otelCollector, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpoint(config.OtelCollectorURL), otlptracehttp.WithInsecure())
 	if err != nil {
+		otel.SetTracerProvider(noop.NewTracerProvider())
 		return nil, err
 	}
 

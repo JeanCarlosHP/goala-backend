@@ -38,14 +38,13 @@ func main() {
 	ctx := context.Background()
 	tp, err := observability.InitTracer(ctx, "calorieai-backend", configurer)
 	if err != nil {
-		logger.Fatal("failed to initialize tracing:", err)
+		logger.Warn("failed to initialize tracing, using noop tracer:", err)
 	}
-	defer func() { _ = tp.Shutdown(ctx) }()
+	if tp != nil {
+		defer func() { _ = tp.Shutdown(ctx) }()
+	}
 
 	database := database.New(logger)
-	if err != nil {
-		logger.Fatal("failed to initialize database:", err)
-	}
 
 	err = database.NewConnection(configurer)
 	if err != nil {
