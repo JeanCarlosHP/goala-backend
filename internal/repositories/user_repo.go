@@ -26,8 +26,8 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	result, err := r.db.Querier.CreateUser(ctx, db.CreateUserParams{
 		ID:          user.ID,
 		FirebaseUid: user.FirebaseUID,
-		Email:       stringToPtr(user.Email),
-		DisplayName: stringToPtr(user.DisplayName),
+		Email:       new(user.Email),
+		DisplayName: new(user.DisplayName),
 		PhotoUrl:    user.PhotoURL,
 	})
 	if err != nil {
@@ -104,8 +104,8 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 
 	result, err := r.db.Querier.UpdateUser(ctx, db.UpdateUserParams{
 		ID:          user.ID,
-		Email:       stringToPtr(user.Email),
-		DisplayName: stringToPtr(user.DisplayName),
+		Email:       new(user.Email),
+		DisplayName: new(user.DisplayName),
 		PhotoUrl:    user.PhotoURL,
 	})
 	if err != nil {
@@ -131,17 +131,17 @@ func (r *UserRepository) UpdateProfile(ctx context.Context, user *domain.User) e
 
 	return r.db.Querier.UpdateUserProfile(ctx, db.UpdateUserProfileParams{
 		ID:                   user.ID,
-		DisplayName:          stringToPtr(user.DisplayName),
-		Email:                stringToPtr(user.Email),
+		DisplayName:          new(user.DisplayName),
+		Email:                new(user.Email),
 		PhotoUrl:             user.PhotoURL,
 		Weight:               int32PtrToIntPtr(user.Weight),
 		Height:               int32PtrToIntPtr(user.Height),
 		Age:                  int32PtrToIntPtr(user.Age),
 		Gender:               user.Gender,
 		ActivityLevel:        user.ActivityLevel,
-		Language:             stringToPtr(user.Language),
-		NotificationsEnabled: boolToPtr(user.NotificationsEnabled),
-		Timezone:             stringToPtr(user.Timezone),
+		Language:             new(user.Language),
+		NotificationsEnabled: new(user.NotificationsEnabled),
+		Timezone:             new(user.Timezone),
 	})
 }
 

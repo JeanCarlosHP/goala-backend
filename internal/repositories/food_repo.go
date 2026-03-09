@@ -27,13 +27,13 @@ func (r *FoodRepository) Create(ctx context.Context, food *domain.FoodItem) erro
 		ID:          food.ID,
 		MealID:      food.MealID,
 		Name:        food.Name,
-		PortionSize: &food.PortionSize,
-		PortionUnit: stringToPtr(food.PortionUnit),
+		PortionSize: new(food.PortionSize),
+		PortionUnit: new(food.PortionUnit),
 		Calories:    food.Calories,
-		Protein:     &food.Protein,
-		Carbs:       &food.Carbs,
-		Fat:         &food.Fat,
-		Source:      stringToPtr(food.Source),
+		Protein:     new(food.Protein),
+		Carbs:       new(food.Carbs),
+		Fat:         new(food.Fat),
+		Source:      new(food.Source),
 	})
 }
 
@@ -53,12 +53,12 @@ func (r *FoodRepository) GetByMealID(ctx context.Context, mealID uuid.UUID) ([]d
 			ID:          result.ID,
 			MealID:      result.MealID,
 			Name:        result.Name,
-			PortionSize: *result.PortionSize,
+			PortionSize: valueOrZero(result.PortionSize),
 			PortionUnit: stringPtrValue(result.PortionUnit),
 			Calories:    result.Calories,
-			Protein:     *result.Protein,
-			Carbs:       *result.Carbs,
-			Fat:         *result.Fat,
+			Protein:     valueOrZero(result.Protein),
+			Carbs:       valueOrZero(result.Carbs),
+			Fat:         valueOrZero(result.Fat),
 			Source:      stringPtrValue(result.Source),
 		})
 	}
@@ -82,12 +82,12 @@ func (r *FoodRepository) GetByMealIDs(ctx context.Context, mealIDs []uuid.UUID) 
 			ID:          result.ID,
 			MealID:      result.MealID,
 			Name:        result.Name,
-			PortionSize: *result.PortionSize,
-			PortionUnit: *result.PortionUnit,
+			PortionSize: valueOrZero(result.PortionSize),
+			PortionUnit: stringPtrValue(result.PortionUnit),
 			Calories:    result.Calories,
-			Protein:     *result.Protein,
-			Carbs:       *result.Carbs,
-			Fat:         *result.Fat,
+			Protein:     valueOrZero(result.Protein),
+			Carbs:       valueOrZero(result.Carbs),
+			Fat:         valueOrZero(result.Fat),
 			Source:      stringPtrValue(result.Source),
 		}
 		foodsByMeal[food.MealID] = append(foodsByMeal[food.MealID], food)
@@ -103,7 +103,7 @@ func (r *FoodRepository) SearchFoodDatabase(ctx context.Context, query string, l
 
 	results, err := r.db.Querier.SearchFoodDatabase(ctx, db.SearchFoodDatabaseParams{
 		PlaintoTsquery: query,
-		Column2:        stringToPtr(query),
+		Column2:        new(query),
 		Limit:          limit,
 	})
 	if err != nil {
@@ -117,9 +117,9 @@ func (r *FoodRepository) SearchFoodDatabase(ctx context.Context, query string, l
 			Name:            result.Name,
 			Brand:           result.Brand,
 			CaloriesPer100g: intPtrValue(result.CaloriesPer100g),
-			ProteinPer100g:  *result.ProteinPer100g,
-			CarbsPer100g:    *result.CarbsPer100g,
-			FatPer100g:      *result.FatPer100g,
+			ProteinPer100g:  valueOrZero(result.ProteinPer100g),
+			CarbsPer100g:    valueOrZero(result.CarbsPer100g),
+			FatPer100g:      valueOrZero(result.FatPer100g),
 			Source:          stringPtrValue(result.Source),
 			CreatedAt:       timePtrValue(result.CreatedAt),
 		})
@@ -145,12 +145,12 @@ func (r *FoodRepository) GetRecentFoods(ctx context.Context, userID uuid.UUID, l
 	for _, result := range results {
 		foods = append(foods, domain.RecentFood{
 			Name:        result.Name,
-			PortionSize: *result.PortionSize,
+			PortionSize: valueOrZero(result.PortionSize),
 			PortionUnit: stringPtrValue(result.PortionUnit),
 			Calories:    result.Calories,
-			Protein:     *result.Protein,
-			Carbs:       *result.Carbs,
-			Fat:         *result.Fat,
+			Protein:     valueOrZero(result.Protein),
+			Carbs:       valueOrZero(result.Carbs),
+			Fat:         valueOrZero(result.Fat),
 			LastUsed:    timePtrValue(result.LastUsed),
 		})
 	}
@@ -172,12 +172,12 @@ func (r *FoodRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Foo
 		ID:          result.ID,
 		MealID:      result.MealID,
 		Name:        result.Name,
-		PortionSize: *result.PortionSize,
+		PortionSize: valueOrZero(result.PortionSize),
 		PortionUnit: stringPtrValue(result.PortionUnit),
 		Calories:    result.Calories,
-		Protein:     *result.Protein,
-		Carbs:       *result.Carbs,
-		Fat:         *result.Fat,
+		Protein:     valueOrZero(result.Protein),
+		Carbs:       valueOrZero(result.Carbs),
+		Fat:         valueOrZero(result.Fat),
 		Source:      stringPtrValue(result.Source),
 	}, nil
 }
@@ -190,13 +190,13 @@ func (r *FoodRepository) Update(ctx context.Context, id uuid.UUID, food *domain.
 	result, err := r.db.Querier.UpdateFoodItemComplete(ctx, db.UpdateFoodItemCompleteParams{
 		ID:          id,
 		Name:        food.Name,
-		PortionSize: &food.PortionSize,
-		PortionUnit: stringToPtr(food.PortionUnit),
+		PortionSize: new(food.PortionSize),
+		PortionUnit: new(food.PortionUnit),
 		Calories:    food.Calories,
-		Protein:     &food.Protein,
-		Carbs:       &food.Carbs,
-		Fat:         &food.Fat,
-		Source:      stringToPtr(food.Source),
+		Protein:     new(food.Protein),
+		Carbs:       new(food.Carbs),
+		Fat:         new(food.Fat),
+		Source:      new(food.Source),
 	})
 	if err != nil {
 		return nil, err
@@ -206,12 +206,12 @@ func (r *FoodRepository) Update(ctx context.Context, id uuid.UUID, food *domain.
 		ID:          result.ID,
 		MealID:      result.MealID,
 		Name:        result.Name,
-		PortionSize: *result.PortionSize,
+		PortionSize: valueOrZero(result.PortionSize),
 		PortionUnit: stringPtrValue(result.PortionUnit),
 		Calories:    result.Calories,
-		Protein:     *result.Protein,
-		Carbs:       *result.Carbs,
-		Fat:         *result.Fat,
+		Protein:     valueOrZero(result.Protein),
+		Carbs:       valueOrZero(result.Carbs),
+		Fat:         valueOrZero(result.Fat),
 		Source:      stringPtrValue(result.Source),
 	}, nil
 }
@@ -234,13 +234,13 @@ func (r *FoodRepository) CreateStandalone(ctx context.Context, food *domain.Crea
 		ID:          id,
 		MealID:      food.MealID,
 		Name:        food.Name,
-		PortionSize: &food.PortionSize,
-		PortionUnit: stringToPtr(food.PortionUnit),
+		PortionSize: new(food.PortionSize),
+		PortionUnit: new(food.PortionUnit),
 		Calories:    food.Calories,
-		Protein:     &food.Protein,
-		Carbs:       &food.Carbs,
-		Fat:         &food.Fat,
-		Source:      stringToPtr(food.Source),
+		Protein:     new(food.Protein),
+		Carbs:       new(food.Carbs),
+		Fat:         new(food.Fat),
+		Source:      new(food.Source),
 	})
 	if err != nil {
 		return nil, err
@@ -250,12 +250,12 @@ func (r *FoodRepository) CreateStandalone(ctx context.Context, food *domain.Crea
 		ID:          result.ID,
 		MealID:      result.MealID,
 		Name:        result.Name,
-		PortionSize: *result.PortionSize,
+		PortionSize: valueOrZero(result.PortionSize),
 		PortionUnit: stringPtrValue(result.PortionUnit),
 		Calories:    result.Calories,
-		Protein:     *result.Protein,
-		Carbs:       *result.Carbs,
-		Fat:         *result.Fat,
+		Protein:     valueOrZero(result.Protein),
+		Carbs:       valueOrZero(result.Carbs),
+		Fat:         valueOrZero(result.Fat),
 		Source:      stringPtrValue(result.Source),
 	}, nil
 }

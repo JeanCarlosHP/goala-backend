@@ -36,7 +36,7 @@ func (r *MealRepository) Create(ctx context.Context, meal *domain.Meal) error {
 	result, err := r.db.Querier.CreateMeal(ctx, db.CreateMealParams{
 		ID:       meal.ID,
 		UserID:   meal.UserID,
-		MealType: stringToPtr(meal.MealType),
+		MealType: new(meal.MealType),
 		MealDate: mealDate,
 		MealTime: mealTime,
 		PhotoUrl: meal.PhotoURL,
@@ -190,13 +190,13 @@ func (r *MealRepository) GetMealsWithFoodsInRange(ctx context.Context, userID uu
 			food := domain.FoodItem{
 				ID:          row.FoodID,
 				MealID:      mealID,
-				Name:        *row.FoodName,
-				PortionSize: *row.PortionSize,
+				Name:        valueOrZero(row.FoodName),
+				PortionSize: valueOrZero(row.PortionSize),
 				PortionUnit: stringPtrValue(row.PortionUnit),
 				Calories:    intPtrValue(row.Calories),
-				Protein:     *row.Protein,
-				Carbs:       *row.Carbs,
-				Fat:         *row.Fat,
+				Protein:     valueOrZero(row.Protein),
+				Carbs:       valueOrZero(row.Carbs),
+				Fat:         valueOrZero(row.Fat),
 				Source:      stringPtrValue(row.Source),
 			}
 			meal.Foods = append(meal.Foods, food)

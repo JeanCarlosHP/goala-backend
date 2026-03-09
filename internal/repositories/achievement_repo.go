@@ -39,10 +39,7 @@ func (r *AchievementRepository) GetAllAchievements(ctx context.Context) ([]domai
 			Icon:           dbAch.Icon,
 			Target:         int32(dbAch.Target),
 			Category:       dbAch.Category,
-		}
-
-		if dbAch.CreatedAt != nil {
-			achievement.CreatedAt = *dbAch.CreatedAt
+			CreatedAt:      timePtrValue(dbAch.CreatedAt),
 		}
 
 		achievements = append(achievements, achievement)
@@ -68,10 +65,7 @@ func (r *AchievementRepository) GetAchievementByID(ctx context.Context, achievem
 		Icon:           dbAch.Icon,
 		Target:         int32(dbAch.Target),
 		Category:       dbAch.Category,
-	}
-
-	if dbAch.CreatedAt != nil {
-		achievement.CreatedAt = *dbAch.CreatedAt
+		CreatedAt:      timePtrValue(dbAch.CreatedAt),
 	}
 
 	return achievement, nil
@@ -158,14 +152,8 @@ func (r *AchievementRepository) GetUserAchievement(ctx context.Context, userID, 
 		Unlocked:      dbUA.Unlocked,
 		Progress:      int32(dbUA.Progress),
 		UnlockedAt:    dbUA.UnlockedAt,
-	}
-
-	if dbUA.CreatedAt != nil {
-		userAchievement.CreatedAt = *dbUA.CreatedAt
-	}
-
-	if dbUA.UpdatedAt != nil {
-		userAchievement.UpdatedAt = *dbUA.UpdatedAt
+		CreatedAt:     timePtrValue(dbUA.CreatedAt),
+		UpdatedAt:     timePtrValue(dbUA.UpdatedAt),
 	}
 
 	return userAchievement, nil

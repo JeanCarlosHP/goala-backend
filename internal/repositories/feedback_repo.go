@@ -30,9 +30,9 @@ func (r *FeedbackRepository) Create(ctx context.Context, userID uuid.UUID, req *
 	var appVersion *string
 
 	if req.DeviceInfo != nil {
-		platform = &req.DeviceInfo.Platform
-		osVersion = &req.DeviceInfo.OsVersion
-		appVersion = &req.DeviceInfo.AppVersion
+		platform = new(req.DeviceInfo.Platform)
+		osVersion = new(req.DeviceInfo.OsVersion)
+		appVersion = new(req.DeviceInfo.AppVersion)
 	}
 
 	result, err := r.db.Querier.CreateFeedback(ctx, db.CreateFeedbackParams{
@@ -49,9 +49,10 @@ func (r *FeedbackRepository) Create(ctx context.Context, userID uuid.UUID, req *
 		return nil, err
 	}
 
+	userIDStr := result.UserID.String()
 	return &domain.Feedback{
 		ID:          uuid.UUID(result.ID).String(),
-		UserID:      new(result.UserID.String()),
+		UserID:      new(userIDStr),
 		Type:        enum.FeedbackType(result.Type),
 		Title:       result.Title,
 		Description: result.Description,
@@ -74,9 +75,10 @@ func (r *FeedbackRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain
 		return nil, err
 	}
 
+	userIDStr := result.UserID.String()
 	return &domain.Feedback{
 		ID:          uuid.UUID(result.ID).String(),
-		UserID:      new(result.UserID.String()),
+		UserID:      new(userIDStr),
 		Type:        enum.FeedbackType(result.Type),
 		Title:       result.Title,
 		Description: result.Description,
@@ -104,9 +106,10 @@ func (r *FeedbackRepository) List(ctx context.Context, limit, offset int32) ([]d
 
 	feedbacks := make([]domain.Feedback, len(results))
 	for i, result := range results {
+		userIDStr := result.UserID.String()
 		feedbacks[i] = domain.Feedback{
 			ID:          uuid.UUID(result.ID).String(),
-			UserID:      new(result.UserID.String()),
+			UserID:      new(userIDStr),
 			Type:        enum.FeedbackType(result.Type),
 			Title:       result.Title,
 			Description: result.Description,
@@ -134,9 +137,10 @@ func (r *FeedbackRepository) GetByUser(ctx context.Context, userID uuid.UUID) ([
 
 	feedbacks := make([]domain.Feedback, len(results))
 	for i, result := range results {
+		userIDStr := result.UserID.String()
 		feedbacks[i] = domain.Feedback{
 			ID:          uuid.UUID(result.ID).String(),
-			UserID:      new(result.UserID.String()),
+			UserID:      new(userIDStr),
 			Type:        enum.FeedbackType(result.Type),
 			Title:       result.Title,
 			Description: result.Description,

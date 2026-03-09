@@ -108,6 +108,8 @@ func (r *StatsRepository) UpdateUserStats(ctx context.Context, stats *domain.Use
 	if stats.LastLogDate != nil {
 		lastLogDate.Time = *stats.LastLogDate
 		lastLogDate.Valid = true
+	} else {
+		lastLogDate.Valid = false
 	}
 
 	params := db.UpdateUserStatsParams{

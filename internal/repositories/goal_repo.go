@@ -26,9 +26,9 @@ func (r *GoalRepository) Upsert(ctx context.Context, goal *domain.UserGoal) erro
 	result, err := r.db.Querier.UpsertUserGoal(ctx, db.UpsertUserGoalParams{
 		UserID:        goal.UserID,
 		DailyCalories: goal.DailyCalorieGoal,
-		Protein:       intToPtr(goal.DailyProteinGoal),
-		Carbs:         intToPtr(goal.DailyCarbsGoal),
-		Fat:           intToPtr(goal.DailyFatGoal),
+		Protein:       new(goal.DailyProteinGoal),
+		Carbs:         new(goal.DailyCarbsGoal),
+		Fat:           new(goal.DailyFatGoal),
 	})
 	if err != nil {
 		return err

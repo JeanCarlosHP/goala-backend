@@ -32,7 +32,7 @@ func (r *SubscriptionRepository) Create(ctx context.Context, sub *domain.Subscri
 	result, err := r.db.Querier.CreateSubscription(ctx, db.CreateSubscriptionParams{
 		UserID:                          uuid.MustParse(sub.UserID),
 		RevenuecatUserID:                sub.RevenueCatUserID,
-		RevenuecatOriginalTransactionID: stringPtr(sub.RevenueCatOriginalTransactionID),
+		RevenuecatOriginalTransactionID: new(sub.RevenueCatOriginalTransactionID),
 		IsActive:                        sub.IsActive,
 		Plan:                            sub.Plan.String(),
 		IsTrial:                         sub.IsTrial,
@@ -89,7 +89,7 @@ func (r *SubscriptionRepository) Upsert(ctx context.Context, sub *domain.Subscri
 	result, err := r.db.Querier.UpsertSubscription(ctx, db.UpsertSubscriptionParams{
 		UserID:                          uuid.MustParse(sub.UserID),
 		RevenuecatUserID:                sub.RevenueCatUserID,
-		RevenuecatOriginalTransactionID: stringPtr(sub.RevenueCatOriginalTransactionID),
+		RevenuecatOriginalTransactionID: new(sub.RevenueCatOriginalTransactionID),
 		IsActive:                        sub.IsActive,
 		Plan:                            sub.Plan.String(),
 		IsTrial:                         sub.IsTrial,
@@ -134,7 +134,7 @@ func (r *SubscriptionRepository) IsEventProcessed(ctx context.Context, eventID s
 	ctx, span := tr.Start(ctx, "IsEventProcessed")
 	defer span.End()
 
-	exists, err := r.db.Querier.CheckEventProcessed(ctx, stringPtr(eventID))
+	exists, err := r.db.Querier.CheckEventProcessed(ctx, new(eventID))
 	if err != nil {
 		return false, err
 	}
@@ -180,7 +180,7 @@ func toSubscription(s *db.Subscription) *domain.Subscription {
 		ID:                              s.ID,
 		UserID:                          s.UserID.String(),
 		RevenueCatUserID:                s.RevenuecatUserID,
-		RevenueCatOriginalTransactionID: stringValue(s.RevenuecatOriginalTransactionID),
+		RevenueCatOriginalTransactionID: stringPtrValue(s.RevenuecatOriginalTransactionID),
 		IsActive:                        s.IsActive,
 		Plan:                            enum.SubscriptionPlan(s.Plan),
 		IsTrial:                         s.IsTrial,
@@ -192,20 +192,6 @@ func toSubscription(s *db.Subscription) *domain.Subscription {
 		CreatedAt:                       s.CreatedAt.Time,
 		UpdatedAt:                       s.UpdatedAt.Time,
 	}
-}
-
-func stringPtr(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
-}
-
-func stringValue(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }
 
 func toNullTimestamp(t *time.Time) pgtype.Timestamptz {

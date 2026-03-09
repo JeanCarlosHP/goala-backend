@@ -4,10 +4,6 @@ import (
 	"time"
 )
 
-func stringToPtr(s string) *string {
-	return &s
-}
-
 func timePtrValue(t *time.Time) time.Time {
 	if t == nil {
 		return time.Time{}
@@ -22,11 +18,14 @@ func stringPtrValue(s *string) string {
 	return *s
 }
 
-func intToPtr(i int) *int {
-	return &i
+func intPtrValue(i *int) int {
+	if i == nil {
+		return 0
+	}
+	return *i
 }
 
-func intPtrValue(i *int) int {
+func int32PtrValue(i *int32) int32 {
 	if i == nil {
 		return 0
 	}
@@ -56,6 +55,10 @@ func boolPtrValue(b *bool) bool {
 	return *b
 }
 
-func boolToPtr(b bool) *bool {
-	return new(b)
+func valueOrZero[T any](v *T) T {
+	if v == nil {
+		var zero T
+		return zero
+	}
+	return *v
 }
