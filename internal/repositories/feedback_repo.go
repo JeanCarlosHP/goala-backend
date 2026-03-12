@@ -137,9 +137,10 @@ func (r *FeedbackRepository) GetByUser(ctx context.Context, userID uuid.UUID) ([
 
 	feedbacks := make([]domain.Feedback, len(results))
 	for i, result := range results {
+		userIDStr := result.UserID.String()
 		feedbacks[i] = domain.Feedback{
 			ID:          uuid.UUID(result.ID).String(),
-			UserID:      new(result.UserID.String()),
+			UserID:      new(userIDStr),
 			Type:        enum.FeedbackType(result.Type),
 			Title:       result.Title,
 			Description: result.Description,
