@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/cockroachdb"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
@@ -59,7 +58,7 @@ func (mg *Migrator) Migrate() (err error) {
 	}()
 
 	v, d, err := mg.migrator.Version()
-	if err != nil {
+	if err != nil && err != migrate.ErrNilVersion {
 		return fmt.Errorf("get current migration version: %w", err)
 	}
 
