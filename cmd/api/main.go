@@ -66,9 +66,12 @@ func main() {
 	subscriptionRepo := repositories.NewSubscriptionRepository(database)
 	aiUsageRepo := repositories.NewAIUsageRepository(database)
 
+	cacheService := services.NewRedisCacheService(configurer, logger)
+	meiliService := services.NewMeiliSearchService(configurer, logger)
+
 	userService := services.NewUserService(userRepo, goalRepo, configurer.CDNDomain)
 	mealService := services.NewMealService(mealRepo, foodRepo)
-	foodService := services.NewFoodService(foodRepo)
+	foodService := services.NewFoodService(foodRepo, configurer, cacheService, meiliService, logger)
 	statsService := services.NewStatsService(statsRepo, mealRepo, foodRepo, logger)
 	achievementService := services.NewAchievementService(achievementRepo, statsRepo, logger)
 	feedbackService := services.NewFeedbackService(feedbackRepo, logger)
@@ -86,7 +89,7 @@ func main() {
 
 	authHandler := handlers.NewAuthHandler(userService, firebaseApp, logger)
 	userHandler := handlers.NewUserHandler(userService, s3Service, logger)
-	mealHandler := handlers.NewMealHandler(mealService, userService, logger)
+	mealHandler := handlers.NewMealHandler(mealService, foodService, userService, logger)
 	foodHandler := handlers.NewFoodHandler(foodService, validator.New(), logger)
 	statsHandler := handlers.NewStatsHandler(statsService, logger)
 	achievementHandler := handlers.NewAchievementHandler(achievementService, logger)
@@ -118,11 +121,14 @@ func main() {
 	protected.Post("/user/avatar/presigned-url", userHandler.GenerateAvatarUploadURL)
 
 	protected.Get("/meals", mealHandler.GetMeals)
+	protected.Get("/meals/:date", mealHandler.GetMealsByPathDate)
 	protected.Post("/meals", mealHandler.CreateMeal)
+	protected.Post("/meals/log", mealHandler.LogFood)
 	protected.Get("/summary/daily", mealHandler.GetDailySummary)
 
 	protected.Get("/foods/search", foodHandler.SearchFoods)
 	protected.Get("/foods/recent", foodHandler.GetRecentFoods)
+	protected.Post("/foods/:id/favorite", foodHandler.ToggleFavorite)
 	protected.Post("/ai/autocomplete", foodHandler.AutocompleteFoodMacros)
 
 	protected.Post("/food-items", foodHandler.CreateFoodItem)

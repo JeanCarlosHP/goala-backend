@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -137,4 +138,90 @@ func (s *MealService) GetDailySummary(ctx context.Context, userID uuid.UUID, dat
 	}
 
 	return summary, nil
+}
+
+func (s *MealService) LogFood(ctx context.Context, userID uuid.UUID, req domain.LogMealFoodRequest) (*domain.Meal, error) {
+	tr := otel.Tracer("services/meal_service.go")
+	ctx, span := tr.Start(ctx, "LogFood")
+	defer span.End()
+
+	mealDate, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		return nil, fmt.Errorf("invalid meal date format: %w", err)
+	}
+
+	totalGrams := req.Quantity
+	portionUnit := strings.TrimSpace(req.PortionName)
+	if portionUnit == "" {
+		portionUnit = "g"
+	}
+
+	if !strings.EqualFold(portionUnit, "g") {
+		if req.PortionGrams == nil || *req.PortionGrams <= 0 {
+			return nil, fmt.Errorf("portion grams is required for non-gram portions")
+		}
+		totalGrams = req.Quantity * *req.PortionGrams
+	}
+
+	var meal *domain.Meal
+	meals, err := s.mealRepo.GetByUserAndDate(ctx, userID, mealDate)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range meals {
+		if meals[i].MealType == req.MealType {
+			meal = &meals[i]
+			break
+		}
+	}
+
+	if meal == nil {
+		meal = &domain.Meal{
+			ID:       uuid.New(),
+			UserID:   userID,
+			MealType: req.MealType,
+			MealDate: mealDate,
+		}
+		if err := s.mealRepo.Create(ctx, meal); err != nil {
+			return nil, err
+		}
+	}
+
+	foodID := req.Food.ID
+	factor := totalGrams / 100
+	calories := int(req.Food.Calories*factor + 0.5)
+	protein := roundToOneDecimal(req.Food.Protein * factor)
+	carbs := roundToOneDecimal(req.Food.Carbs * factor)
+	fat := roundToOneDecimal(req.Food.Fat * factor)
+
+	foodItem, err := s.foodRepo.CreateLoggedFoodItem(
+		ctx,
+		meal.ID,
+		foodID,
+		buildFoodDisplayName(req.Food),
+		req.Quantity,
+		portionUnit,
+		calories,
+		protein,
+		carbs,
+		fat,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	meal.Foods = append(meal.Foods, *foodItem)
+	return meal, nil
+}
+
+func roundToOneDecimal(value float64) float64 {
+	return float64(int(value*10+0.5)) / 10
+}
+
+func buildFoodDisplayName(food domain.SearchFood) string {
+	if food.Brand != nil && strings.TrimSpace(*food.Brand) != "" {
+		return strings.TrimSpace(*food.Brand) + " - " + food.Name
+	}
+	return food.Name
 }

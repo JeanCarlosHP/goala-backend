@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -23,18 +25,43 @@ func NewFoodHandler(foodService *services.FoodService, validator *validator.Vali
 }
 
 func (h *FoodHandler) SearchFoods(c fiber.Ctx) error {
-	query := c.Query("q")
-	if query == "" {
+	userID := c.Locals("user_id").(string)
+
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
-			"error":   "missing_query_parameter",
-			"message": "query parameter 'q' is required",
+			"error":   "invalid_user_id",
+			"message": "invalid user ID",
 		})
 	}
 
-	foods, err := h.foodService.SearchFoods(c.Context(), query)
+	limit := 20
+	if rawLimit := c.Query("limit"); rawLimit != "" {
+		if _, err := fmt.Sscanf(rawLimit, "%d", &limit); err != nil || limit < 1 || limit > 50 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"success": false,
+				"error":   "invalid_limit_parameter",
+				"message": "query parameter 'limit' must be between 1 and 50",
+			})
+		}
+	}
+
+	req := domain.FoodSearchRequest{
+		Query: c.Query("q"),
+		Limit: limit,
+	}
+	if err := h.validator.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"error":   "validation_failed",
+			"message": err.Error(),
+		})
+	}
+
+	result, err := h.foodService.SearchFoodsManual(c.Context(), parsedUserID, req)
 	if err != nil {
-		h.logger.Error("failed to search foods", "error", err, "query", query)
+		h.logger.Error("failed to search foods", "error", err, "query", req.Query)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"error":   "search_foods_failed",
@@ -44,7 +71,7 @@ func (h *FoodHandler) SearchFoods(c fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"success": true,
-		"data":    foods,
+		"data":    result,
 	})
 }
 
@@ -266,6 +293,57 @@ func (h *FoodHandler) UpdateFoodItem(c fiber.Ctx) error {
 		"success": true,
 		"data":    response,
 		"message": "food item updated successfully",
+	})
+}
+
+type ToggleFavoriteRequest struct {
+	Favorite bool `json:"favorite"`
+}
+
+func (h *FoodHandler) ToggleFavorite(c fiber.Ctx) error {
+	userID := c.Locals("user_id").(string)
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"error":   "invalid_user_id",
+			"message": "invalid user ID",
+		})
+	}
+
+	foodID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"error":   "invalid_food_id",
+			"message": "invalid food id",
+		})
+	}
+
+	var req ToggleFavoriteRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"error":   "invalid_request_body",
+			"message": "invalid request body",
+		})
+	}
+
+	if err := h.foodService.ToggleFavorite(c.Context(), parsedUserID, foodID, req.Favorite); err != nil {
+		h.logger.Error("failed to toggle favorite", "error", err, "food_id", foodID.String())
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"error":   "toggle_favorite_failed",
+			"message": "failed to update favorite food",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data": fiber.Map{
+			"food_id":  foodID,
+			"favorite": req.Favorite,
+		},
 	})
 }
 

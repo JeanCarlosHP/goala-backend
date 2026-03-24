@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
@@ -26,7 +29,7 @@ func NewBarcodeService(
 ) *BarcodeService {
 	openFoodFactsURL := cfg.OpenFoodFactsAPIURL
 	if openFoodFactsURL == "" {
-		openFoodFactsURL = "https://world.openfoodfacts.org/api/v2"
+		openFoodFactsURL = "https://world.openfoodfacts.org"
 	}
 
 	return &BarcodeService{
@@ -43,6 +46,11 @@ func (s *BarcodeService) GetFoodByBarcode(ctx context.Context, barcode string) (
 	tr := otel.Tracer("services/barcode_service.go")
 	ctx, span := tr.Start(ctx, "GetFoodByBarcode")
 	defer span.End()
+
+	barcode = normalizeBarcode(barcode)
+	if barcode == "" {
+		return nil, fmt.Errorf("barcode is required")
+	}
 
 	cached, err := s.foodRepo.GetFoodByBarcode(ctx, &barcode)
 	if err == nil {
@@ -69,9 +77,20 @@ func (s *BarcodeService) fetchFromOpenFoodFacts(ctx context.Context, barcode str
 	ctx, span := tr.Start(ctx, "fetchFromOpenFoodFacts")
 	defer span.End()
 
-	url := fmt.Sprintf("%s/product/%s.json", s.openFoodFactsURL, barcode)
+	fields := strings.Join([]string{
+		"code",
+		"product_name",
+		"brands",
+		"serving_size",
+		"nutriments",
+	}, ",")
+	requestURL := fmt.Sprintf("%s/api/v3/product/%s?fields=%s",
+		strings.TrimRight(s.openFoodFactsURL, "/"),
+		url.PathEscape(barcode),
+		url.QueryEscape(fields),
+	)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -97,17 +116,26 @@ func (s *BarcodeService) fetchFromOpenFoodFacts(ctx context.Context, barcode str
 	}
 
 	var offResp struct {
-		Status  int `json:"status"`
+		Code    string `json:"code"`
 		Product struct {
-			ProductName       string `json:"product_name"`
-			Brands            string `json:"brands"`
-			NutrimentsPer100g struct {
-				EnergyKcal100g float64 `json:"energy-kcal_100g"`
-				Proteins100g   float64 `json:"proteins_100g"`
-				Carbs100g      float64 `json:"carbohydrates_100g"`
-				Fat100g        float64 `json:"fat_100g"`
+			ProductName string `json:"product_name"`
+			Brands      string `json:"brands"`
+			ServingSize string `json:"serving_size"`
+			Nutriments  struct {
+				EnergyKcal100g *float64 `json:"energy-kcal_100g"`
+				EnergyKcal     *float64 `json:"energy-kcal"`
+				Proteins100g   *float64 `json:"proteins_100g"`
+				Proteins       *float64 `json:"proteins"`
+				Carbs100g      *float64 `json:"carbohydrates_100g"`
+				Carbs          *float64 `json:"carbohydrates"`
+				Fat100g        *float64 `json:"fat_100g"`
+				Fat            *float64 `json:"fat"`
 			} `json:"nutriments"`
 		} `json:"product"`
+		Status string `json:"status"`
+		Result struct {
+			ID string `json:"id"`
+		} `json:"result"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&offResp); err != nil {
@@ -115,25 +143,32 @@ func (s *BarcodeService) fetchFromOpenFoodFacts(ctx context.Context, barcode str
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	if offResp.Status != 1 {
+	if offResp.Product.ProductName == "" {
 		return nil, fmt.Errorf("product not found in OpenFoodFacts")
 	}
 
 	source := "OpenFoodFacts"
-	brand := offResp.Product.Brands
-	servingSize := int32(100)
-	servingUnit := "g"
+	brand := strings.TrimSpace(offResp.Product.Brands)
+	servingSize, servingUnit := parseServingSize(offResp.Product.ServingSize)
+	if servingSize == nil {
+		defaultServingSize := int32(100)
+		servingSize = &defaultServingSize
+	}
+	if servingUnit == nil {
+		defaultServingUnit := "g"
+		servingUnit = &defaultServingUnit
+	}
 
 	return &domain.FoodBarcodeResponse{
 		Barcode:     barcode,
 		Name:        offResp.Product.ProductName,
-		Brand:       &brand,
-		Calories:    int32(offResp.Product.NutrimentsPer100g.EnergyKcal100g),
-		Protein:     int32(offResp.Product.NutrimentsPer100g.Proteins100g),
-		Carbs:       int32(offResp.Product.NutrimentsPer100g.Carbs100g),
-		Fat:         int32(offResp.Product.NutrimentsPer100g.Fat100g),
-		ServingSize: &servingSize,
-		ServingUnit: &servingUnit,
+		Brand:       optionalString(brand),
+		Calories:    int32(roundNutritionValue(firstNonNilFloat64(offResp.Product.Nutriments.EnergyKcal100g, offResp.Product.Nutriments.EnergyKcal))),
+		Protein:     int32(roundNutritionValue(firstNonNilFloat64(offResp.Product.Nutriments.Proteins100g, offResp.Product.Nutriments.Proteins))),
+		Carbs:       int32(roundNutritionValue(firstNonNilFloat64(offResp.Product.Nutriments.Carbs100g, offResp.Product.Nutriments.Carbs))),
+		Fat:         int32(roundNutritionValue(firstNonNilFloat64(offResp.Product.Nutriments.Fat100g, offResp.Product.Nutriments.Fat))),
+		ServingSize: servingSize,
+		ServingUnit: servingUnit,
 		Source:      &source,
 	}, nil
 }
@@ -223,4 +258,66 @@ func intPtrFromInt32Ptr(i *int32) *int {
 	}
 	val := int(*i)
 	return &val
+}
+
+func normalizeBarcode(barcode string) string {
+	return strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, barcode)
+}
+
+func parseServingSize(raw string) (*int32, *string) {
+	raw = strings.TrimSpace(strings.ToLower(raw))
+	if raw == "" {
+		return nil, nil
+	}
+
+	switch {
+	case strings.HasSuffix(raw, "ml"):
+		value := strings.TrimSpace(strings.TrimSuffix(raw, "ml"))
+		parsed, err := strconv.ParseFloat(value, 64)
+		if err != nil || parsed <= 0 {
+			return nil, nil
+		}
+		size := int32(parsed)
+		unit := "ml"
+		return &size, &unit
+	case strings.HasSuffix(raw, "g"):
+		value := strings.TrimSpace(strings.TrimSuffix(raw, "g"))
+		parsed, err := strconv.ParseFloat(value, 64)
+		if err != nil || parsed <= 0 {
+			return nil, nil
+		}
+		size := int32(parsed)
+		unit := "g"
+		return &size, &unit
+	default:
+		return nil, nil
+	}
+}
+
+func firstNonNilFloat64(values ...*float64) float64 {
+	for _, value := range values {
+		if value != nil {
+			return *value
+		}
+	}
+	return 0
+}
+
+func roundNutritionValue(value float64) int {
+	if value < 0 {
+		return 0
+	}
+	return int(value + 0.5)
+}
+
+func optionalString(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
 }

@@ -29,6 +29,10 @@ type Config struct {
 	OpenAIModel                        string   `mapstructure:"OPENAI_MODEL"`
 	AIProvider                         string   `mapstructure:"AI_PROVIDER"`
 	OpenFoodFactsAPIURL                string   `mapstructure:"OPENFOODFACTS_API_URL"`
+	RedisURL                           string   `mapstructure:"REDIS_URL"`
+	MeiliSearchURL                     string   `mapstructure:"MEILISEARCH_URL"`
+	MeiliSearchAPIKey                  string   `mapstructure:"MEILISEARCH_API_KEY"`
+	MeiliSearchFoodsIndex              string   `mapstructure:"MEILISEARCH_FOODS_INDEX"`
 	CDNDomain                          string   `mapstructure:"CDN_DOMAIN"`
 	RevenueCatWebhookSecret            string   `mapstructure:"REVENUECAT_WEBHOOK_SECRET"`
 }

@@ -45,6 +45,20 @@ cp .env.example .env
 | `DATABASE_MIGRATION_PATH` | Caminho das migrations | `file://pkg/database/migrations` | ✅ |
 | `DATABASE_MIGRATION_FORCE_SET_LOWER_VERSION` | Forçar versão inferior | `true`, `false` | ❌ |
 
+### Redis
+
+| Variável | Descrição | Exemplo | Obrigatório |
+|----------|-----------|---------|-------------|
+| `REDIS_URL` | URL de conexão do Redis para cache de busca | `redis://localhost:6379` | ❌ |
+
+### Meilisearch
+
+| Variável | Descrição | Exemplo | Obrigatório |
+|----------|-----------|---------|-------------|
+| `MEILISEARCH_URL` | URL base do Meilisearch | `http://localhost:7700` | ❌ |
+| `MEILISEARCH_API_KEY` | Chave de API do Meilisearch | `masterKey` | ❌ |
+| `MEILISEARCH_FOODS_INDEX` | Nome do índice de alimentos | `foods` | ❌ |
+
 ### Pagination
 
 | Variável | Descrição | Exemplo | Padrão |

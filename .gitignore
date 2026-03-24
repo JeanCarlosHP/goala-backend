@@ -4,3 +4,4 @@ tmp/
 vendor/
 .DS_Store
 secrets/
+.gocache/

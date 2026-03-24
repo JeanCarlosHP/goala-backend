@@ -12,14 +12,21 @@ import (
 
 type MealHandler struct {
 	mealService *services.MealService
+	foodService *services.FoodService
 	userService *services.UserService
 	validator   *validator.Validate
 	logger      domain.Logger
 }
 
-func NewMealHandler(mealService *services.MealService, userService *services.UserService, logger domain.Logger) *MealHandler {
+func NewMealHandler(
+	mealService *services.MealService,
+	foodService *services.FoodService,
+	userService *services.UserService,
+	logger domain.Logger,
+) *MealHandler {
 	return &MealHandler{
 		mealService: mealService,
+		foodService: foodService,
 		userService: userService,
 		validator:   validator.New(),
 		logger:      logger,
@@ -99,6 +106,11 @@ func (h *MealHandler) GetMeals(c fiber.Ctx) error {
 	})
 }
 
+func (h *MealHandler) GetMealsByPathDate(c fiber.Ctx) error {
+	c.Request().URI().SetQueryString("date=" + c.Params("date"))
+	return h.GetMeals(c)
+}
+
 func (h *MealHandler) GetDailySummary(c fiber.Ctx) error {
 	userID := c.Locals("user_id").(uuid.UUID)
 
@@ -131,5 +143,53 @@ func (h *MealHandler) GetDailySummary(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"success": true,
 		"data":    summary,
+	})
+}
+
+func (h *MealHandler) LogFood(c fiber.Ctx) error {
+	userID := c.Locals("user_id").(uuid.UUID)
+
+	var req domain.LogMealFoodRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"error":   "invalid_request_body",
+			"message": "invalid request body",
+		})
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"error":   "validation_failed",
+			"message": err.Error(),
+		})
+	}
+
+	food, err := h.foodService.EnsureCatalogFood(c.Context(), req.Food)
+	if err != nil {
+		h.logger.Error("failed to persist food catalog entry", "error", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"error":   "persist_food_failed",
+			"message": "failed to persist food",
+		})
+	}
+	req.Food = *food
+
+	meal, err := h.mealService.LogFood(c.Context(), userID, req)
+	if err != nil {
+		h.logger.Error("failed to log meal food", "error", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"error":   "log_food_failed",
+			"message": "failed to log food",
+		})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"success": true,
+		"data":    meal,
+		"message": "food logged successfully",
 	})
 }

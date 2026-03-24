@@ -12,6 +12,7 @@ help:
 	@echo "  make migrate-up   - Run database migrations"
 	@echo "  make migrate-down - Rollback database migrations"
 	@echo "  make sqlc         - Generate code from SQL queries"
+	@echo "  make import-openfoodfacts - Import Open Food Facts dump into local catalog"
 	@echo "  make clean        - Clean build artifacts"
 
 .PHONY: run
@@ -85,3 +86,20 @@ lint:
 .PHONY: format
 format:
 	go fmt ./...
+
+.PHONY: import-openfoodfacts
+import-openfoodfacts:
+	mkdir -p .gocache
+	GOCACHE=$(PROJECT_DIR).gocache \
+	go run ./cmd/import-openfoodfacts \
+		-file ../en.openfoodfacts.org.products.csv.gz \
+		-batch-size $${BATCH_SIZE:-2000} \
+		-progress-every $${PROGRESS_EVERY:-10000} \
+		$${LIMIT:+-limit $$LIMIT} \
+		$${TRUNCATE:+-truncate} \
+		$${DRY_RUN:+-dry-run} \
+		$${INDEX_MEILI:+-index-meili} \
+		$${DATABASE_URL:+-database-url $$DATABASE_URL} \
+		$${MEILISEARCH_URL:+-meili-url $$MEILISEARCH_URL} \
+		$${MEILISEARCH_API_KEY:+-meili-api-key $$MEILISEARCH_API_KEY} \
+		$${MEILISEARCH_FOODS_INDEX:+-meili-index $$MEILISEARCH_FOODS_INDEX}

@@ -16,6 +16,36 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: calorieai-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.15
+    container_name: calorieai-meilisearch
+    environment:
+      MEILI_MASTER_KEY: masterKey
+      MEILI_ENV: development
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   prometheus:
     image: prom/prometheus:latest
     container_name: calorieai-prometheus
@@ -63,5 +93,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
+  meili_data:
   prometheus_data:
   grafana_data:
