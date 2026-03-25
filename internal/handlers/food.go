@@ -25,16 +25,7 @@ func NewFoodHandler(foodService *services.FoodService, validator *validator.Vali
 }
 
 func (h *FoodHandler) SearchFoods(c fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
-
-	parsedUserID, err := uuid.Parse(userID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"error":   "invalid_user_id",
-			"message": "invalid user ID",
-		})
-	}
+	userID := c.Locals("user_id").(uuid.UUID)
 
 	limit := 20
 	if rawLimit := c.Query("limit"); rawLimit != "" {
@@ -59,7 +50,7 @@ func (h *FoodHandler) SearchFoods(c fiber.Ctx) error {
 		})
 	}
 
-	result, err := h.foodService.SearchFoodsManual(c.Context(), parsedUserID, req)
+	result, err := h.foodService.SearchFoodsManual(c.Context(), userID, req)
 	if err != nil {
 		h.logger.Error("failed to search foods", "error", err, "query", req.Query)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -301,15 +292,7 @@ type ToggleFavoriteRequest struct {
 }
 
 func (h *FoodHandler) ToggleFavorite(c fiber.Ctx) error {
-	userID := c.Locals("user_id").(string)
-	parsedUserID, err := uuid.Parse(userID)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"error":   "invalid_user_id",
-			"message": "invalid user ID",
-		})
-	}
+	userID := c.Locals("user_id").(uuid.UUID)
 
 	foodID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -329,7 +312,7 @@ func (h *FoodHandler) ToggleFavorite(c fiber.Ctx) error {
 		})
 	}
 
-	if err := h.foodService.ToggleFavorite(c.Context(), parsedUserID, foodID, req.Favorite); err != nil {
+	if err := h.foodService.ToggleFavorite(c.Context(), userID, foodID, req.Favorite); err != nil {
 		h.logger.Error("failed to toggle favorite", "error", err, "food_id", foodID.String())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
