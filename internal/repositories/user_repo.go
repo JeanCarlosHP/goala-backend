@@ -63,6 +63,7 @@ func (r *UserRepository) GetByFirebaseUID(ctx context.Context, firebaseUID strin
 		Language:             stringPtrValue(result.Language),
 		Timezone:             stringPtrValue(result.Timezone),
 		NotificationsEnabled: boolPtrValue(result.NotificationsEnabled),
+		NotificationPrefs:    notificationPreferencesFromDBUser(result),
 		CreatedAt:            timePtrValue(result.CreatedAt),
 		UpdatedAt:            timePtrValue(result.UpdatedAt),
 	}, nil
@@ -92,6 +93,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 		Language:             stringPtrValue(result.Language),
 		Timezone:             stringPtrValue(result.Timezone),
 		NotificationsEnabled: boolPtrValue(result.NotificationsEnabled),
+		NotificationPrefs:    notificationPreferencesFromDBUser(result),
 		CreatedAt:            timePtrValue(result.CreatedAt),
 		UpdatedAt:            timePtrValue(result.UpdatedAt),
 	}, nil
@@ -167,13 +169,32 @@ func (r *UserRepository) UpdateDisplayName(ctx context.Context, userID uuid.UUID
 	})
 }
 
-func (r *UserRepository) UpdateNotifications(ctx context.Context, userID uuid.UUID, notificationsEnabled *bool) error {
+func (r *UserRepository) UpdateNotificationPreferences(ctx context.Context, userID uuid.UUID, prefs domain.NotificationPreferencesUpdate) error {
 	tr := otel.Tracer("services/user_repo.go")
-	ctx, span := tr.Start(ctx, "UpdateNotifications")
+	ctx, span := tr.Start(ctx, "UpdateNotificationPreferences")
 	defer span.End()
 
-	return r.db.Querier.UpdateUserNotifications(ctx, db.UpdateUserNotificationsParams{
-		ID:                   userID,
-		NotificationsEnabled: notificationsEnabled,
+	return r.db.Querier.UpdateUserNotificationPreferences(ctx, db.UpdateUserNotificationPreferencesParams{
+		ID:                         userID,
+		NotificationsEnabled:       prefs.NotificationsEnabled,
+		DailyReminderEnabled:       prefs.DailyReminderEnabled,
+		DailyReminderTime:          prefs.DailyReminderTime,
+		StreakRiskEnabled:          prefs.StreakRiskEnabled,
+		AchievementUnlockedEnabled: prefs.AchievementUnlockedEnabled,
 	})
+}
+
+func notificationPreferencesFromDBUser(user db.User) domain.NotificationPreferences {
+	return domain.NotificationPreferences{
+		DailyReminder: domain.DailyReminderPreference{
+			Enabled: user.DailyReminderEnabled,
+			Time:    user.DailyReminderTime,
+		},
+		StreakRisk: domain.NotificationCategoryPreference{
+			Enabled: user.StreakRiskEnabled,
+		},
+		AchievementUnlocked: domain.NotificationCategoryPreference{
+			Enabled: user.AchievementUnlockedEnabled,
+		},
+	}
 }

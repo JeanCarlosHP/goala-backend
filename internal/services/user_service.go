@@ -148,6 +148,7 @@ func (s *UserService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*do
 		Language:             user.Language,
 		Timezone:             user.Timezone,
 		NotificationsEnabled: user.NotificationsEnabled,
+		NotificationPrefs:    user.NotificationPrefs.Effective(user.NotificationsEnabled),
 		CreatedAt:            user.CreatedAt,
 		UpdatedAt:            user.UpdatedAt,
 	}, nil
@@ -222,11 +223,46 @@ func (s *UserService) PatchUserPreferences(ctx context.Context, userID uuid.UUID
 		}
 	}
 
-	if req.NotificationsEnabled != nil {
-		if err := s.userRepo.UpdateNotifications(ctx, userID, req.NotificationsEnabled); err != nil {
-			return nil, fmt.Errorf("failed to update notifications: %w", err)
+	if prefsUpdate, ok := notificationPreferencesUpdateFromPatch(req); ok {
+		if err := s.userRepo.UpdateNotificationPreferences(ctx, userID, prefsUpdate); err != nil {
+			return nil, fmt.Errorf("failed to update notification preferences: %w", err)
 		}
 	}
 
 	return s.GetUserProfile(ctx, userID)
+}
+
+func notificationPreferencesUpdateFromPatch(req domain.PatchUserPreferencesRequest) (domain.NotificationPreferencesUpdate, bool) {
+	var update domain.NotificationPreferencesUpdate
+	var hasChanges bool
+
+	if req.NotificationsEnabled != nil {
+		update.NotificationsEnabled = req.NotificationsEnabled
+		hasChanges = true
+	}
+
+	if req.NotificationPrefs == nil {
+		return update, hasChanges
+	}
+
+	if req.NotificationPrefs.DailyReminder != nil {
+		if req.NotificationPrefs.DailyReminder.Enabled != nil {
+			update.DailyReminderEnabled = req.NotificationPrefs.DailyReminder.Enabled
+			hasChanges = true
+		}
+		if req.NotificationPrefs.DailyReminder.Time != nil {
+			update.DailyReminderTime = req.NotificationPrefs.DailyReminder.Time
+			hasChanges = true
+		}
+	}
+	if req.NotificationPrefs.StreakRisk != nil && req.NotificationPrefs.StreakRisk.Enabled != nil {
+		update.StreakRiskEnabled = req.NotificationPrefs.StreakRisk.Enabled
+		hasChanges = true
+	}
+	if req.NotificationPrefs.AchievementUnlocked != nil && req.NotificationPrefs.AchievementUnlocked.Enabled != nil {
+		update.AchievementUnlockedEnabled = req.NotificationPrefs.AchievementUnlocked.Enabled
+		hasChanges = true
+	}
+
+	return update, hasChanges
 }
