@@ -57,6 +57,7 @@ go run cmd/api/main.go
 Complete API documentation is available in OpenAPI/Swagger format:
 - **[Swagger YAML](./docs/swagger.yaml)** - OpenAPI 3.0 specification
 - **[Environment Variables](./docs/ENVIRONMENT_VARIABLES.md)** - Complete environment variables documentation
+- **[Notifications v1 Contract](./docs/NOTIFICATIONS_V1_BACKEND_CONTRACT.md)** - Canonical profile contract and rollout notes for notifications v1
 
 ### Quick API Reference
 
