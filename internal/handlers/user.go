@@ -1,25 +1,45 @@
 package handlers
 
 import (
+	"context"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
-	"github.com/jeancarloshp/calorieai/internal/services"
 )
 
+type userService interface {
+	GetUserByFirebaseUID(ctx context.Context, firebaseUID string) (*domain.User, error)
+	GetUserProfile(ctx context.Context, userID uuid.UUID) (*domain.UserProfileResponse, error)
+	UpdateUserProfile(ctx context.Context, userID uuid.UUID, req domain.UpdateProfileRequest) (*domain.UserProfileResponse, error)
+	PatchUserPreferences(ctx context.Context, userID uuid.UUID, req domain.PatchUserPreferencesRequest) (*domain.UserProfileResponse, error)
+}
+
+type avatarUploadService interface {
+	GenerateUploadPresignedURL(ctx context.Context, firebaseUID, contentType string, fileSize int64) (string, string, error)
+}
+
 type UserHandler struct {
-	userService *services.UserService
-	s3Service   *services.S3Service
+	userService userService
+	s3Service   avatarUploadService
 	validator   *validator.Validate
 	logger      domain.Logger
 }
 
-func NewUserHandler(userService *services.UserService, s3Service *services.S3Service, logger domain.Logger) *UserHandler {
+func NewUserHandler(userService userService, s3Service avatarUploadService, logger domain.Logger) *UserHandler {
+	validate := validator.New()
+	_ = validate.RegisterValidation("notification_time", func(fl validator.FieldLevel) bool {
+		value, ok := fl.Field().Interface().(string)
+		if !ok {
+			return false
+		}
+		return domain.IsValidReminderTime(value)
+	})
+
 	return &UserHandler{
 		userService: userService,
 		s3Service:   s3Service,
-		validator:   validator.New(),
+		validator:   validate,
 		logger:      logger,
 	}
 }

@@ -38,7 +38,7 @@ This document is the canonical backend contract for notifications v1. It freezes
     "notificationPreferences": {
       "dailyReminder": {
         "enabled": true,
-        "reminderTime": "20:00"
+        "time": "09:00"
       },
       "streakAtRisk": {
         "enabled": false
@@ -62,14 +62,14 @@ Example payload:
 
 ```json
 {
-  "notificationsEnabled": true,
-  "notificationPreferences": {
-    "dailyReminder": {
-      "enabled": true,
-      "reminderTime": "20:00"
-    },
-    "streakAtRisk": {
-      "enabled": false
+    "notificationsEnabled": true,
+    "notificationPreferences": {
+      "dailyReminder": {
+        "enabled": true,
+        "time": "09:00"
+      },
+      "streakAtRisk": {
+        "enabled": false
     },
     "achievementUnlocked": {
       "enabled": true
@@ -91,19 +91,18 @@ Example payload:
 ## Validation Rules
 
 - `timezone` remains the existing IANA timezone string already stored on the user profile.
-- `notificationPreferences.dailyReminder.reminderTime` must match `HH:mm` in 24-hour format.
-- `notificationPreferences.dailyReminder.reminderTime` is required when that field is sent; omitted means "leave unchanged".
+- `notificationPreferences.dailyReminder.time` must match `HH:mm` in 24-hour format.
+- `notificationPreferences.dailyReminder.time` is required when that field is sent; omitted means "leave unchanged".
 - `notificationPreferences.streakAtRisk.enabled` is required when `streakAtRisk` is sent.
 - `notificationPreferences.achievementUnlocked.enabled` is required when `achievementUnlocked` is sent.
-- Unknown keys inside `notificationPreferences` must be rejected.
 
-Valid `reminderTime` examples:
+Valid `time` examples:
 
 - `00:00`
 - `08:30`
 - `23:59`
 
-Invalid `reminderTime` examples:
+Invalid `time` examples:
 
 - `8:30`
 - `24:00`
@@ -117,7 +116,7 @@ Persist v1 preferences on the existing `users` row with explicit columns:
 - `notifications_enabled BOOLEAN NOT NULL DEFAULT FALSE` (existing)
 - `timezone VARCHAR(50) NOT NULL DEFAULT 'UTC'` (existing)
 - `notification_daily_reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE`
-- `notification_daily_reminder_time VARCHAR(5) NULL`
+- `notification_daily_reminder_time VARCHAR(5) NOT NULL DEFAULT '09:00'`
 - `notification_streak_at_risk_enabled BOOLEAN NOT NULL DEFAULT FALSE`
 - `notification_achievement_unlocked_enabled BOOLEAN NOT NULL DEFAULT FALSE`
 
@@ -136,22 +135,22 @@ Existing users must be migrated without silently opting them into new categories
 
 - Keep the current `notifications_enabled` value unchanged.
 - Set `notification_daily_reminder_enabled = notifications_enabled`.
-- Set `notification_daily_reminder_time = NULL`.
-- Set `notification_streak_at_risk_enabled = FALSE`.
-- Set `notification_achievement_unlocked_enabled = FALSE`.
+- Set `notification_daily_reminder_time = '09:00'`.
+- Set `notification_streak_at_risk_enabled = notifications_enabled`.
+- Set `notification_achievement_unlocked_enabled = notifications_enabled`.
 
 ### Why this default set
 
 - It preserves the legacy global toggle.
-- It maps the only legacy notification intent to the closest v1 category: `dailyReminder`.
-- It avoids auto-opting existing users into brand-new categories.
-- It avoids inventing a reminder clock time that the user never chose.
+- It preserves the legacy on/off behavior across the initial v1 categories.
+- It returns a fully materialized, stable shape for existing users immediately after migration.
+- It avoids null handling in the app bootstrap path.
 
 ### Materialized response for migrated users
 
 After the migration, `GET /api/v1/user/profile` must always return `notificationPreferences`, even for users created before the new columns existed.
 
-If a migrated user previously had `notificationsEnabled = true` and no explicit reminder time yet, the response shape must look like this:
+If a migrated user previously had `notificationsEnabled = true`, the response shape must look like this:
 
 ```json
 {
@@ -160,13 +159,13 @@ If a migrated user previously had `notificationsEnabled = true` and no explicit 
   "notificationPreferences": {
     "dailyReminder": {
       "enabled": true,
-      "reminderTime": null
+      "time": "09:00"
     },
     "streakAtRisk": {
-      "enabled": false
+      "enabled": true
     },
     "achievementUnlocked": {
-      "enabled": false
+      "enabled": true
     }
   }
 }

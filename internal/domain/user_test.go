@@ -12,9 +12,16 @@ func TestPatchUserPreferencesRequestValidation(t *testing.T) {
 	t.Parallel()
 
 	validate := validator.New()
+	_ = validate.RegisterValidation("notification_time", func(fl validator.FieldLevel) bool {
+		value, ok := fl.Field().Interface().(string)
+		if !ok {
+			return false
+		}
+		return IsValidReminderTime(value)
+	})
 
 	validReq := PatchUserPreferencesRequest{
-		NotificationPrefs: &PatchNotificationPreferencesRequest{
+		NotificationPreferences: &PatchNotificationPreferencesRequest{
 			DailyReminder: &PatchDailyReminderPreference{},
 		},
 	}
@@ -24,7 +31,7 @@ func TestPatchUserPreferencesRequestValidation(t *testing.T) {
 
 	invalidTime := "25:99"
 	invalidReq := PatchUserPreferencesRequest{
-		NotificationPrefs: &PatchNotificationPreferencesRequest{
+		NotificationPreferences: &PatchNotificationPreferencesRequest{
 			DailyReminder: &PatchDailyReminderPreference{
 				Time: &invalidTime,
 			},
@@ -43,10 +50,10 @@ func TestNotificationPreferencesEffective(t *testing.T) {
 			Enabled: true,
 			Time:    "09:30",
 		},
-		StreakRisk: NotificationCategoryPreference{
+		StreakAtRisk: NotificationPreference{
 			Enabled: true,
 		},
-		AchievementUnlocked: NotificationCategoryPreference{
+		AchievementUnlocked: NotificationPreference{
 			Enabled: true,
 		},
 	}
@@ -58,8 +65,8 @@ func TestNotificationPreferencesEffective(t *testing.T) {
 	if effective.DailyReminder.Time != "09:30" {
 		t.Fatalf("expected reminder time to be preserved, got %q", effective.DailyReminder.Time)
 	}
-	if effective.StreakRisk.Enabled {
-		t.Fatal("expected streak risk to be disabled when global notifications are off")
+	if effective.StreakAtRisk.Enabled {
+		t.Fatal("expected streak-at-risk to be disabled when global notifications are off")
 	}
 	if effective.AchievementUnlocked.Enabled {
 		t.Fatal("expected achievement unlocked to be disabled when global notifications are off")
@@ -78,15 +85,15 @@ func TestUserProfileResponseJSONShape(t *testing.T) {
 		Language:             "en-US",
 		Timezone:             "America/Sao_Paulo",
 		NotificationsEnabled: true,
-		NotificationPrefs: NotificationPreferences{
+		NotificationPreferences: NotificationPreferences{
 			DailyReminder: DailyReminderPreference{
 				Enabled: true,
 				Time:    "08:15",
 			},
-			StreakRisk: NotificationCategoryPreference{
+			StreakAtRisk: NotificationPreference{
 				Enabled: true,
 			},
-			AchievementUnlocked: NotificationCategoryPreference{
+			AchievementUnlocked: NotificationPreference{
 				Enabled: false,
 			},
 		},
@@ -115,8 +122,8 @@ func TestUserProfileResponseJSONShape(t *testing.T) {
 	if _, ok := prefs["dailyReminder"].(map[string]any); !ok {
 		t.Fatal("expected dailyReminder object in notificationPreferences")
 	}
-	if _, ok := prefs["streakRisk"].(map[string]any); !ok {
-		t.Fatal("expected streakRisk object in notificationPreferences")
+	if _, ok := prefs["streakAtRisk"].(map[string]any); !ok {
+		t.Fatal("expected streakAtRisk object in notificationPreferences")
 	}
 	if _, ok := prefs["achievementUnlocked"].(map[string]any); !ok {
 		t.Fatal("expected achievementUnlocked object in notificationPreferences")

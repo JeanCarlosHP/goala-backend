@@ -16,12 +16,12 @@ func TestNotificationPreferencesMigrationDefaults(t *testing.T) {
 
 	sql := string(raw)
 	expectedSnippets := []string{
-		"COALESCE(daily_reminder_enabled, notifications_enabled, false)",
-		"COALESCE(streak_risk_enabled, notifications_enabled, false)",
-		"COALESCE(achievement_unlocked_enabled, notifications_enabled, false)",
-		"COALESCE(daily_reminder_time, '20:00')",
-		"ALTER COLUMN daily_reminder_time SET DEFAULT '20:00'",
-		"users_daily_reminder_time_format_chk",
+		"COALESCE(notification_daily_reminder_enabled, COALESCE(notifications_enabled, false))",
+		"COALESCE(notification_streak_at_risk_enabled, COALESCE(notifications_enabled, false))",
+		"COALESCE(notification_achievement_unlocked_enabled, COALESCE(notifications_enabled, false))",
+		"COALESCE(notification_daily_reminder_time, '09:00')",
+		"ALTER COLUMN notification_daily_reminder_time SET DEFAULT '09:00'",
+		"users_notification_daily_reminder_time_check",
 	}
 
 	for _, snippet := range expectedSnippets {

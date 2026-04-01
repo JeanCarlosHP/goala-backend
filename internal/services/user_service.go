@@ -6,17 +6,32 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
-	"github.com/jeancarloshp/calorieai/internal/repositories"
 	"go.opentelemetry.io/otel"
 )
 
+type userRepository interface {
+	Create(ctx context.Context, user *domain.User) error
+	ExistsByFirebaseUID(ctx context.Context, firebaseUID string) (bool, error)
+	GetByFirebaseUID(ctx context.Context, firebaseUID string) (*domain.User, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
+	UpdateProfile(ctx context.Context, user *domain.User) error
+	UpdateAvatar(ctx context.Context, userID uuid.UUID, photoURL *string) error
+	UpdateDisplayName(ctx context.Context, userID uuid.UUID, displayName *string) error
+	UpdateNotificationPreferences(ctx context.Context, userID uuid.UUID, update domain.NotificationPreferencesUpdate) error
+}
+
+type goalRepository interface {
+	GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.UserGoal, error)
+	Upsert(ctx context.Context, goal *domain.UserGoal) error
+}
+
 type UserService struct {
-	userRepo  *repositories.UserRepository
-	goalRepo  *repositories.GoalRepository
+	userRepo  userRepository
+	goalRepo  goalRepository
 	cdnDomain string
 }
 
-func NewUserService(userRepo *repositories.UserRepository, goalRepo *repositories.GoalRepository, cdnDomain string) *UserService {
+func NewUserService(userRepo userRepository, goalRepo goalRepository, cdnDomain string) *UserService {
 	return &UserService{
 		userRepo:  userRepo,
 		goalRepo:  goalRepo,
@@ -51,11 +66,12 @@ func (s *UserService) RegisterUser(ctx context.Context, req domain.RegisterReque
 	}
 
 	user := &domain.User{
-		ID:          uuid.New(),
-		FirebaseUID: req.FirebaseUID,
-		Email:       req.Email,
-		DisplayName: req.DisplayName,
-		PhotoURL:    req.PhotoURL,
+		ID:                      uuid.New(),
+		FirebaseUID:             req.FirebaseUID,
+		Email:                   req.Email,
+		DisplayName:             req.DisplayName,
+		PhotoURL:                req.PhotoURL,
+		NotificationPreferences: domain.DefaultNotificationPreferences(false),
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -132,25 +148,25 @@ func (s *UserService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*do
 	fatGoal := int32(goal.DailyFatGoal)
 
 	return &domain.UserProfileResponse{
-		ID:                   user.ID.String(),
-		DisplayName:          user.DisplayName,
-		Email:                user.Email,
-		Photo:                s.buildPhotoURL(ctx, user.PhotoURL),
-		DailyCalorieGoal:     int32(goal.DailyCalorieGoal),
-		DailyProteinGoal:     int32(goal.DailyProteinGoal),
-		DailyCarbsGoal:       &carbsGoal,
-		DailyFatGoal:         &fatGoal,
-		Weight:               user.Weight,
-		Height:               user.Height,
-		Age:                  user.Age,
-		Gender:               user.Gender,
-		ActivityLevel:        user.ActivityLevel,
-		Language:             user.Language,
-		Timezone:             user.Timezone,
-		NotificationsEnabled: user.NotificationsEnabled,
-		NotificationPrefs:    user.NotificationPrefs.Effective(user.NotificationsEnabled),
-		CreatedAt:            user.CreatedAt,
-		UpdatedAt:            user.UpdatedAt,
+		ID:                      user.ID.String(),
+		DisplayName:             user.DisplayName,
+		Email:                   user.Email,
+		Photo:                   s.buildPhotoURL(ctx, user.PhotoURL),
+		DailyCalorieGoal:        int32(goal.DailyCalorieGoal),
+		DailyProteinGoal:        int32(goal.DailyProteinGoal),
+		DailyCarbsGoal:          &carbsGoal,
+		DailyFatGoal:            &fatGoal,
+		Weight:                  user.Weight,
+		Height:                  user.Height,
+		Age:                     user.Age,
+		Gender:                  user.Gender,
+		ActivityLevel:           user.ActivityLevel,
+		Language:                user.Language,
+		Timezone:                user.Timezone,
+		NotificationsEnabled:    user.NotificationsEnabled,
+		NotificationPreferences: user.NotificationPreferences.Effective(user.NotificationsEnabled),
+		CreatedAt:               user.CreatedAt,
+		UpdatedAt:               user.UpdatedAt,
 	}, nil
 }
 
@@ -241,26 +257,26 @@ func notificationPreferencesUpdateFromPatch(req domain.PatchUserPreferencesReque
 		hasChanges = true
 	}
 
-	if req.NotificationPrefs == nil {
+	if req.NotificationPreferences == nil {
 		return update, hasChanges
 	}
 
-	if req.NotificationPrefs.DailyReminder != nil {
-		if req.NotificationPrefs.DailyReminder.Enabled != nil {
-			update.DailyReminderEnabled = req.NotificationPrefs.DailyReminder.Enabled
+	if req.NotificationPreferences.DailyReminder != nil {
+		if req.NotificationPreferences.DailyReminder.Enabled != nil {
+			update.DailyReminderEnabled = req.NotificationPreferences.DailyReminder.Enabled
 			hasChanges = true
 		}
-		if req.NotificationPrefs.DailyReminder.Time != nil {
-			update.DailyReminderTime = req.NotificationPrefs.DailyReminder.Time
+		if req.NotificationPreferences.DailyReminder.Time != nil {
+			update.DailyReminderTime = req.NotificationPreferences.DailyReminder.Time
 			hasChanges = true
 		}
 	}
-	if req.NotificationPrefs.StreakRisk != nil && req.NotificationPrefs.StreakRisk.Enabled != nil {
-		update.StreakRiskEnabled = req.NotificationPrefs.StreakRisk.Enabled
+	if req.NotificationPreferences.StreakAtRisk != nil && req.NotificationPreferences.StreakAtRisk.Enabled != nil {
+		update.StreakAtRiskEnabled = req.NotificationPreferences.StreakAtRisk.Enabled
 		hasChanges = true
 	}
-	if req.NotificationPrefs.AchievementUnlocked != nil && req.NotificationPrefs.AchievementUnlocked.Enabled != nil {
-		update.AchievementUnlockedEnabled = req.NotificationPrefs.AchievementUnlocked.Enabled
+	if req.NotificationPreferences.AchievementUnlocked != nil && req.NotificationPreferences.AchievementUnlocked.Enabled != nil {
+		update.AchievementUnlockedEnabled = req.NotificationPreferences.AchievementUnlocked.Enabled
 		hasChanges = true
 	}
 

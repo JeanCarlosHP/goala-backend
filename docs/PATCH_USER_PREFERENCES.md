@@ -15,6 +15,7 @@ The handler currently accepts these partial fields:
 - `displayName`
 - `photoUrl`
 - `notificationsEnabled`
+- `notificationPreferences`
 
 Example:
 
@@ -22,7 +23,12 @@ Example:
 {
   "displayName": "Jean",
   "photoUrl": "/avatars/550e8400-e29b-41d4-a716-446655440000/avatar.jpg",
-  "notificationsEnabled": true
+  "notificationsEnabled": true,
+  "notificationPreferences": {
+    "dailyReminder": {
+      "time": "09:00"
+    }
+  }
 }
 ```
 
