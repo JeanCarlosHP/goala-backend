@@ -109,21 +109,25 @@ type Subscription struct {
 }
 
 type User struct {
-	ID                   uuid.UUID
-	FirebaseUid          string
-	Email                *string
-	DisplayName          *string
-	PhotoUrl             *string
-	CreatedAt            *time.Time
-	UpdatedAt            *time.Time
-	Weight               *int
-	Height               *int
-	Age                  *int
-	Gender               *string
-	ActivityLevel        *string
-	Language             *string
-	NotificationsEnabled *bool
-	Timezone             *string
+	ID                                     uuid.UUID
+	FirebaseUid                            string
+	Email                                  *string
+	DisplayName                            *string
+	PhotoUrl                               *string
+	CreatedAt                              *time.Time
+	UpdatedAt                              *time.Time
+	Weight                                 *int
+	Height                                 *int
+	Age                                    *int
+	Gender                                 *string
+	ActivityLevel                          *string
+	Language                               *string
+	NotificationsEnabled                   *bool
+	Timezone                               *string
+	NotificationDailyReminderEnabled       bool
+	NotificationDailyReminderTime          string
+	NotificationStreakAtRiskEnabled        bool
+	NotificationAchievementUnlockedEnabled bool
 }
 
 type UserAchievement struct {

@@ -70,7 +70,7 @@ type Querier interface {
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarParams) error
 	UpdateUserDisplayName(ctx context.Context, arg UpdateUserDisplayNameParams) error
-	UpdateUserNotifications(ctx context.Context, arg UpdateUserNotificationsParams) error
+	UpdateUserNotificationPreferences(ctx context.Context, arg UpdateUserNotificationPreferencesParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error
 	UpdateUserStats(ctx context.Context, arg UpdateUserStatsParams) error
 	UpsertSubscription(ctx context.Context, arg UpsertSubscriptionParams) (Subscription, error)

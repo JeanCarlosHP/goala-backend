@@ -10,21 +10,22 @@ import (
 var ErrUserAlreadyExists = errors.New("user already exists")
 
 type User struct {
-	ID                   uuid.UUID `json:"id"`
-	FirebaseUID          string    `json:"firebaseUid"`
-	Email                string    `json:"email"`
-	DisplayName          string    `json:"displayName"`
-	PhotoURL             *string   `json:"photoUrl,omitempty"`
-	Weight               *int32    `json:"weight,omitempty"`
-	Height               *int32    `json:"height,omitempty"`
-	Age                  *int32    `json:"age,omitempty"`
-	Gender               *string   `json:"gender,omitempty"`
-	ActivityLevel        *string   `json:"activityLevel,omitempty"`
-	Language             string    `json:"language"`
-	Timezone             string    `json:"timezone"` // Novo campo para timezone
-	NotificationsEnabled bool      `json:"notificationsEnabled"`
-	CreatedAt            time.Time `json:"createdAt"`
-	UpdatedAt            time.Time `json:"updatedAt"`
+	ID                      uuid.UUID               `json:"id"`
+	FirebaseUID             string                  `json:"firebaseUid"`
+	Email                   string                  `json:"email"`
+	DisplayName             string                  `json:"displayName"`
+	PhotoURL                *string                 `json:"photoUrl,omitempty"`
+	Weight                  *int32                  `json:"weight,omitempty"`
+	Height                  *int32                  `json:"height,omitempty"`
+	Age                     *int32                  `json:"age,omitempty"`
+	Gender                  *string                 `json:"gender,omitempty"`
+	ActivityLevel           *string                 `json:"activityLevel,omitempty"`
+	Language                string                  `json:"language"`
+	Timezone                string                  `json:"timezone"` // Novo campo para timezone
+	NotificationsEnabled    bool                    `json:"notificationsEnabled"`
+	NotificationPreferences NotificationPreferences `json:"notificationPreferences"`
+	CreatedAt               time.Time               `json:"createdAt"`
+	UpdatedAt               time.Time               `json:"updatedAt"`
 }
 
 type UserGoal struct {
@@ -51,24 +52,25 @@ type UpdateGoalRequest struct {
 }
 
 type UserProfileResponse struct {
-	ID                   string    `json:"id"`
-	DisplayName          string    `json:"displayName"`
-	Email                string    `json:"email"`
-	Photo                *string   `json:"photo,omitempty"`
-	DailyCalorieGoal     int32     `json:"dailyCalorieGoal"`
-	DailyProteinGoal     int32     `json:"dailyProteinGoal"`
-	DailyCarbsGoal       *int32    `json:"dailyCarbsGoal,omitempty"`
-	DailyFatGoal         *int32    `json:"dailyFatGoal,omitempty"`
-	Weight               *int32    `json:"weight,omitempty"`
-	Height               *int32    `json:"height,omitempty"`
-	Age                  *int32    `json:"age,omitempty"`
-	Gender               *string   `json:"gender,omitempty"`
-	ActivityLevel        *string   `json:"activityLevel,omitempty"`
-	Language             string    `json:"language"`
-	Timezone             string    `json:"timezone"` // Novo campo
-	NotificationsEnabled bool      `json:"notificationsEnabled"`
-	CreatedAt            time.Time `json:"createdAt"`
-	UpdatedAt            time.Time `json:"updatedAt"`
+	ID                      string                  `json:"id"`
+	DisplayName             string                  `json:"displayName"`
+	Email                   string                  `json:"email"`
+	Photo                   *string                 `json:"photo,omitempty"`
+	DailyCalorieGoal        int32                   `json:"dailyCalorieGoal"`
+	DailyProteinGoal        int32                   `json:"dailyProteinGoal"`
+	DailyCarbsGoal          *int32                  `json:"dailyCarbsGoal,omitempty"`
+	DailyFatGoal            *int32                  `json:"dailyFatGoal,omitempty"`
+	Weight                  *int32                  `json:"weight,omitempty"`
+	Height                  *int32                  `json:"height,omitempty"`
+	Age                     *int32                  `json:"age,omitempty"`
+	Gender                  *string                 `json:"gender,omitempty"`
+	ActivityLevel           *string                 `json:"activityLevel,omitempty"`
+	Language                string                  `json:"language"`
+	Timezone                string                  `json:"timezone"` // Novo campo
+	NotificationsEnabled    bool                    `json:"notificationsEnabled"`
+	NotificationPreferences NotificationPreferences `json:"notificationPreferences"`
+	CreatedAt               time.Time               `json:"createdAt"`
+	UpdatedAt               time.Time               `json:"updatedAt"`
 }
 
 type UpdateProfileRequest struct {
@@ -102,7 +104,8 @@ type AvatarUploadResponse struct {
 }
 
 type PatchUserPreferencesRequest struct {
-	DisplayName          *string `json:"displayName" validate:"omitempty,min=2,max=255"`
-	PhotoURL             *string `json:"photoUrl" validate:"omitempty,startswith=/"`
-	NotificationsEnabled *bool   `json:"notificationsEnabled" validate:"omitempty"`
+	DisplayName             *string                              `json:"displayName" validate:"omitempty,min=2,max=255"`
+	PhotoURL                *string                              `json:"photoUrl" validate:"omitempty,startswith=/"`
+	NotificationsEnabled    *bool                                `json:"notificationsEnabled" validate:"omitempty"`
+	NotificationPreferences *PatchNotificationPreferencesRequest `json:"notificationPreferences" validate:"omitempty"`
 }

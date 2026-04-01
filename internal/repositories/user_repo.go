@@ -49,23 +49,7 @@ func (r *UserRepository) GetByFirebaseUID(ctx context.Context, firebaseUID strin
 		return nil, err
 	}
 
-	return &domain.User{
-		ID:                   result.ID,
-		FirebaseUID:          result.FirebaseUid,
-		Email:                stringPtrValue(result.Email),
-		DisplayName:          stringPtrValue(result.DisplayName),
-		PhotoURL:             result.PhotoUrl,
-		Weight:               intPtrToInt32Ptr(result.Weight),
-		Height:               intPtrToInt32Ptr(result.Height),
-		Age:                  intPtrToInt32Ptr(result.Age),
-		Gender:               result.Gender,
-		ActivityLevel:        result.ActivityLevel,
-		Language:             stringPtrValue(result.Language),
-		Timezone:             stringPtrValue(result.Timezone),
-		NotificationsEnabled: boolPtrValue(result.NotificationsEnabled),
-		CreatedAt:            timePtrValue(result.CreatedAt),
-		UpdatedAt:            timePtrValue(result.UpdatedAt),
-	}, nil
+	return r.toDomainUser(result), nil
 }
 
 func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
@@ -78,23 +62,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Use
 		return nil, err
 	}
 
-	return &domain.User{
-		ID:                   result.ID,
-		FirebaseUID:          result.FirebaseUid,
-		Email:                stringPtrValue(result.Email),
-		DisplayName:          stringPtrValue(result.DisplayName),
-		PhotoURL:             result.PhotoUrl,
-		Weight:               intPtrToInt32Ptr(result.Weight),
-		Height:               intPtrToInt32Ptr(result.Height),
-		Age:                  intPtrToInt32Ptr(result.Age),
-		Gender:               result.Gender,
-		ActivityLevel:        result.ActivityLevel,
-		Language:             stringPtrValue(result.Language),
-		Timezone:             stringPtrValue(result.Timezone),
-		NotificationsEnabled: boolPtrValue(result.NotificationsEnabled),
-		CreatedAt:            timePtrValue(result.CreatedAt),
-		UpdatedAt:            timePtrValue(result.UpdatedAt),
-	}, nil
+	return r.toDomainUser(result), nil
 }
 
 func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
@@ -167,13 +135,51 @@ func (r *UserRepository) UpdateDisplayName(ctx context.Context, userID uuid.UUID
 	})
 }
 
-func (r *UserRepository) UpdateNotifications(ctx context.Context, userID uuid.UUID, notificationsEnabled *bool) error {
+func (r *UserRepository) UpdateNotificationPreferences(ctx context.Context, userID uuid.UUID, update domain.NotificationPreferencesUpdate) error {
 	tr := otel.Tracer("services/user_repo.go")
-	ctx, span := tr.Start(ctx, "UpdateNotifications")
+	ctx, span := tr.Start(ctx, "UpdateNotificationPreferences")
 	defer span.End()
 
-	return r.db.Querier.UpdateUserNotifications(ctx, db.UpdateUserNotificationsParams{
-		ID:                   userID,
-		NotificationsEnabled: notificationsEnabled,
+	return r.db.Querier.UpdateUserNotificationPreferences(ctx, db.UpdateUserNotificationPreferencesParams{
+		ID:                                     userID,
+		NotificationsEnabled:                   update.NotificationsEnabled,
+		NotificationDailyReminderEnabled:       update.DailyReminderEnabled,
+		NotificationDailyReminderTime:          update.DailyReminderTime,
+		NotificationStreakAtRiskEnabled:        update.StreakAtRiskEnabled,
+		NotificationAchievementUnlockedEnabled: update.AchievementUnlockedEnabled,
 	})
+}
+
+func (r *UserRepository) toDomainUser(result db.User) *domain.User {
+	notificationsEnabled := boolPtrValue(result.NotificationsEnabled)
+
+	return &domain.User{
+		ID:                   result.ID,
+		FirebaseUID:          result.FirebaseUid,
+		Email:                stringPtrValue(result.Email),
+		DisplayName:          stringPtrValue(result.DisplayName),
+		PhotoURL:             result.PhotoUrl,
+		Weight:               intPtrToInt32Ptr(result.Weight),
+		Height:               intPtrToInt32Ptr(result.Height),
+		Age:                  intPtrToInt32Ptr(result.Age),
+		Gender:               result.Gender,
+		ActivityLevel:        result.ActivityLevel,
+		Language:             stringPtrValue(result.Language),
+		Timezone:             stringPtrValue(result.Timezone),
+		NotificationsEnabled: notificationsEnabled,
+		NotificationPreferences: domain.NotificationPreferences{
+			DailyReminder: domain.DailyReminderPreference{
+				Enabled: result.NotificationDailyReminderEnabled,
+				Time:    result.NotificationDailyReminderTime,
+			},
+			StreakAtRisk: domain.NotificationPreference{
+				Enabled: result.NotificationStreakAtRiskEnabled,
+			},
+			AchievementUnlocked: domain.NotificationPreference{
+				Enabled: result.NotificationAchievementUnlockedEnabled,
+			},
+		},
+		CreatedAt: timePtrValue(result.CreatedAt),
+		UpdatedAt: timePtrValue(result.UpdatedAt),
+	}
 }

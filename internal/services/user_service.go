@@ -6,17 +6,32 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
-	"github.com/jeancarloshp/calorieai/internal/repositories"
 	"go.opentelemetry.io/otel"
 )
 
+type userRepository interface {
+	Create(ctx context.Context, user *domain.User) error
+	ExistsByFirebaseUID(ctx context.Context, firebaseUID string) (bool, error)
+	GetByFirebaseUID(ctx context.Context, firebaseUID string) (*domain.User, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
+	UpdateProfile(ctx context.Context, user *domain.User) error
+	UpdateAvatar(ctx context.Context, userID uuid.UUID, photoURL *string) error
+	UpdateDisplayName(ctx context.Context, userID uuid.UUID, displayName *string) error
+	UpdateNotificationPreferences(ctx context.Context, userID uuid.UUID, update domain.NotificationPreferencesUpdate) error
+}
+
+type goalRepository interface {
+	GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.UserGoal, error)
+	Upsert(ctx context.Context, goal *domain.UserGoal) error
+}
+
 type UserService struct {
-	userRepo  *repositories.UserRepository
-	goalRepo  *repositories.GoalRepository
+	userRepo  userRepository
+	goalRepo  goalRepository
 	cdnDomain string
 }
 
-func NewUserService(userRepo *repositories.UserRepository, goalRepo *repositories.GoalRepository, cdnDomain string) *UserService {
+func NewUserService(userRepo userRepository, goalRepo goalRepository, cdnDomain string) *UserService {
 	return &UserService{
 		userRepo:  userRepo,
 		goalRepo:  goalRepo,
@@ -51,11 +66,12 @@ func (s *UserService) RegisterUser(ctx context.Context, req domain.RegisterReque
 	}
 
 	user := &domain.User{
-		ID:          uuid.New(),
-		FirebaseUID: req.FirebaseUID,
-		Email:       req.Email,
-		DisplayName: req.DisplayName,
-		PhotoURL:    req.PhotoURL,
+		ID:                      uuid.New(),
+		FirebaseUID:             req.FirebaseUID,
+		Email:                   req.Email,
+		DisplayName:             req.DisplayName,
+		PhotoURL:                req.PhotoURL,
+		NotificationPreferences: domain.DefaultNotificationPreferences(false),
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -132,24 +148,25 @@ func (s *UserService) GetUserProfile(ctx context.Context, userID uuid.UUID) (*do
 	fatGoal := int32(goal.DailyFatGoal)
 
 	return &domain.UserProfileResponse{
-		ID:                   user.ID.String(),
-		DisplayName:          user.DisplayName,
-		Email:                user.Email,
-		Photo:                s.buildPhotoURL(ctx, user.PhotoURL),
-		DailyCalorieGoal:     int32(goal.DailyCalorieGoal),
-		DailyProteinGoal:     int32(goal.DailyProteinGoal),
-		DailyCarbsGoal:       &carbsGoal,
-		DailyFatGoal:         &fatGoal,
-		Weight:               user.Weight,
-		Height:               user.Height,
-		Age:                  user.Age,
-		Gender:               user.Gender,
-		ActivityLevel:        user.ActivityLevel,
-		Language:             user.Language,
-		Timezone:             user.Timezone,
-		NotificationsEnabled: user.NotificationsEnabled,
-		CreatedAt:            user.CreatedAt,
-		UpdatedAt:            user.UpdatedAt,
+		ID:                      user.ID.String(),
+		DisplayName:             user.DisplayName,
+		Email:                   user.Email,
+		Photo:                   s.buildPhotoURL(ctx, user.PhotoURL),
+		DailyCalorieGoal:        int32(goal.DailyCalorieGoal),
+		DailyProteinGoal:        int32(goal.DailyProteinGoal),
+		DailyCarbsGoal:          &carbsGoal,
+		DailyFatGoal:            &fatGoal,
+		Weight:                  user.Weight,
+		Height:                  user.Height,
+		Age:                     user.Age,
+		Gender:                  user.Gender,
+		ActivityLevel:           user.ActivityLevel,
+		Language:                user.Language,
+		Timezone:                user.Timezone,
+		NotificationsEnabled:    user.NotificationsEnabled,
+		NotificationPreferences: user.NotificationPreferences,
+		CreatedAt:               user.CreatedAt,
+		UpdatedAt:               user.UpdatedAt,
 	}, nil
 }
 
@@ -222,9 +239,9 @@ func (s *UserService) PatchUserPreferences(ctx context.Context, userID uuid.UUID
 		}
 	}
 
-	if req.NotificationsEnabled != nil {
-		if err := s.userRepo.UpdateNotifications(ctx, userID, req.NotificationsEnabled); err != nil {
-			return nil, fmt.Errorf("failed to update notifications: %w", err)
+	if req.NotificationsEnabled != nil || req.NotificationPreferences != nil {
+		if err := s.userRepo.UpdateNotificationPreferences(ctx, userID, req.NotificationPreferencesUpdate()); err != nil {
+			return nil, fmt.Errorf("failed to update notification preferences: %w", err)
 		}
 	}
 

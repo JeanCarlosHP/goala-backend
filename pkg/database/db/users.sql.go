@@ -70,7 +70,9 @@ func (q *Queries) ExistsUserByFirebaseUID(ctx context.Context, firebaseUid strin
 
 const getUserByFirebaseUID = `-- name: GetUserByFirebaseUID :one
 SELECT id, firebase_uid, email, display_name, photo_url, created_at, updated_at,
-       weight, height, age, gender, activity_level, language, notifications_enabled, timezone
+       weight, height, age, gender, activity_level, language, notifications_enabled, timezone,
+       notification_daily_reminder_enabled, notification_daily_reminder_time,
+       notification_streak_at_risk_enabled, notification_achievement_unlocked_enabled
 FROM users
 WHERE firebase_uid = $1
 `
@@ -94,13 +96,19 @@ func (q *Queries) GetUserByFirebaseUID(ctx context.Context, firebaseUid string) 
 		&i.Language,
 		&i.NotificationsEnabled,
 		&i.Timezone,
+		&i.NotificationDailyReminderEnabled,
+		&i.NotificationDailyReminderTime,
+		&i.NotificationStreakAtRiskEnabled,
+		&i.NotificationAchievementUnlockedEnabled,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
 SELECT id, firebase_uid, email, display_name, photo_url, created_at, updated_at,
-       weight, height, age, gender, activity_level, language, notifications_enabled, timezone
+       weight, height, age, gender, activity_level, language, notifications_enabled, timezone,
+       notification_daily_reminder_enabled, notification_daily_reminder_time,
+       notification_streak_at_risk_enabled, notification_achievement_unlocked_enabled
 FROM users
 WHERE id = $1
 `
@@ -124,6 +132,10 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Language,
 		&i.NotificationsEnabled,
 		&i.Timezone,
+		&i.NotificationDailyReminderEnabled,
+		&i.NotificationDailyReminderTime,
+		&i.NotificationStreakAtRiskEnabled,
+		&i.NotificationAchievementUnlockedEnabled,
 	)
 	return i, err
 }
@@ -133,7 +145,9 @@ UPDATE users
 SET email = $2, display_name = $3, photo_url = $4, updated_at = NOW()
 WHERE id = $1
 RETURNING id, firebase_uid, email, display_name, photo_url, created_at, updated_at,
-          weight, height, age, gender, activity_level, language, notifications_enabled, timezone
+          weight, height, age, gender, activity_level, language, notifications_enabled, timezone,
+          notification_daily_reminder_enabled, notification_daily_reminder_time,
+          notification_streak_at_risk_enabled, notification_achievement_unlocked_enabled
 `
 
 type UpdateUserParams struct {
@@ -167,6 +181,10 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.Language,
 		&i.NotificationsEnabled,
 		&i.Timezone,
+		&i.NotificationDailyReminderEnabled,
+		&i.NotificationDailyReminderTime,
+		&i.NotificationStreakAtRiskEnabled,
+		&i.NotificationAchievementUnlockedEnabled,
 	)
 	return i, err
 }
@@ -203,19 +221,36 @@ func (q *Queries) UpdateUserDisplayName(ctx context.Context, arg UpdateUserDispl
 	return err
 }
 
-const updateUserNotifications = `-- name: UpdateUserNotifications :exec
+const updateUserNotificationPreferences = `-- name: UpdateUserNotificationPreferences :exec
 UPDATE users
-SET notifications_enabled = $2, updated_at = NOW()
-WHERE id = $1
+SET
+    notifications_enabled = COALESCE($1, notifications_enabled),
+    notification_daily_reminder_enabled = COALESCE($2, notification_daily_reminder_enabled),
+    notification_daily_reminder_time = COALESCE($3, notification_daily_reminder_time),
+    notification_streak_at_risk_enabled = COALESCE($4, notification_streak_at_risk_enabled),
+    notification_achievement_unlocked_enabled = COALESCE($5, notification_achievement_unlocked_enabled),
+    updated_at = NOW()
+WHERE id = $6
 `
 
-type UpdateUserNotificationsParams struct {
-	ID                   uuid.UUID
-	NotificationsEnabled *bool
+type UpdateUserNotificationPreferencesParams struct {
+	NotificationsEnabled                   *bool
+	NotificationDailyReminderEnabled       *bool
+	NotificationDailyReminderTime          *string
+	NotificationStreakAtRiskEnabled        *bool
+	NotificationAchievementUnlockedEnabled *bool
+	ID                                     uuid.UUID
 }
 
-func (q *Queries) UpdateUserNotifications(ctx context.Context, arg UpdateUserNotificationsParams) error {
-	_, err := q.db.Exec(ctx, updateUserNotifications, arg.ID, arg.NotificationsEnabled)
+func (q *Queries) UpdateUserNotificationPreferences(ctx context.Context, arg UpdateUserNotificationPreferencesParams) error {
+	_, err := q.db.Exec(ctx, updateUserNotificationPreferences,
+		arg.NotificationsEnabled,
+		arg.NotificationDailyReminderEnabled,
+		arg.NotificationDailyReminderTime,
+		arg.NotificationStreakAtRiskEnabled,
+		arg.NotificationAchievementUnlockedEnabled,
+		arg.ID,
+	)
 	return err
 }
 
