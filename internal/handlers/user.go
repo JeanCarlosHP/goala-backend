@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"fmt"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -190,8 +188,6 @@ func (h *UserHandler) PatchUserPreferences(c fiber.Ctx) error {
 			"errors":  err.Error(),
 		})
 	}
-
-	fmt.Print(req)
 
 	ctx := c.Context()
 	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)

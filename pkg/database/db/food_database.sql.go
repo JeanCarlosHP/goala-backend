@@ -16,7 +16,7 @@ INSERT INTO food_database (
     barcode, name, brand, calories, protein, carbs, fat,
     serving_size, serving_unit, source
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at
+RETURNING id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at, external_id
 `
 
 type CreateFoodFromBarcodeParams struct {
@@ -65,12 +65,13 @@ func (q *Queries) CreateFoodFromBarcode(ctx context.Context, arg CreateFoodFromB
 		&i.ServingUnit,
 		&i.Verified,
 		&i.UpdatedAt,
+		&i.ExternalID,
 	)
 	return i, err
 }
 
 const getFoodByBarcode = `-- name: GetFoodByBarcode :one
-SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at FROM food_database WHERE barcode = $1
+SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at, external_id FROM food_database WHERE barcode = $1
 `
 
 func (q *Queries) GetFoodByBarcode(ctx context.Context, barcode *string) (FoodDatabase, error) {
@@ -95,12 +96,13 @@ func (q *Queries) GetFoodByBarcode(ctx context.Context, barcode *string) (FoodDa
 		&i.ServingUnit,
 		&i.Verified,
 		&i.UpdatedAt,
+		&i.ExternalID,
 	)
 	return i, err
 }
 
 const getFoodByID = `-- name: GetFoodByID :one
-SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at FROM food_database WHERE id = $1
+SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at, external_id FROM food_database WHERE id = $1
 `
 
 func (q *Queries) GetFoodByID(ctx context.Context, id uuid.UUID) (FoodDatabase, error) {
@@ -125,12 +127,13 @@ func (q *Queries) GetFoodByID(ctx context.Context, id uuid.UUID) (FoodDatabase, 
 		&i.ServingUnit,
 		&i.Verified,
 		&i.UpdatedAt,
+		&i.ExternalID,
 	)
 	return i, err
 }
 
 const listVerifiedFoods = `-- name: ListVerifiedFoods :many
-SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at FROM food_database
+SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at, external_id FROM food_database
 WHERE verified = true
 ORDER BY name
 LIMIT $1 OFFSET $2
@@ -169,6 +172,7 @@ func (q *Queries) ListVerifiedFoods(ctx context.Context, arg ListVerifiedFoodsPa
 			&i.ServingUnit,
 			&i.Verified,
 			&i.UpdatedAt,
+			&i.ExternalID,
 		); err != nil {
 			return nil, err
 		}
@@ -181,7 +185,7 @@ func (q *Queries) ListVerifiedFoods(ctx context.Context, arg ListVerifiedFoodsPa
 }
 
 const searchFoodByName = `-- name: SearchFoodByName :many
-SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at FROM food_database
+SELECT id, name, brand, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_at, barcode, calories, protein, carbs, fat, serving_size, serving_unit, verified, updated_at, external_id FROM food_database
 WHERE LOWER(name) LIKE LOWER($1)
 ORDER BY verified DESC, name
 LIMIT $2
@@ -220,6 +224,7 @@ func (q *Queries) SearchFoodByName(ctx context.Context, arg SearchFoodByNamePara
 			&i.ServingUnit,
 			&i.Verified,
 			&i.UpdatedAt,
+			&i.ExternalID,
 		); err != nil {
 			return nil, err
 		}

@@ -23,6 +23,7 @@ type User struct {
 	Language             string    `json:"language"`
 	Timezone             string    `json:"timezone"` // Novo campo para timezone
 	NotificationsEnabled bool      `json:"notificationsEnabled"`
+	NotificationPrefs    NotificationPreferences
 	CreatedAt            time.Time `json:"createdAt"`
 	UpdatedAt            time.Time `json:"updatedAt"`
 }
@@ -51,24 +52,25 @@ type UpdateGoalRequest struct {
 }
 
 type UserProfileResponse struct {
-	ID                   string    `json:"id"`
-	DisplayName          string    `json:"displayName"`
-	Email                string    `json:"email"`
-	Photo                *string   `json:"photo,omitempty"`
-	DailyCalorieGoal     int32     `json:"dailyCalorieGoal"`
-	DailyProteinGoal     int32     `json:"dailyProteinGoal"`
-	DailyCarbsGoal       *int32    `json:"dailyCarbsGoal,omitempty"`
-	DailyFatGoal         *int32    `json:"dailyFatGoal,omitempty"`
-	Weight               *int32    `json:"weight,omitempty"`
-	Height               *int32    `json:"height,omitempty"`
-	Age                  *int32    `json:"age,omitempty"`
-	Gender               *string   `json:"gender,omitempty"`
-	ActivityLevel        *string   `json:"activityLevel,omitempty"`
-	Language             string    `json:"language"`
-	Timezone             string    `json:"timezone"` // Novo campo
-	NotificationsEnabled bool      `json:"notificationsEnabled"`
-	CreatedAt            time.Time `json:"createdAt"`
-	UpdatedAt            time.Time `json:"updatedAt"`
+	ID                   string                  `json:"id"`
+	DisplayName          string                  `json:"displayName"`
+	Email                string                  `json:"email"`
+	Photo                *string                 `json:"photo,omitempty"`
+	DailyCalorieGoal     int32                   `json:"dailyCalorieGoal"`
+	DailyProteinGoal     int32                   `json:"dailyProteinGoal"`
+	DailyCarbsGoal       *int32                  `json:"dailyCarbsGoal,omitempty"`
+	DailyFatGoal         *int32                  `json:"dailyFatGoal,omitempty"`
+	Weight               *int32                  `json:"weight,omitempty"`
+	Height               *int32                  `json:"height,omitempty"`
+	Age                  *int32                  `json:"age,omitempty"`
+	Gender               *string                 `json:"gender,omitempty"`
+	ActivityLevel        *string                 `json:"activityLevel,omitempty"`
+	Language             string                  `json:"language"`
+	Timezone             string                  `json:"timezone"` // Novo campo
+	NotificationsEnabled bool                    `json:"notificationsEnabled"`
+	NotificationPrefs    NotificationPreferences `json:"notificationPreferences"`
+	CreatedAt            time.Time               `json:"createdAt"`
+	UpdatedAt            time.Time               `json:"updatedAt"`
 }
 
 type UpdateProfileRequest struct {
@@ -102,7 +104,65 @@ type AvatarUploadResponse struct {
 }
 
 type PatchUserPreferencesRequest struct {
-	DisplayName          *string `json:"displayName" validate:"omitempty,min=2,max=255"`
-	PhotoURL             *string `json:"photoUrl" validate:"omitempty,startswith=/"`
-	NotificationsEnabled *bool   `json:"notificationsEnabled" validate:"omitempty"`
+	DisplayName          *string                              `json:"displayName" validate:"omitempty,min=2,max=255"`
+	PhotoURL             *string                              `json:"photoUrl" validate:"omitempty,startswith=/"`
+	NotificationsEnabled *bool                                `json:"notificationsEnabled" validate:"omitempty"`
+	NotificationPrefs    *PatchNotificationPreferencesRequest `json:"notificationPreferences" validate:"omitempty"`
+}
+
+type NotificationPreferences struct {
+	DailyReminder       DailyReminderPreference        `json:"dailyReminder"`
+	StreakRisk          NotificationCategoryPreference `json:"streakRisk"`
+	AchievementUnlocked NotificationCategoryPreference `json:"achievementUnlocked"`
+}
+
+type DailyReminderPreference struct {
+	Enabled bool   `json:"enabled"`
+	Time    string `json:"time"`
+}
+
+type NotificationCategoryPreference struct {
+	Enabled bool `json:"enabled"`
+}
+
+type PatchNotificationPreferencesRequest struct {
+	DailyReminder       *PatchDailyReminderPreference     `json:"dailyReminder" validate:"omitempty"`
+	StreakRisk          *PatchNotificationCategoryRequest `json:"streakRisk" validate:"omitempty"`
+	AchievementUnlocked *PatchNotificationCategoryRequest `json:"achievementUnlocked" validate:"omitempty"`
+}
+
+type PatchDailyReminderPreference struct {
+	Enabled *bool   `json:"enabled" validate:"omitempty"`
+	Time    *string `json:"time" validate:"omitempty,datetime=15:04"`
+}
+
+type PatchNotificationCategoryRequest struct {
+	Enabled *bool `json:"enabled" validate:"omitempty"`
+}
+
+type NotificationPreferencesUpdate struct {
+	NotificationsEnabled       *bool
+	DailyReminderEnabled       *bool
+	DailyReminderTime          *string
+	StreakRiskEnabled          *bool
+	AchievementUnlockedEnabled *bool
+}
+
+func (p NotificationPreferences) Effective(notificationsEnabled bool) NotificationPreferences {
+	if notificationsEnabled {
+		return p
+	}
+
+	return NotificationPreferences{
+		DailyReminder: DailyReminderPreference{
+			Enabled: false,
+			Time:    p.DailyReminder.Time,
+		},
+		StreakRisk: NotificationCategoryPreference{
+			Enabled: false,
+		},
+		AchievementUnlocked: NotificationCategoryPreference{
+			Enabled: false,
+		},
+	}
 }
