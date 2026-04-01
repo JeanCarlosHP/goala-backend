@@ -18,7 +18,7 @@ type Querier interface {
 	CreateFoodItem(ctx context.Context, arg CreateFoodItemParams) error
 	CreateMeal(ctx context.Context, arg CreateMealParams) (Meal, error)
 	CreateOrResetAIUsage(ctx context.Context, arg CreateOrResetAIUsageParams) (AiUsage, error)
-	CreateStandaloneFoodItem(ctx context.Context, arg CreateStandaloneFoodItemParams) (FoodItem, error)
+	CreateStandaloneFoodItem(ctx context.Context, arg CreateStandaloneFoodItemParams) (CreateStandaloneFoodItemRow, error)
 	CreateSubscription(ctx context.Context, arg CreateSubscriptionParams) (Subscription, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	CreateUserStats(ctx context.Context, userID uuid.UUID) (UserStat, error)
@@ -34,9 +34,9 @@ type Querier interface {
 	GetFeedbackByUser(ctx context.Context, userID uuid.UUID) ([]Feedback, error)
 	GetFoodByBarcode(ctx context.Context, barcode *string) (FoodDatabase, error)
 	GetFoodByID(ctx context.Context, id uuid.UUID) (FoodDatabase, error)
-	GetFoodItemByID(ctx context.Context, id uuid.UUID) (FoodItem, error)
-	GetFoodItemsByMealID(ctx context.Context, mealID uuid.UUID) ([]FoodItem, error)
-	GetFoodItemsByMealIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]FoodItem, error)
+	GetFoodItemByID(ctx context.Context, id uuid.UUID) (GetFoodItemByIDRow, error)
+	GetFoodItemsByMealID(ctx context.Context, mealID uuid.UUID) ([]GetFoodItemsByMealIDRow, error)
+	GetFoodItemsByMealIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetFoodItemsByMealIDsRow, error)
 	GetMealByID(ctx context.Context, id uuid.UUID) (Meal, error)
 	GetMealsByUserAndDate(ctx context.Context, arg GetMealsByUserAndDateParams) ([]Meal, error)
 	GetMealsWithFoodsInRange(ctx context.Context, arg GetMealsWithFoodsInRangeParams) ([]GetMealsWithFoodsInRangeRow, error)
@@ -63,7 +63,7 @@ type Querier interface {
 	UpdateAchievementProgress(ctx context.Context, arg UpdateAchievementProgressParams) error
 	UpdateFeedbackStatus(ctx context.Context, arg UpdateFeedbackStatusParams) error
 	UpdateFoodItem(ctx context.Context, arg UpdateFoodItemParams) error
-	UpdateFoodItemComplete(ctx context.Context, arg UpdateFoodItemCompleteParams) (FoodItem, error)
+	UpdateFoodItemComplete(ctx context.Context, arg UpdateFoodItemCompleteParams) (UpdateFoodItemCompleteRow, error)
 	UpdateFoodVerified(ctx context.Context, arg UpdateFoodVerifiedParams) error
 	UpdateStreakAndLastLogDate(ctx context.Context, arg UpdateStreakAndLastLogDateParams) error
 	UpdateSubscription(ctx context.Context, arg UpdateSubscriptionParams) (Subscription, error)

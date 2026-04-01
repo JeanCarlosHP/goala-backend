@@ -65,7 +65,20 @@ type CreateStandaloneFoodItemParams struct {
 	Source      *string
 }
 
-func (q *Queries) CreateStandaloneFoodItem(ctx context.Context, arg CreateStandaloneFoodItemParams) (FoodItem, error) {
+type CreateStandaloneFoodItemRow struct {
+	ID          uuid.UUID
+	MealID      uuid.UUID
+	Name        string
+	PortionSize *float64
+	PortionUnit *string
+	Calories    int
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
+	Source      *string
+}
+
+func (q *Queries) CreateStandaloneFoodItem(ctx context.Context, arg CreateStandaloneFoodItemParams) (CreateStandaloneFoodItemRow, error) {
 	row := q.db.QueryRow(ctx, createStandaloneFoodItem,
 		arg.ID,
 		arg.MealID,
@@ -78,7 +91,7 @@ func (q *Queries) CreateStandaloneFoodItem(ctx context.Context, arg CreateStanda
 		arg.Fat,
 		arg.Source,
 	)
-	var i FoodItem
+	var i CreateStandaloneFoodItemRow
 	err := row.Scan(
 		&i.ID,
 		&i.MealID,
@@ -110,9 +123,22 @@ FROM food_items
 WHERE id = $1
 `
 
-func (q *Queries) GetFoodItemByID(ctx context.Context, id uuid.UUID) (FoodItem, error) {
+type GetFoodItemByIDRow struct {
+	ID          uuid.UUID
+	MealID      uuid.UUID
+	Name        string
+	PortionSize *float64
+	PortionUnit *string
+	Calories    int
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
+	Source      *string
+}
+
+func (q *Queries) GetFoodItemByID(ctx context.Context, id uuid.UUID) (GetFoodItemByIDRow, error) {
 	row := q.db.QueryRow(ctx, getFoodItemByID, id)
-	var i FoodItem
+	var i GetFoodItemByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.MealID,
@@ -134,15 +160,28 @@ FROM food_items
 WHERE meal_id = $1
 `
 
-func (q *Queries) GetFoodItemsByMealID(ctx context.Context, mealID uuid.UUID) ([]FoodItem, error) {
+type GetFoodItemsByMealIDRow struct {
+	ID          uuid.UUID
+	MealID      uuid.UUID
+	Name        string
+	PortionSize *float64
+	PortionUnit *string
+	Calories    int
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
+	Source      *string
+}
+
+func (q *Queries) GetFoodItemsByMealID(ctx context.Context, mealID uuid.UUID) ([]GetFoodItemsByMealIDRow, error) {
 	rows, err := q.db.Query(ctx, getFoodItemsByMealID, mealID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []FoodItem{}
+	items := []GetFoodItemsByMealIDRow{}
 	for rows.Next() {
-		var i FoodItem
+		var i GetFoodItemsByMealIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.MealID,
@@ -171,15 +210,28 @@ FROM food_items
 WHERE meal_id = ANY($1::uuid[])
 `
 
-func (q *Queries) GetFoodItemsByMealIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]FoodItem, error) {
+type GetFoodItemsByMealIDsRow struct {
+	ID          uuid.UUID
+	MealID      uuid.UUID
+	Name        string
+	PortionSize *float64
+	PortionUnit *string
+	Calories    int
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
+	Source      *string
+}
+
+func (q *Queries) GetFoodItemsByMealIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetFoodItemsByMealIDsRow, error) {
 	rows, err := q.db.Query(ctx, getFoodItemsByMealIDs, dollar_1)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []FoodItem{}
+	items := []GetFoodItemsByMealIDsRow{}
 	for rows.Next() {
-		var i FoodItem
+		var i GetFoodItemsByMealIDsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.MealID,
@@ -384,7 +436,20 @@ type UpdateFoodItemCompleteParams struct {
 	Source      *string
 }
 
-func (q *Queries) UpdateFoodItemComplete(ctx context.Context, arg UpdateFoodItemCompleteParams) (FoodItem, error) {
+type UpdateFoodItemCompleteRow struct {
+	ID          uuid.UUID
+	MealID      uuid.UUID
+	Name        string
+	PortionSize *float64
+	PortionUnit *string
+	Calories    int
+	Protein     *float64
+	Carbs       *float64
+	Fat         *float64
+	Source      *string
+}
+
+func (q *Queries) UpdateFoodItemComplete(ctx context.Context, arg UpdateFoodItemCompleteParams) (UpdateFoodItemCompleteRow, error) {
 	row := q.db.QueryRow(ctx, updateFoodItemComplete,
 		arg.ID,
 		arg.Name,
@@ -396,7 +461,7 @@ func (q *Queries) UpdateFoodItemComplete(ctx context.Context, arg UpdateFoodItem
 		arg.Fat,
 		arg.Source,
 	)
-	var i FoodItem
+	var i UpdateFoodItemCompleteRow
 	err := row.Scan(
 		&i.ID,
 		&i.MealID,

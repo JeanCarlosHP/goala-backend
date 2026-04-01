@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"

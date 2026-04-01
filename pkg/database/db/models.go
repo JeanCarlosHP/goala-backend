@@ -33,6 +33,12 @@ type AiUsage struct {
 	UpdatedAt   pgtype.Timestamptz
 }
 
+type FavoriteFood struct {
+	UserID    uuid.UUID
+	FoodID    uuid.UUID
+	CreatedAt time.Time
+}
+
 type Feedback struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
@@ -66,19 +72,29 @@ type FoodDatabase struct {
 	ServingUnit     *string
 	Verified        *bool
 	UpdatedAt       *time.Time
+	ExternalID      *string
 }
 
 type FoodItem struct {
-	ID          uuid.UUID
-	MealID      uuid.UUID
-	Name        string
-	PortionSize *float64
-	PortionUnit *string
-	Calories    int
-	Protein     *float64
-	Carbs       *float64
-	Fat         *float64
-	Source      *string
+	ID             uuid.UUID
+	MealID         uuid.UUID
+	Name           string
+	PortionSize    *float64
+	PortionUnit    *string
+	Calories       int
+	Protein        *float64
+	Carbs          *float64
+	Fat            *float64
+	Source         *string
+	FoodDatabaseID uuid.UUID
+}
+
+type FoodPortion struct {
+	ID        uuid.UUID
+	FoodID    uuid.UUID
+	Name      string
+	Grams     float64
+	CreatedAt time.Time
 }
 
 type Meal struct {

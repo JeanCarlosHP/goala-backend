@@ -63,6 +63,25 @@ func IsValidReminderTime(value string) bool {
 	return reminderTimePattern.MatchString(value)
 }
 
+func (p NotificationPreferences) Effective(notificationsEnabled bool) NotificationPreferences {
+	if notificationsEnabled {
+		return p
+	}
+
+	return NotificationPreferences{
+		DailyReminder: DailyReminderPreference{
+			Enabled: false,
+			Time:    p.DailyReminder.Time,
+		},
+		StreakAtRisk: NotificationPreference{
+			Enabled: false,
+		},
+		AchievementUnlocked: NotificationPreference{
+			Enabled: false,
+		},
+	}
+}
+
 func (r PatchUserPreferencesRequest) NotificationPreferencesUpdate() NotificationPreferencesUpdate {
 	update := NotificationPreferencesUpdate{
 		NotificationsEnabled: r.NotificationsEnabled,

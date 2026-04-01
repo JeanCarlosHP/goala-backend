@@ -256,23 +256,22 @@ func (q *Queries) UpdateUserNotificationPreferences(ctx context.Context, arg Upd
 
 const updateUserProfile = `-- name: UpdateUserProfile :exec
 UPDATE users SET
-    display_name = $2,
-    email = $3,
-    photo_url = $4,
-    weight = $5,
-    height = $6,
-    age = $7,
-    gender = $8,
-    activity_level = $9,
-    language = $10,
-    notifications_enabled = $11,
-    timezone = $12,
+    display_name = $1,
+    email = $2,
+    photo_url = $3,
+    weight = $4,
+    height = $5,
+    age = $6,
+    gender = $7,
+    activity_level = $8,
+    language = $9,
+    notifications_enabled = $10,
+    timezone = $11,
     updated_at = NOW()
-WHERE id = $1
+WHERE id = $12
 `
 
 type UpdateUserProfileParams struct {
-	ID                   uuid.UUID
 	DisplayName          *string
 	Email                *string
 	PhotoUrl             *string
@@ -284,11 +283,11 @@ type UpdateUserProfileParams struct {
 	Language             *string
 	NotificationsEnabled *bool
 	Timezone             *string
+	ID                   uuid.UUID
 }
 
 func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error {
 	_, err := q.db.Exec(ctx, updateUserProfile,
-		arg.ID,
 		arg.DisplayName,
 		arg.Email,
 		arg.PhotoUrl,
@@ -300,6 +299,7 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		arg.Language,
 		arg.NotificationsEnabled,
 		arg.Timezone,
+		arg.ID,
 	)
 	return err
 }

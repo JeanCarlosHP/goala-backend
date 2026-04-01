@@ -146,6 +146,63 @@ func TestGetUserProfileIncludesNotificationPreferences(t *testing.T) {
 	}
 }
 
+func TestGetUserProfileAppliesGlobalNotificationDisable(t *testing.T) {
+	t.Parallel()
+
+	userID := uuid.New()
+	userRepo := &stubUserRepository{
+		user: &domain.User{
+			ID:                   userID,
+			Email:                "user@example.com",
+			DisplayName:          "Jean",
+			Language:             "en-US",
+			Timezone:             "America/Sao_Paulo",
+			NotificationsEnabled: false,
+			NotificationPreferences: domain.NotificationPreferences{
+				DailyReminder: domain.DailyReminderPreference{
+					Enabled: true,
+					Time:    "20:15",
+				},
+				StreakAtRisk: domain.NotificationPreference{
+					Enabled: true,
+				},
+				AchievementUnlocked: domain.NotificationPreference{
+					Enabled: true,
+				},
+			},
+		},
+	}
+	goalRepo := &stubGoalRepository{
+		goal: &domain.UserGoal{
+			UserID:           userID,
+			DailyCalorieGoal: 2000,
+			DailyProteinGoal: 150,
+			DailyCarbsGoal:   200,
+			DailyFatGoal:     65,
+		},
+	}
+
+	service := NewUserService(userRepo, goalRepo, "https://cdn.example.com")
+
+	profile, err := service.GetUserProfile(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("GetUserProfile returned error: %v", err)
+	}
+
+	if profile.NotificationPreferences.DailyReminder.Enabled {
+		t.Fatal("expected daily reminder to be effectively disabled when notificationsEnabled is false")
+	}
+	if profile.NotificationPreferences.StreakAtRisk.Enabled {
+		t.Fatal("expected streak-at-risk to be effectively disabled when notificationsEnabled is false")
+	}
+	if profile.NotificationPreferences.AchievementUnlocked.Enabled {
+		t.Fatal("expected achievement-unlocked to be effectively disabled when notificationsEnabled is false")
+	}
+	if profile.NotificationPreferences.DailyReminder.Time != "20:15" {
+		t.Fatalf("expected reminder time to be preserved, got %q", profile.NotificationPreferences.DailyReminder.Time)
+	}
+}
+
 func TestPatchUserPreferencesOnlyUpdatesTargetedNotificationFields(t *testing.T) {
 	t.Parallel()
 
@@ -222,6 +279,58 @@ func TestPatchUserPreferencesOnlyUpdatesTargetedNotificationFields(t *testing.T)
 
 	if profile.NotificationPreferences.AchievementUnlocked.Enabled {
 		t.Fatalf("expected achievement-unlocked preference to remain false")
+	}
+}
+
+func TestNotificationPreferencesUpdateFromPatch(t *testing.T) {
+	t.Parallel()
+
+	globalEnabled := true
+	streakEnabled := false
+	reminderTime := "07:45"
+
+	update, ok := notificationPreferencesUpdateFromPatch(domain.PatchUserPreferencesRequest{
+		NotificationsEnabled: &globalEnabled,
+		NotificationPreferences: &domain.PatchNotificationPreferencesRequest{
+			DailyReminder: &domain.PatchDailyReminderPreference{
+				Time: &reminderTime,
+			},
+			StreakAtRisk: &domain.PatchNotificationPreference{
+				Enabled: &streakEnabled,
+			},
+		},
+	})
+	if !ok {
+		t.Fatal("expected notification preference changes to be detected")
+	}
+	if update.NotificationsEnabled == nil || !*update.NotificationsEnabled {
+		t.Fatal("expected global notifications update to be preserved")
+	}
+	if update.DailyReminderTime == nil || *update.DailyReminderTime != "07:45" {
+		t.Fatal("expected reminder time update to be preserved")
+	}
+	if update.StreakAtRiskEnabled == nil || *update.StreakAtRiskEnabled {
+		t.Fatal("expected streak-at-risk update to be preserved")
+	}
+	if update.DailyReminderEnabled != nil {
+		t.Fatal("expected omitted daily reminder enabled flag to remain nil")
+	}
+	if update.AchievementUnlockedEnabled != nil {
+		t.Fatal("expected omitted achievement flag to remain nil")
+	}
+}
+
+func TestNotificationPreferencesUpdateFromPatchNoChanges(t *testing.T) {
+	t.Parallel()
+
+	update, ok := notificationPreferencesUpdateFromPatch(domain.PatchUserPreferencesRequest{
+		NotificationPreferences: &domain.PatchNotificationPreferencesRequest{},
+	})
+	if ok {
+		t.Fatal("expected empty nested preferences to produce no update")
+	}
+	if update.NotificationsEnabled != nil || update.DailyReminderEnabled != nil || update.DailyReminderTime != nil || update.StreakAtRiskEnabled != nil || update.AchievementUnlockedEnabled != nil {
+		t.Fatal("expected all update fields to remain nil")
 	}
 }
 

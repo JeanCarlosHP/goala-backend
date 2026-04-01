@@ -30,19 +30,19 @@ RETURNING id, firebase_uid, email, display_name, photo_url, created_at, updated_
 
 -- name: UpdateUserProfile :exec
 UPDATE users SET
-    display_name = $2,
-    email = $3,
-    photo_url = $4,
-    weight = $5,
-    height = $6,
-    age = $7,
-    gender = $8,
-    activity_level = $9,
-    language = $10,
-    notifications_enabled = $11,
-    timezone = $12,
+    display_name = sqlc.arg(display_name),
+    email = sqlc.arg(email),
+    photo_url = sqlc.arg(photo_url),
+    weight = sqlc.arg(weight),
+    height = sqlc.arg(height),
+    age = sqlc.arg(age),
+    gender = sqlc.arg(gender),
+    activity_level = sqlc.arg(activity_level),
+    language = sqlc.arg(language),
+    notifications_enabled = sqlc.arg(notifications_enabled),
+    timezone = sqlc.arg(timezone),
     updated_at = NOW()
-WHERE id = $1;
+WHERE id = sqlc.arg(id);
 
 -- name: ExistsUserByFirebaseUID :one
 SELECT EXISTS(SELECT 1 FROM users WHERE firebase_uid = $1);
