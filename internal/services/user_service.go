@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jeancarloshp/calorieai/internal/domain"
@@ -32,7 +33,9 @@ func (s *UserService) buildPhotoURL(ctx context.Context, photoPath *string) *str
 	if photoPath == nil || *photoPath == "" {
 		return nil
 	}
-	fullURL := s.cdnDomain + *photoPath
+	baseURL := strings.TrimRight(s.cdnDomain, "/")
+	path := "/" + strings.TrimLeft(*photoPath, "/")
+	fullURL := baseURL + path
 	return &fullURL
 }
 

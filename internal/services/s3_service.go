@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"path/filepath"
 	"strings"
 	"time"
@@ -24,12 +25,17 @@ type S3Service struct {
 	logger     domain.Logger
 }
 
+type ObjectData struct {
+	Body        []byte
+	ContentType string
+}
+
 func NewS3Service(cfg *domain.Config, logger domain.Logger) (*S3Service, error) {
 	awsConfig, err := config.LoadDefaultConfig(context.Background(),
-		config.WithRegion(cfg.AWSS3Region),
+		config.WithRegion(cfg.StorageRegion),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			cfg.AWSAccessKeyID,
-			cfg.AWSSecretAccessKey,
+			cfg.StorageAccessKeyID,
+			cfg.StorageSecretAccessKey,
 			"",
 		)),
 	)
@@ -37,11 +43,16 @@ func NewS3Service(cfg *domain.Config, logger domain.Logger) (*S3Service, error) 
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
-	client := s3.NewFromConfig(awsConfig)
+	endpoint := strings.TrimSpace(cfg.StorageEndpoint)
+	client := s3.NewFromConfig(awsConfig, func(o *s3.Options) {
+		if endpoint != "" {
+			o.BaseEndpoint = aws.String(endpoint)
+		}
+	})
 
 	return &S3Service{
 		client:     client,
-		bucketName: cfg.AWSS3BucketName,
+		bucketName: cfg.StorageBucketName,
 		logger:     logger,
 	}, nil
 }
@@ -74,10 +85,10 @@ func (s *S3Service) UploadImage(ctx context.Context, fileContent io.Reader, file
 		return "", fmt.Errorf("failed to upload to S3: %w", err)
 	}
 
-	url := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", s.bucketName, s.client.Options().Region, fileName)
-	s.logger.Info("image uploaded successfully", "url", url)
+	objectPath := fmt.Sprintf("/%s", fileName)
+	s.logger.Info("image uploaded successfully", "path", objectPath)
 
-	return url, nil
+	return objectPath, nil
 }
 
 func getExtensionFromMimeType(ctx context.Context, mimeType string) string {
@@ -223,8 +234,17 @@ func (s *S3Service) GenerateFoodImageUploadPresignedURL(ctx context.Context, use
 }
 
 func (s *S3Service) DownloadImage(ctx context.Context, imagePath string) ([]byte, error) {
+	objectData, err := s.GetObject(ctx, imagePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return objectData.Body, nil
+}
+
+func (s *S3Service) GetObject(ctx context.Context, imagePath string) (*ObjectData, error) {
 	tr := otel.Tracer("services/s3_service.go")
-	ctx, span := tr.Start(ctx, "DownloadImage")
+	ctx, span := tr.Start(ctx, "GetObject")
 	defer span.End()
 
 	// Always remove leading slash if present
@@ -254,5 +274,16 @@ func (s *S3Service) DownloadImage(ctx context.Context, imagePath string) ([]byte
 
 	s.logger.Info("image downloaded successfully", "imagePath", imagePath, "size", len(imageBytes))
 
-	return imageBytes, nil
+	contentType := strings.TrimSpace(aws.ToString(result.ContentType))
+	if contentType == "" {
+		contentType = mime.TypeByExtension(filepath.Ext(imagePath))
+	}
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	return &ObjectData{
+		Body:        imageBytes,
+		ContentType: contentType,
+	}, nil
 }

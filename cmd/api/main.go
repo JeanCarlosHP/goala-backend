@@ -105,6 +105,8 @@ func main() {
 
 	api.Post("/auth/register", authHandler.Register)
 	api.Post("/webhooks/revenuecat", subscriptionHandler.HandleWebhook)
+	app.Get("/avatars/:firebaseUID/:filename", userHandler.GetAvatar)
+	app.Get("/users/:userID/food_images/:filename", foodRecognitionHandler.GetFoodImage)
 
 	protected := api.Group("", middleware.AuthRequired(firebaseApp, logger), middleware.UserContext(userRepo, logger))
 

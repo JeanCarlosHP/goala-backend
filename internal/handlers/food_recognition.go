@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -192,4 +195,29 @@ func (h *FoodRecognitionHandler) GenerateFoodImageUploadURL(c fiber.Ctx) error {
 		},
 		"message": "presigned URL generated successfully",
 	})
+}
+
+func (h *FoodRecognitionHandler) GetFoodImage(c fiber.Ctx) error {
+	userID := strings.TrimSpace(c.Params("userID"))
+	filename := strings.TrimSpace(c.Params("filename"))
+	if userID == "" || filename == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "invalid image path",
+		})
+	}
+
+	objectPath := fmt.Sprintf("/users/%s/food_images/%s", userID, filename)
+	objectData, err := h.s3Service.GetObject(c.Context(), objectPath)
+	if err != nil {
+		h.logger.Error("Failed to fetch food image", "user_id", userID, "path", objectPath, "error", err)
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "image not found",
+		})
+	}
+
+	c.Set(fiber.HeaderContentType, objectData.ContentType)
+	c.Set(fiber.HeaderCacheControl, "public, max-age=300")
+	return c.Send(objectData.Body)
 }

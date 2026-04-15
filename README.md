@@ -7,7 +7,7 @@ Backend API for AI-powered calorie tracking application.
 - **Framework**: Fiber (Go)
 - **Database**: PostgreSQL with pgxpool
 - **Authentication**: Firebase Auth
-- **Storage**: AWS S3
+- **Storage**: Railway Storage Bucket (S3-compatible)
 - **AI Processing**: OpenAI GPT-4o / Google Gemini Flash
 - **Architecture**: Clean Architecture + CQRS
 - **Logging**: Slog
@@ -17,7 +17,7 @@ Backend API for AI-powered calorie tracking application.
 - Go 1.23+
 - Docker & Docker Compose
 - Firebase project credentials
-- AWS account (for S3 and Lambda)
+- Railway project with a Storage Bucket
 - OpenAI API key or Google Gemini API key
 
 ## Setup
@@ -84,7 +84,8 @@ Complete API documentation is available in OpenAPI/Swagger format:
 - `POST /api/v1/ai/autocomplete` - AI-powered food macro autocomplete (protected)
 
 ### AI Photo Analysis
-- `POST /api/v1/upload/sign` - Generate S3 signed URL for photo upload (protected)
+- `POST /api/v1/user/avatar/presigned-url` - Generate signed URL for avatar upload (protected)
+- `POST /api/v1/food/image/presigned-url` - Generate signed URL for meal image upload (protected)
 - `POST /api/v1/ai/analyze` - Trigger AI analysis of uploaded photo (protected)
 - `POST /api/v1/webhook/ai` - Webhook to receive AI analysis results (internal)
 
@@ -131,7 +132,7 @@ backend/
 │   ├── services/        # Business logic
 │   ├── repositories/    # Data access
 │   ├── middleware/      # Auth, logging
-│   └── infrastructure/  # DB, Firebase, S3, RabbitMQ
+│   └── infrastructure/  # DB, Firebase, storage, RabbitMQ
 ├── lambda/              # AWS Lambda functions
 │   ├── openai_analyzer.py   # OpenAI GPT-4o Vision
 │   ├── gemini_analyzer.py   # Google Gemini Flash
@@ -173,7 +174,8 @@ All environment variables are documented in [docs/ENVIRONMENT_VARIABLES.md](./do
 Required environment variables are documented in [.env.example](./.env.example).
 
 Key variables:
-- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET` - AWS S3 configuration
+- `BUCKET`, `ENDPOINT`, `REGION`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY` - Railway bucket S3-compatible configuration
+- `CDN_DOMAIN` - Public base URL for backend-served image proxy routes
 - `RABBITMQ_URL` - RabbitMQ connection string
 - `LAMBDA_FUNCTION_NAME` - AWS Lambda function name
 - `LAMBDA_WEBHOOK_URL` - Backend webhook URL for AI results

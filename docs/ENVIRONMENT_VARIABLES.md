@@ -82,33 +82,37 @@ cp .env.example .env
 4. Clique em "Generate New Private Key"
 5. Salve o arquivo JSON ou copie o conteúdo
 
-### AWS (S3 e Lambda)
+### Railway Storage Bucket
 
 | Variável | Descrição | Exemplo | Obrigatório |
 |----------|-----------|---------|-------------|
-| `AWS_REGION` | Região AWS | `us-east-1` | ✅ |
-| `AWS_ACCESS_KEY_ID` | Access Key ID | `AKIAIOSFODNN7EXAMPLE` | ✅ |
-| `AWS_SECRET_ACCESS_KEY` | Secret Access Key | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` | ✅ |
-| `AWS_S3_BUCKET_NAME` | Nome do bucket S3 | `calorieai-meals` | ✅ |
-| `AWS_S3_REGION` | Região do bucket S3 | `us-east-1` | ✅ |
+| `BUCKET` | Nome real do bucket para a API S3 do Railway | `calorieai-meals-ab12cd34` | ✅ |
+| `ENDPOINT` | Endpoint S3-compatible do Railway | `https://storage.railway.app` | ✅ |
+| `REGION` | Região exposta pelo bucket Railway | `auto` | ✅ |
+| `ACCESS_KEY_ID` | Access Key ID do bucket Railway | `rwk_xxxxxxxxxxxxx` | ✅ |
+| `SECRET_ACCESS_KEY` | Secret Access Key do bucket Railway | `rwks_xxxxxxxxxxxxx` | ✅ |
 
 ### CDN
 
 | Variável | Descrição | Exemplo | Obrigatório |
 |----------|-----------|---------|-------------|
-| `CDN_DOMAIN` | Domínio do CDN para servir assets | `https://cdn.example.com` ou `https://d1234567890abc.cloudfront.net` | ✅ |
+| `CDN_DOMAIN` | Base pública usada para servir imagens via proxy do backend | `https://api.example.com` | ✅ |
 
-**Configuração do CDN:**
+**Configuração de entrega de imagens:**
 - Usado para servir avatares e imagens do usuário
 - O backend salva apenas paths relativos no banco de dados (ex: `/avatars/{userId}/avatar.jpg`)
 - Ao retornar dados para o frontend, concatena `CDN_DOMAIN + path`
-- Suporta CloudFront, Cloudflare, Fastly ou qualquer CDN compatível com S3
+- As imagens são servidas por rotas públicas do backend, porque o bucket do Railway é privado
+- Rotas públicas atuais:
+  - `GET /avatars/:firebaseUID/:filename`
+  - `GET /users/:userID/food_images/:filename`
 
-**Como configurar AWS:**
-1. Crie uma conta AWS ou faça login
-2. Crie um bucket S3 para armazenar fotos
-3. Crie um usuário IAM com permissões: `s3:PutObject`, `s3:GetObject`, `lambda:InvokeFunction`
-4. Gere e copie as credenciais
+**Como configurar o bucket Railway:**
+1. Crie um Storage Bucket no projeto Railway
+2. Abra a aba de credenciais do bucket
+3. Copie `BUCKET`, `ENDPOINT`, `REGION`, `ACCESS_KEY_ID` e `SECRET_ACCESS_KEY` para o serviço do backend
+4. Configure CORS no bucket para permitir uploads diretos do frontend por `presigned PUT URL`
+5. Configure `CDN_DOMAIN` com o domínio público do backend
 
 ### RevenueCat
 
@@ -220,15 +224,15 @@ PAGINATION_DEFAULT_PAGE_SIZE=20
 # Firebase
 FIREBASE_CREDENTIALS_FILE=./secrets/firebase-credentials.json
 
-# AWS
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your-access-key-id
-AWS_SECRET_ACCESS_KEY=your-secret-access-key
-AWS_S3_BUCKET_NAME=calorieai-meals
-AWS_S3_REGION=us-east-1
+# Railway Storage Bucket
+BUCKET=calorieai-meals-ab12cd34
+ENDPOINT=https://storage.railway.app
+REGION=auto
+ACCESS_KEY_ID=your-railway-access-key-id
+SECRET_ACCESS_KEY=your-railway-secret-access-key
 
-# CDN
-CDN_DOMAIN=https://d1234567890abc.cloudfront.net
+# Public image base URL
+CDN_DOMAIN=https://api.example.com
 
 # RevenueCat
 REVENUECAT_WEBHOOK_SECRET=rc_whsec_xxxxxxxxxxxxx
@@ -281,9 +285,10 @@ A aplicação falhará na inicialização se alguma variável obrigatória estiv
 - Verifique permissões do arquivo
 
 ### Erro: "failed to upload to S3"
-- Confirme `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
-- Verifique se o bucket `AWS_S3_BUCKET` existe
-- Confirme permissões IAM do usuário
+- Confirme `BUCKET`, `ENDPOINT`, `REGION`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`
+- Verifique se o bucket Railway existe e está ativo
+- Confirme se o frontend está usando a `presigned PUT URL` antes da expiração
+- Verifique se o bucket tem CORS configurado para o domínio do frontend
 
 ### Erro: "failed to connect to RabbitMQ"
 - Verifique se RabbitMQ está rodando: `docker ps | grep rabbitmq`

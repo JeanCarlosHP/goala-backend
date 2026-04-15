@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
@@ -168,6 +169,31 @@ func (h *UserHandler) GenerateAvatarUploadURL(c fiber.Ctx) error {
 		},
 		"message": "presigned URL generated successfully",
 	})
+}
+
+func (h *UserHandler) GetAvatar(c fiber.Ctx) error {
+	firebaseUID := strings.TrimSpace(c.Params("firebaseUID"))
+	filename := strings.TrimSpace(c.Params("filename"))
+	if firebaseUID == "" || filename == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"message": "invalid avatar path",
+		})
+	}
+
+	objectPath := fmt.Sprintf("/avatars/%s/%s", firebaseUID, filename)
+	objectData, err := h.s3Service.GetObject(c.Context(), objectPath)
+	if err != nil {
+		h.logger.Error("Failed to fetch avatar", "firebase_uid", firebaseUID, "path", objectPath, "error", err)
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "image not found",
+		})
+	}
+
+	c.Set(fiber.HeaderContentType, objectData.ContentType)
+	c.Set(fiber.HeaderCacheControl, "public, max-age=300")
+	return c.Send(objectData.Body)
 }
 
 func (h *UserHandler) PatchUserPreferences(c fiber.Ctx) error {

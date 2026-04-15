@@ -19,10 +19,11 @@ type Config struct {
 	LoggingJSONFormat                  bool     `mapstructure:"LOGGING_JSON_FORMAT"`
 	FirebaseCredentialsFile            string   `mapstructure:"FIREBASE_CREDENTIALS_FILE"`
 	FirebaseCredentialsJSON            string   `mapstructure:"FIREBASE_CREDENTIALS_JSON"`
-	AWSS3BucketName                    string   `mapstructure:"AWS_S3_BUCKET_NAME"`
-	AWSS3Region                        string   `mapstructure:"AWS_S3_REGION"`
-	AWSAccessKeyID                     string   `mapstructure:"AWS_ACCESS_KEY_ID"`
-	AWSSecretAccessKey                 string   `mapstructure:"AWS_SECRET_ACCESS_KEY"`
+	StorageBucketName                  string   `mapstructure:"BUCKET"`
+	StorageRegion                      string   `mapstructure:"REGION"`
+	StorageEndpoint                    string   `mapstructure:"ENDPOINT"`
+	StorageAccessKeyID                 string   `mapstructure:"ACCESS_KEY_ID"`
+	StorageSecretAccessKey             string   `mapstructure:"SECRET_ACCESS_KEY"`
 	GeminiAPIKey                       string   `mapstructure:"GEMINI_API_KEY"`
 	GeminiModel                        string   `mapstructure:"GEMINI_MODEL"`
 	OpenAIAPIKey                       string   `mapstructure:"OPENAI_API_KEY"`
