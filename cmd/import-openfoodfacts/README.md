@@ -62,8 +62,13 @@ GOCACHE=$(pwd)/.gocache go run ./cmd/import-openfoodfacts \
   -index-meili \
   -meili-url "$MEILISEARCH_URL" \
   -meili-api-key "$MEILISEARCH_API_KEY" \
-  -meili-index "${MEILISEARCH_FOODS_INDEX:-foods}"
+  -meili-index "${MEILISEARCH_FOODS_INDEX:-foods}" \
+  -meili-timeout 2m \
+  -meili-retries 3 \
+  -meili-backoff 3s
 ```
+
+Se você estiver no Railway, prefira a URL privada/interna do Meilisearch. A URL pública costuma introduzir mais latência e pode estourar timeout em lotes grandes.
 
 ## Via Makefile
 
@@ -103,6 +108,9 @@ make import-openfoodfacts \
 - `-meili-url`: URL base do Meilisearch
 - `-meili-api-key`: chave da API do Meilisearch
 - `-meili-index`: nome do índice de alimentos
+- `-meili-timeout`: timeout por request de indexação
+- `-meili-retries`: número de tentativas de indexação
+- `-meili-backoff`: intervalo entre retries
 
 ## Comportamento em produção
 
@@ -110,3 +118,4 @@ make import-openfoodfacts \
 - cada lote faz `COPY` para staging temporário, merge no catálogo, indexação opcional e limpeza do staging
 - isso reduz uso de memória e permite acompanhar progresso real no log
 - `-truncate` deve ser usado com cuidado em produção, apenas quando você quiser reconstruir completamente o catálogo Open Food Facts
+- em Railway, use a URL interna do Meilisearch e, se necessário, reduza `BATCH_SIZE` e aumente `MEILISEARCH_TIMEOUT`

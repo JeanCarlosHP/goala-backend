@@ -33,6 +33,9 @@ type config struct {
 	meiliAPIKey   string
 	meiliIndex    string
 	indexMeili    bool
+	meiliTimeout  time.Duration
+	meiliRetries  int
+	meiliBackoff  time.Duration
 }
 
 type foodRow struct {
@@ -78,6 +81,9 @@ type meiliIndexer struct {
 	apiKey    string
 	indexName string
 	client    *http.Client
+	timeout   time.Duration
+	retries   int
+	backoff   time.Duration
 }
 
 var servingPattern = regexp.MustCompile(`(?i)^\s*([0-9]+(?:[.,][0-9]+)?)\s*(g|ml)\s*$`)
@@ -240,6 +246,9 @@ func parseFlags() config {
 	flag.StringVar(&cfg.meiliAPIKey, "meili-api-key", os.Getenv("MEILISEARCH_API_KEY"), "Meilisearch API key")
 	flag.StringVar(&cfg.meiliIndex, "meili-index", envOrDefault("MEILISEARCH_FOODS_INDEX", "foods"), "Meilisearch foods index name")
 	flag.BoolVar(&cfg.indexMeili, "index-meili", false, "Index imported foods in Meilisearch after each batch")
+	flag.DurationVar(&cfg.meiliTimeout, "meili-timeout", envDurationOrDefault("MEILISEARCH_TIMEOUT", 2*time.Minute), "Timeout per Meilisearch indexing request")
+	flag.IntVar(&cfg.meiliRetries, "meili-retries", envIntOrDefault("MEILISEARCH_RETRIES", 3), "Number of retries for Meilisearch indexing")
+	flag.DurationVar(&cfg.meiliBackoff, "meili-backoff", envDurationOrDefault("MEILISEARCH_RETRY_BACKOFF", 3*time.Second), "Backoff between Meilisearch retries")
 	flag.Parse()
 	return cfg
 }
@@ -667,7 +676,10 @@ func newMeiliIndexer(cfg config) *meiliIndexer {
 		baseURL:   strings.TrimRight(cfg.meiliURL, "/"),
 		apiKey:    cfg.meiliAPIKey,
 		indexName: cfg.meiliIndex,
-		client:    &http.Client{Timeout: 30 * time.Second},
+		client:    &http.Client{},
+		timeout:   cfg.meiliTimeout,
+		retries:   cfg.meiliRetries,
+		backoff:   cfg.meiliBackoff,
 	}
 }
 
@@ -681,32 +693,48 @@ func (m *meiliIndexer) IndexDocuments(ctx context.Context, documents []meiliDocu
 		return 0, err
 	}
 
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		fmt.Sprintf("%s/indexes/%s/documents", m.baseURL, m.indexName),
-		bytes.NewReader(body),
-	)
-	if err != nil {
-		return 0, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if m.apiKey != "" {
-		req.Header.Set("Authorization", "Bearer "+m.apiKey)
+	var lastErr error
+	for attempt := 1; attempt <= max(1, m.retries); attempt++ {
+		requestCtx := ctx
+		cancel := func() {}
+		if m.timeout > 0 {
+			requestCtx, cancel = context.WithTimeout(ctx, m.timeout)
+		}
+
+		req, err := http.NewRequestWithContext(
+			requestCtx,
+			http.MethodPost,
+			fmt.Sprintf("%s/indexes/%s/documents", m.baseURL, m.indexName),
+			bytes.NewReader(body),
+		)
+		if err != nil {
+			cancel()
+			return 0, err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		if m.apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+m.apiKey)
+		}
+
+		resp, err := m.client.Do(req)
+		cancel()
+		if err != nil {
+			lastErr = err
+		} else {
+			defer resp.Body.Close()
+			if resp.StatusCode < 300 {
+				return len(documents), nil
+			}
+			payload, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+			lastErr = fmt.Errorf("meilisearch returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(payload)))
+		}
+
+		if attempt < max(1, m.retries) {
+			time.Sleep(m.backoff)
+		}
 	}
 
-	resp, err := m.client.Do(req)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 300 {
-		payload, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return 0, fmt.Errorf("meilisearch returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(payload)))
-	}
-
-	return len(documents), nil
+	return 0, lastErr
 }
 
 func printProgress(runStats stats, start time.Time) {
@@ -725,4 +753,31 @@ func envOrDefault(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func envIntOrDefault(key string, fallback int) int {
+	if value := os.Getenv(key); value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err == nil {
+			return parsed
+		}
+	}
+	return fallback
+}
+
+func envDurationOrDefault(key string, fallback time.Duration) time.Duration {
+	if value := os.Getenv(key); value != "" {
+		parsed, err := time.ParseDuration(value)
+		if err == nil {
+			return parsed
+		}
+	}
+	return fallback
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
