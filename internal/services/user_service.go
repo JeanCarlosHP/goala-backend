@@ -33,6 +33,12 @@ func (s *UserService) buildPhotoURL(ctx context.Context, photoPath *string) *str
 	if photoPath == nil || *photoPath == "" {
 		return nil
 	}
+
+	if strings.HasPrefix(*photoPath, "http://") || strings.HasPrefix(*photoPath, "https://") {
+		externalURL := *photoPath
+		return &externalURL
+	}
+
 	baseURL := strings.TrimRight(s.cdnDomain, "/")
 	path := "/" + strings.TrimLeft(*photoPath, "/")
 	fullURL := baseURL + path
