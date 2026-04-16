@@ -110,7 +110,7 @@ func getExtensionFromMimeType(ctx context.Context, mimeType string) string {
 	return filepath.Ext(mimeType)
 }
 
-func (s *S3Service) GenerateUploadPresignedURL(ctx context.Context, firebaseUID string, contentType string, fileSize int64) (string, string, error) {
+func (s *S3Service) GenerateUploadPresignedURL(ctx context.Context, userID string, contentType string, fileSize int64) (string, string, error) {
 	tr := otel.Tracer("services/s3_service.go")
 	ctx, span := tr.Start(ctx, "GenerateUploadPresignedURL")
 	defer span.End()
@@ -141,7 +141,7 @@ func (s *S3Service) GenerateUploadPresignedURL(ctx context.Context, firebaseUID 
 		ext = ".jpg"
 	}
 
-	fileName := fmt.Sprintf("avatars/%s/avatar%s", firebaseUID, ext)
+	fileName := fmt.Sprintf("users/%s/avatars/avatar%s", userID, ext)
 
 	presignClient := s3.NewPresignClient(s.client)
 
@@ -156,14 +156,14 @@ func (s *S3Service) GenerateUploadPresignedURL(ctx context.Context, firebaseUID 
 		opts.Expires = presignDuration
 	})
 	if err != nil {
-		s.logger.Error("failed to generate presigned URL", "error", err, "userID", firebaseUID)
+		s.logger.Error("failed to generate presigned URL", "error", err, "userID", userID)
 		return "", "", fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
 
 	avatarPath := fmt.Sprintf("/%s", fileName)
 
 	s.logger.Info("presigned URL generated successfully",
-		"userID", firebaseUID,
+		"userID", userID,
 		"fileName", fileName,
 		"expiresIn", presignDuration.String(),
 	)

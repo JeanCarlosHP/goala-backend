@@ -11,6 +11,8 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
+const ApiVersion = "/api/v1"
+
 type UserService struct {
 	userRepo  *repositories.UserRepository
 	goalRepo  *repositories.GoalRepository
@@ -41,7 +43,7 @@ func (s *UserService) buildPhotoURL(ctx context.Context, photoPath *string) *str
 
 	baseURL := strings.TrimRight(s.cdnDomain, "/")
 	path := "/" + strings.TrimLeft(*photoPath, "/")
-	fullURL := baseURL + path
+	fullURL := baseURL + ApiVersion + path
 	return &fullURL
 }
 

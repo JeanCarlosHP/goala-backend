@@ -105,8 +105,6 @@ func main() {
 
 	api.Post("/auth/register", authHandler.Register)
 	api.Post("/webhooks/revenuecat", subscriptionHandler.HandleWebhook)
-	app.Get("/avatars/:firebaseUID/:filename", userHandler.GetAvatar)
-	app.Get("/users/:userID/food_images/:filename", foodRecognitionHandler.GetFoodImage)
 
 	protected := api.Group("", middleware.AuthRequired(firebaseApp, logger), middleware.UserContext(userRepo, logger))
 
@@ -121,6 +119,9 @@ func main() {
 	protected.Put("/user/profile", userHandler.UpdateProfile)
 	protected.Patch("/user/profile", userHandler.PatchUserPreferences)
 	protected.Post("/user/avatar/presigned-url", userHandler.GenerateAvatarUploadURL)
+
+	protected.Get("/users/:userID/avatars/:filename", userHandler.GetAvatar)
+	protected.Get("/users/:userID/food_images/:filename", foodRecognitionHandler.GetFoodImage)
 
 	protected.Get("/meals", mealHandler.GetMeals)
 	protected.Get("/meals/:date", mealHandler.GetMealsByPathDate)

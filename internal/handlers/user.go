@@ -121,7 +121,14 @@ func (h *UserHandler) UpdateProfile(c fiber.Ctx) error {
 }
 
 func (h *UserHandler) GenerateAvatarUploadURL(c fiber.Ctx) error {
-	firebaseUID := c.Locals("firebase_uid").(string)
+	userID, ok := c.Locals("user_id").(uuid.UUID)
+	if !ok {
+		h.logger.Warn("Missing user_id in context")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success": false,
+			"message": "authentication required",
+		})
+	}
 
 	var req domain.AvatarUploadRequest
 	if err := c.Bind().JSON(&req); err != nil {
@@ -142,18 +149,10 @@ func (h *UserHandler) GenerateAvatarUploadURL(c fiber.Ctx) error {
 	}
 
 	ctx := c.Context()
-	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
-	if err != nil {
-		h.logger.Error("User not found", "firebase_uid", firebaseUID, "error", err)
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"success": false,
-			"message": "user not found",
-		})
-	}
 
-	uploadURL, photoURL, err := h.s3Service.GenerateUploadPresignedURL(ctx, firebaseUID, req.ContentType, req.FileSize)
+	uploadURL, photoURL, err := h.s3Service.GenerateUploadPresignedURL(ctx, userID.String(), req.ContentType, req.FileSize)
 	if err != nil {
-		h.logger.Error("Failed to generate presigned URL", "user_id", user.ID.String(), "error", err)
+		h.logger.Error("Failed to generate presigned URL", "user_id", userID.String(), "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"success": false,
 			"message": err.Error(),
@@ -172,19 +171,19 @@ func (h *UserHandler) GenerateAvatarUploadURL(c fiber.Ctx) error {
 }
 
 func (h *UserHandler) GetAvatar(c fiber.Ctx) error {
-	firebaseUID := strings.TrimSpace(c.Params("firebaseUID"))
+	userID := strings.TrimSpace(c.Params("userID"))
 	filename := strings.TrimSpace(c.Params("filename"))
-	if firebaseUID == "" || filename == "" {
+	if userID == "" || filename == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"message": "invalid avatar path",
 		})
 	}
 
-	objectPath := fmt.Sprintf("/avatars/%s/%s", firebaseUID, filename)
+	objectPath := fmt.Sprintf("/users/%s/avatars/%s", userID, filename)
 	objectData, err := h.s3Service.GetObject(c.Context(), objectPath)
 	if err != nil {
-		h.logger.Error("Failed to fetch avatar", "firebase_uid", firebaseUID, "path", objectPath, "error", err)
+		h.logger.Error("Failed to fetch avatar", "firebase_uid", userID, "path", objectPath, "error", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"success": false,
 			"message": "image not found",
