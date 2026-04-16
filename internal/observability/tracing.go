@@ -2,6 +2,7 @@ package observability
 
 import (
 	"context"
+	"strings"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
 	"go.opentelemetry.io/otel"
@@ -13,6 +14,11 @@ import (
 )
 
 func InitTracer(ctx context.Context, serviceName string, config *domain.Config) (*sdktrace.TracerProvider, error) {
+	if !config.TracingEnabled || strings.TrimSpace(config.OtelCollectorURL) == "" {
+		otel.SetTracerProvider(noop.NewTracerProvider())
+		return nil, nil
+	}
+
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
 			semconv.ServiceName(serviceName),

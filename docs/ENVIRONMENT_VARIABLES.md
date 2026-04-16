@@ -30,6 +30,7 @@ cp .env.example .env
 | `ENVIRONMENT` | Ambiente de execução | `development`, `staging`, `production` | `development` |
 | `LOGGING_LEVEL` | Nível de log | `debug`, `info`, `warn`, `error`, `fatal` | `debug` |
 | `LOGGING_JSON_FORMAT` | Formato JSON para logs | `true`, `false` | `true` |
+| `TRACING_ENABLED` | Habilitar tracing global da aplicação | `true`, `false` | `true` |
 
 ### Database (PostgreSQL)
 
@@ -166,6 +167,7 @@ cp .env.example .env
 ENVIRONMENT=development
 LOGGING_LEVEL=debug
 LOGGING_JSON_FORMAT=true
+TRACING_ENABLED=false
 DATABASE_SSL_MODE=disable
 DATABASE_TRACING=true
 HTTP_CORS_ALLOWED_ORIGINS=*
@@ -176,6 +178,7 @@ HTTP_CORS_ALLOWED_ORIGINS=*
 ENVIRONMENT=staging
 LOGGING_LEVEL=info
 LOGGING_JSON_FORMAT=true
+TRACING_ENABLED=false
 DATABASE_SSL_MODE=require
 DATABASE_TRACING=false
 HTTP_CORS_ALLOWED_ORIGINS=https://staging.calorieai.com
@@ -186,6 +189,7 @@ HTTP_CORS_ALLOWED_ORIGINS=https://staging.calorieai.com
 ENVIRONMENT=production
 LOGGING_LEVEL=warn
 LOGGING_JSON_FORMAT=true
+TRACING_ENABLED=false
 DATABASE_SSL_MODE=verify-full
 DATABASE_TRACING=false
 HTTP_CORS_ALLOWED_ORIGINS=https://calorieai.com
@@ -205,6 +209,7 @@ HTTP_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
 ENVIRONMENT=development
 LOGGING_LEVEL=debug
 LOGGING_JSON_FORMAT=true
+TRACING_ENABLED=false
 
 # Database
 DATABASE_HOST=localhost

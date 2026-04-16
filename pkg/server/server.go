@@ -77,8 +77,10 @@ func (s *httpServer) GetLogger() domain.Logger {
 }
 
 func (s *httpServer) ConfigureMiddlewares() {
-	// OpenTelemetry tracing middleware deve ser o primeiro
-	s.App.Use(fiberotel.Middleware())
+	if s.Config.TracingEnabled {
+		// OpenTelemetry tracing middleware deve ser o primeiro
+		s.App.Use(fiberotel.Middleware())
+	}
 	s.App.Use(cors.New(cors.Config{
 		AllowHeaders: s.Config.HTTPCorsAllowedHeaders,
 		AllowMethods: s.Config.HTTPCorsAllowedMethods,

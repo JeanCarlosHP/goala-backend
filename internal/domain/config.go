@@ -1,6 +1,7 @@
 package domain
 
 type Config struct {
+	TracingEnabled                     bool     `mapstructure:"TRACING_ENABLED"`
 	OtelCollectorURL                   string   `mapstructure:"OTEL_COLLECTOR_URL"`
 	HTTPPort                           string   `mapstructure:"HTTP_PORT"`
 	HTTPRequestSizeLimit               string   `mapstructure:"HTTP_REQUEST_SIZE_LIMIT"`

@@ -32,15 +32,19 @@ func (d *Database) NewConnection(config *domain.Config) error {
 		return fmt.Errorf("pgxpool.ParseConfig: %w", err)
 	}
 
-	pgxConfig.ConnConfig.Tracer = otelpgx.NewTracer()
+	if config.TracingEnabled && config.DatabaseTracing {
+		pgxConfig.ConnConfig.Tracer = otelpgx.NewTracer()
+	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, pgxConfig)
 	if err != nil {
 		return err
 	}
 
-	if err := otelpgx.RecordStats(pool); err != nil {
-		return fmt.Errorf("unable to record database stats: %w", err)
+	if config.TracingEnabled && config.DatabaseTracing {
+		if err := otelpgx.RecordStats(pool); err != nil {
+			return fmt.Errorf("unable to record database stats: %w", err)
+		}
 	}
 
 	err = pool.Ping(ctx)
