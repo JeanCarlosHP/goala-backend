@@ -15,7 +15,6 @@ import (
 	"github.com/jeancarloshp/calorieai/pkg/server/middleware"
 
 	"github.com/jeancarloshp/calorieai/internal/domain"
-	"github.com/jeancarloshp/calorieai/internal/domain/enum"
 	"github.com/jeancarloshp/calorieai/internal/handlers"
 	"github.com/jeancarloshp/calorieai/internal/observability"
 	"github.com/jeancarloshp/calorieai/internal/repositories"
@@ -148,13 +147,9 @@ func main() {
 	protected.Post("/feedback", feedbackHandler.CreateFeedback)
 
 	protected.Post("/food/image/presigned-url", foodRecognitionHandler.GenerateFoodImageUploadURL)
-	protected.Post("/food/recognize",
-		middleware.AIQuotaCheck(aiUsageService, enum.FeatureMealAnalysis, logger),
-		foodRecognitionHandler.RecognizeFood)
+	protected.Post("/food/recognize", foodRecognitionHandler.RecognizeFood)
 	protected.Get("/food/barcode/:barcode", foodRecognitionHandler.GetFoodByBarcode)
-	protected.Post("/food/estimate-quantity",
-		middleware.AIQuotaCheck(aiUsageService, enum.FeatureMealAnalysis, logger),
-		foodRecognitionHandler.EstimateQuantity)
+	protected.Post("/food/estimate-quantity", foodRecognitionHandler.EstimateQuantity)
 
 	go func() {
 		if err := httpServer.StartServer(); err != nil {
